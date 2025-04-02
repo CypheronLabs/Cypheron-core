@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "core-lib",
+    "cli",
+    "grpc-api",
+    "rest-api"
+]
