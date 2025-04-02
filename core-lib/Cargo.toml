@@ -3,3 +3,13 @@ name = "core-lib"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
+[dependencies]
+zeroize = { version = "1.6", features = ["derive"] }
+secrecy = "0.8"
+rand_core = "0.6"
+
+[build-dependencies]
+bindgen = "0.69"
+
+[dev-dependencies]
+core-lib = { path = "." }
