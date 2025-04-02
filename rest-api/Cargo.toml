@@ -1,0 +1,9 @@
+[package]
+name = "rest-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+core-lib = { path = "../core-lib" }
