@@ -1,17 +1,25 @@
+pub mod kyber512;
 pub mod kyber768;
+pub mod kyber1024;
 pub mod sizes;
 
-pub use kyber768::{Kyber768, KyberPublicKey, KyberSecretKey};
+pub use kyber512::Kyber512;
+pub use kyber768::Kyber768;
+pub use kyber1024::Kyber1024;
 
-// Enum for abstract KEM variant usage (optional, future use)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KemVariant {
     Kyber768,
-    // Kyber512,
-    // Kyber1024,
+    Kyber512,
+    Kyber1024,
 }
-// pub trait Kem {
-//     fn keypair(&self) -> (...);
-//     fn encapsulate(&self, ...);
-//     fn decapsulate(&self, ...);
-// }
+pub trait Kem {
+    type PublicKey: Clone;
+    type SecretKey;
+    type Ciphertext;
+    type SharedSecret;
+
+    fn keypair() -> (Self::PublicKey, Self::SecretKey);
+    fn encapsulate(pk: &Self::PublicKey) -> (Self::Ciphertext, Self::SharedSecret);
+    fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Self::SharedSecret;
+}

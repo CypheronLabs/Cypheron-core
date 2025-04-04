@@ -1,14 +1,14 @@
-use core_lib::kem::{Kyber768, Kem};
+use core_lib::kem::{Kyber512, Kem};
 use core_lib::kem::KemVariant;
 use secrecy::ExposeSecret;
 
 #[test]
 fn test_variant_and_expose() {
-    assert_eq!(Kyber768::variant(), KemVariant::Kyber768);
+    assert_eq!(Kyber512::variant(), KemVariant::Kyber512);
 
-    let (pk, sk) = Kyber768::keypair();
-    let (ct, ss1) = Kyber768::encapsulate(&pk);
-    let ss2 = Kyber768::decapsulate(&ct, &sk);
+    let (pk, sk) = Kyber512::keypair();
+    let (ct, ss1) = Kyber512::encapsulate(&pk);
+    let ss2 = Kyber512::decapsulate(&ct, &sk);
 
     println!("Public Key (len={}): {:02x?}", pk.0.len(), &pk.0[..16]);
     println!("Secret Key (len={}): {:02x?}", sk.0.len(), &sk.0[..16]);
@@ -17,7 +17,7 @@ fn test_variant_and_expose() {
     println!("Shared Secret 2: {:02x?}", ss2.expose_secret());
 
     assert_eq!(
-        Kyber768::expose_shared(&ss1),
-        Kyber768::expose_shared(&ss2)
+        Kyber512::expose_shared(&ss1),
+        Kyber512::expose_shared(&ss2)
     );
 }
