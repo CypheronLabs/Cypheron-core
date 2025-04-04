@@ -9,7 +9,15 @@ secrecy = "0.8"
 rand_core = "0.6"
 
 [build-dependencies]
+cc = "1.0"
 bindgen = "0.69"
 
 [dev-dependencies]
 core-lib = { path = "." }
+
+[features]
+default = []
+derand = []
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ["cfg(rust_analyzer)"] }
