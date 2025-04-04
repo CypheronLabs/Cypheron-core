@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        components: rustfmt, clippy
+        profile: minimal
+
+    - name: Build
+      run: cargo build --workspace --all-targets
+
+    - name: Run Tests
+      run: cargo test --workspace --all-targets -- --nocapture
+
+    - name: Format Check
+      run: cargo fmt --all -- --check
+
+    - name: Lint
+      run: cargo clippy --workspace --all-targets -- -D warnings
