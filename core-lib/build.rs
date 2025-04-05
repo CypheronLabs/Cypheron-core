@@ -51,11 +51,11 @@ fn build_kyber(variant: &str, k_val: &str, ref_dir: &Path) {
     bindgen::Builder::default()
         .header(ref_dir.join("api.h").to_str().unwrap())
         .clang_arg(format!("-I{}", ref_dir.display()))
-        .allowlist_function(&format!("pqcrystals_kyber{}_ref_keypair", variant))
-        .allowlist_function(&format!("pqcrystals_kyber{}_ref_enc", variant))
-        .allowlist_function(&format!("pqcrystals_kyber{}_ref_dec", variant))
+        .allowlist_function(format!("pqcrystals_kyber{}_ref_keypair", variant))
+        .allowlist_function(format!("pqcrystals_kyber{}_ref_enc", variant))
+        .allowlist_function(format!("pqcrystals_kyber{}_ref_dec", variant))
         .generate()
-        .expect(&format!("Unable to generate Kyber{} bindings", variant))
+        .unwrap_or_else(|_| panic!("Unable to generate Kyber{} bindings", variant))
         .write_to_file(&out_bindings)
-        .expect(&format!("Couldn't write Kyber{} bindings", variant));
+        .unwrap_or_else(|_| panic!("Couldn't write Kyber{} bindings", variant));
 }
