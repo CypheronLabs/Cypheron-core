@@ -1,5 +1,5 @@
-use core_lib::kem::{Kyber1024, Kem};
 use core_lib::kem::KemVariant;
+use core_lib::kem::{Kem, Kyber1024};
 use secrecy::ExposeSecret;
 
 #[test]

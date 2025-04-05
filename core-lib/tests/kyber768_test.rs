@@ -1,5 +1,5 @@
-use core_lib::kem::{Kyber768, Kem};
 use core_lib::kem::KemVariant;
+use core_lib::kem::{Kem, Kyber768};
 use secrecy::ExposeSecret;
 
 #[test]
@@ -16,8 +16,5 @@ fn test_variant_and_expose() {
     println!("Shared Secret 1: {:02x?}", ss1.expose_secret());
     println!("Shared Secret 2: {:02x?}", ss2.expose_secret());
 
-    assert_eq!(
-        Kyber768::expose_shared(&ss1),
-        Kyber768::expose_shared(&ss2)
-    );
+    assert_eq!(Kyber768::expose_shared(&ss1), Kyber768::expose_shared(&ss2));
 }
