@@ -1,11 +1,11 @@
+pub mod kyber1024;
 pub mod kyber512;
 pub mod kyber768;
-pub mod kyber1024;
 pub mod sizes;
 
+pub use kyber1024::Kyber1024;
 pub use kyber512::Kyber512;
 pub use kyber768::Kyber768;
-pub use kyber1024::Kyber1024;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KemVariant {

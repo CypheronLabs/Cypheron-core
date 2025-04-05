@@ -3,7 +3,11 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-    let kyber_ref_dir = manifest_dir.join("..").join("vendor").join("kyber").join("ref");
+    let kyber_ref_dir = manifest_dir
+        .join("..")
+        .join("vendor")
+        .join("kyber")
+        .join("ref");
 
     build_kyber("512", "2", &kyber_ref_dir);
     build_kyber("768", "3", &kyber_ref_dir);
@@ -19,10 +23,23 @@ fn build_kyber(variant: &str, k_val: &str, ref_dir: &Path) {
     let out_bindings = out_dir.join(format!("kyber{}_bindings.rs", variant));
 
     cc::Build::new()
-        .files([
-            "indcpa.c", "kem.c", "ntt.c", "poly.c", "polyvec.c", "reduce.c",
-            "verify.c", "symmetric-shake.c", "randombytes.c", "fips202.c", "cbd.c"
-        ].iter().map(|f| ref_dir.join(f)))
+        .files(
+            [
+                "indcpa.c",
+                "kem.c",
+                "ntt.c",
+                "poly.c",
+                "polyvec.c",
+                "reduce.c",
+                "verify.c",
+                "symmetric-shake.c",
+                "randombytes.c",
+                "fips202.c",
+                "cbd.c",
+            ]
+            .iter()
+            .map(|f| ref_dir.join(f)),
+        )
         .include(ref_dir)
         .define("KYBER_K", Some(k_val))
         .flag_if_supported("-O3")
