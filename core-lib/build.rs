@@ -13,23 +13,21 @@ fn main() {
 }
 
 fn build_kyber_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir
-        .join("..")
-        .join("vendor/kyber/ref");
+    let ref_dir = manifest_dir.join("..").join("vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
         PQBuilder::new(format!("kyber{}", variant), &ref_dir)
             .files(vec![
-                "indcpa.c", 
-                "kem.c", 
-                "ntt.c", 
-                "poly.c", 
-                "polyvec.c", 
-                "reduce.c", 
+                "indcpa.c",
+                "kem.c",
+                "ntt.c",
+                "poly.c",
+                "polyvec.c",
+                "reduce.c",
                 "verify.c",
-                "symmetric-shake.c", 
-                "randombytes.c", 
+                "symmetric-shake.c",
+                "randombytes.c",
                 "fips202.c",
                 "cbd.c",
             ])
@@ -45,23 +43,21 @@ fn build_kyber_all(manifest_dir: &Path) {
 }
 
 fn build_dilithium_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir
-        .join("..")
-        .join("vendor/dilithium/ref");
+    let ref_dir = manifest_dir.join("..").join("vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
     for level in &["2", "3", "5"] {
         PQBuilder::new(format!("dilithium_{}", level), &ref_dir)
             .files(vec![
                 "sign.c",
-                "polyvec.c", 
-                "poly.c", 
-                "packing.c", 
-                "ntt.c", 
+                "polyvec.c",
+                "poly.c",
+                "packing.c",
+                "ntt.c",
                 "reduce.c",
-                "rounding.c", 
-                "symmetric-shake.c", 
-                "fips202.c", 
+                "rounding.c",
+                "symmetric-shake.c",
+                "fips202.c",
                 "randombytes.c",
             ])
             .defines(vec![("DILITHIUM_MODE", level)])
@@ -129,7 +125,7 @@ impl<'a> PQBuilder<'a> {
         build.files(self.c_files.iter().map(|f| self.src_dir.join(f)));
         build.flag_if_supported("-O3");
         for (k, v) in &self.defines {
-            build.define(k, Some(*v)); 
+            build.define(k, Some(*v));
         }
         build.compile(&self.lib_name);
 
@@ -157,7 +153,10 @@ impl<'a> PQBuilder<'a> {
                     .unwrap_or_else(|_| panic!("Couldn't write bindings for {}", self.lib_name));
             }
             Err(e) => {
-                eprintln!("\n[build.rs] Failed to generate bindings for {}: {}", self.lib_name, e);
+                eprintln!(
+                    "\n[build.rs] Failed to generate bindings for {}: {}",
+                    self.lib_name, e
+                );
                 eprintln!("Make sure libclang is installed and visible.");
                 eprintln!("Try: `sudo apt install libclang-dev`");
                 eprintln!("Or set the environment variable: `LIBCLANG_PATH=/path/to/libclang.so`");
