@@ -1,0 +1,9 @@
+pub trait SignatureScheme {
+    type PublicKey: Clone;
+    type SecretKey;
+    type Signature;
+
+    fn keypair() -> (Self::PublicKey, Self::SecretKey);
+    fn sign(msg: &[u8], sk: &Self::SecretKey) -> Self::Signature;
+    fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool;
+}
