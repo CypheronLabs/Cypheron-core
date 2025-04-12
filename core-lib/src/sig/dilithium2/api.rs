@@ -1,24 +1,24 @@
-use crate::sig::dilithium2::engine;
-use crate::sig::dilithium2::types::{PublicKey, SecretKey, Signature};
-use crate::sig::traits::SignatureScheme;
-use super::bindings::*;
+use crate::sig::dilithium2::engine::Dilithium2Engine;
+use crate::sig::traits::{SignatureEngine, SignatureScheme};
 
 pub struct Dilithium2;
 
-impl SignatureScheme for Dilithium2 {
-    type PublicKey = PublicKey;
-    type SecretKey = SecretKey;
-    type Signature = Signature;
+impl SignatureEngine for Dilithium2 {
+    type PublicKey = <Dilithium2Engine as SignatureEngine>::PublicKey;
+    type SecretKey = <Dilithium2Engine as SignatureEngine>::SecretKey;
+    type Signature = <Dilithium2Engine as SignatureEngine>::Signature;
 
     fn keypair() -> (Self::PublicKey, Self::SecretKey) {
-        engine::keypair(pqcrystals_dilithium2_ref_keypair)
+        Dilithium2Engine::keypair()
     }
 
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Self::Signature {
-        engine::sign(pqcrystals_dilithium2_ref_sign, msg, sk)
+        Dilithium2Engine::sign(msg, sk)
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
-        engine::verify(pqcrystals_dilithium2_ref_verify, msg, sig, pk)
+        Dilithium2Engine::verify(msg, sig, pk)
     }
 }
+
+impl SignatureScheme for Dilithium2 {}

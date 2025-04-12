@@ -1,6 +1,7 @@
+// sphincs/mod.rs
 pub mod api;
 mod bindings;
 pub mod engine;
 pub mod types;
 
-pub use api::Dilithium3;
+//pub use api::SphincsPlus;

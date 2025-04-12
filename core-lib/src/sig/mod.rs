@@ -2,6 +2,8 @@ pub mod dilithium2;
 pub mod dilithium3;
 pub mod dilithium5;
 pub mod dilithium_common;
+pub mod falcon;
+pub mod sphincs;
 pub mod traits;
 
 pub use dilithium2::Dilithium2;

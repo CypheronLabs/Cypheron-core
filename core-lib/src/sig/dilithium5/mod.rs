@@ -1,4 +1,6 @@
 pub mod api;
-pub mod bindings;
+mod bindings;
+pub mod engine;
+pub mod types;
 
 pub use api::Dilithium5;

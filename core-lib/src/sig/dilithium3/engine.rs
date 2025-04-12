@@ -1,21 +1,21 @@
-use crate::sig::dilithium2::bindings::*;
-use crate::sig::dilithium2::types::*;
+use crate::sig::dilithium3::bindings::*;
+use crate::sig::dilithium3::types::*;
 use crate::sig::dilithium_common::sizes::*;
 use secrecy::{ExposeSecret, Secret};
 use std::mem::MaybeUninit;
 
-pub struct Dilithium2Engine;
+pub struct Dilithium3Engine;
 
-impl super::super::traits::SignatureEngine for Dilithium2Engine {
+impl super::super::traits::SignatureEngine for Dilithium3Engine {
     type PublicKey = PublicKey;
     type SecretKey = SecretKey;
     type Signature = Signature;
 
     fn keypair() -> (Self::PublicKey, Self::SecretKey) {
-        let mut pk = MaybeUninit::<[u8; DILITHIUM2_PUBLIC]>::uninit();
-        let mut sk = MaybeUninit::<[u8; DILITHIUM2_SECRET]>::uninit();
+        let mut pk = MaybeUninit::<[u8; DILITHIUM3_PUBLIC]>::uninit();
+        let mut sk = MaybeUninit::<[u8; DILITHIUM3_SECRET]>::uninit();
         unsafe {
-            pqcrystals_dilithium2_ref_keypair(
+            pqcrystals_dilithium3_ref_keypair(
                 pk.as_mut_ptr() as *mut u8,
                 sk.as_mut_ptr() as *mut u8,
             );
@@ -27,10 +27,10 @@ impl super::super::traits::SignatureEngine for Dilithium2Engine {
     }
 
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Self::Signature {
-        let mut sig = MaybeUninit::<[u8; DILITHIUM2_SIGNATURE]>::uninit();
+        let mut sig = MaybeUninit::<[u8; DILITHIUM3_SIGNATURE]>::uninit();
         let mut siglen = 0usize;
         unsafe {
-            pqcrystals_dilithium2_ref_signature(
+            pqcrystals_dilithium3_ref_signature(
                 sig.as_mut_ptr() as *mut u8,
                 &mut siglen,
                 msg.as_ptr(),
@@ -45,7 +45,7 @@ impl super::super::traits::SignatureEngine for Dilithium2Engine {
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
         unsafe {
-            pqcrystals_dilithium2_ref_verify(
+            pqcrystals_dilithium3_ref_verify(
                 sig.0.as_ptr(),
                 sig.0.len(),
                 msg.as_ptr(),

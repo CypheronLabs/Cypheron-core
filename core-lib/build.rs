@@ -6,8 +6,8 @@ fn main() {
 
     build_kyber_all(&manifest_dir);
     build_dilithium_all(&manifest_dir);
-    // build_falcon_all(&manifest_dir);
-    // build_sphincs_all(&manifest_dir);
+    build_falcon_all(&manifest_dir);
+    build_sphincsplus_all(&manifest_dir);
 
     println!("cargo:rerun-if-changed=build.rs");
 }
@@ -64,14 +64,96 @@ fn build_dilithium_all(manifest_dir: &Path) {
             .header("api.h")
             .allowlist(vec![
                 format!("pqcrystals_dilithium{}_ref_keypair", level),
-                format!("pqcrystals_dilithium{}_ref_sign", level),
+                format!("pqcrystals_dilithium{}_ref_signature", level),
                 format!("pqcrystals_dilithium{}_ref_verify", level),
             ])
             .build();
     }
 }
 
-// TODO Falcon, Sphincs+
+fn build_falcon_all(manifest_dir: &Path) {
+    let ref_dir = manifest_dir.join("..").join("vendor/falcon");
+    println!("cargo:rerun-if-changed={}", ref_dir.display());
+
+    PQBuilder::new("falcon".into(), &ref_dir)
+        .files(vec![
+            "codec.c",
+            "common.c",
+            "deterministic.c",
+            "falcon.c",
+            "fft.c",
+            "fpr.c",
+            "keygen.c",
+            "rng.c",
+            "shake.c",
+            "sign.c",
+            "vrfy.c",
+        ])
+        .header("falcon.h")
+        .allowlist(vec![
+            "falcon_keygen_make".into(),
+            "falcon_sign_dyn".into(),
+            "falcon_sign_tree".into(),
+            "falcon_sign_dyn_finish".into(),
+            "falcon_sign_tree_finish".into(),
+            "falcon_expand_privkey".into(),
+            "falcon_verify".into(),
+            "falcon_verify_start".into(),
+            "falcon_verify_finish".into(),
+            "shake256_init".into(),
+            "shake256_inject".into(),
+            "shake256_flip".into(),
+            "shake256_extract".into(),
+            "shake256_init_prng_from_seed".into(),
+            "shake256_init_prng_from_system".into(),
+            "FALCON_SIG_COMPRESSED".into(),
+            "FALCON_SIG_PADDED".into(),
+            "FALCON_SIG_CT".into(),
+        ])
+        .build();
+}
+
+fn build_sphincsplus_all(manifest_dir: &Path) {
+    let ref_dir = manifest_dir.join("..").join("vendor/sphincsplus/ref"); // Adjust if needed
+    println!("cargo:rerun-if-changed={}", ref_dir.display());
+
+    PQBuilder::new("sphincsplus".into(), &ref_dir)
+        .files(vec![
+            "address.c",
+            "context.c",
+            "fors.c",
+            "hash.c",
+            "merkle.c",
+            "sign.c",
+            "thash.c",
+            "utils.c",
+            "wots.c",
+            "wotsx1.c",
+            "randombytes.c",
+            "fips202.c",
+        ])
+        .defines(vec![]) 
+        .header("api.h")
+        .allowlist(vec![
+            "crypto_sign_keypair".into(),
+            "crypto_sign_seed_keypair".into(),
+            "crypto_sign_signature".into(),
+            "crypto_sign_verify".into(),
+            "crypto_sign".into(),
+            "crypto_sign_open".into(),
+            "crypto_sign_secretkeybytes".into(),
+            "crypto_sign_publickeybytes".into(),
+            "crypto_sign_bytes".into(),
+            "crypto_sign_seedbytes".into(),
+            "CRYPTO_ALGNAME".into(),
+            "CRYPTO_SECRETKEYBYTES".into(),
+            "CRYPTO_PUBLICKEYBYTES".into(),
+            "CRYPTO_BYTES".into(),
+            "CRYPTO_SEEDBYTES".into(),
+        ])
+        .build();
+}
+
 
 // Generic Build Pattern for building the FFI bindings
 struct PQBuilder<'a> {
