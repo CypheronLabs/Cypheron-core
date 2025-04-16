@@ -1,7 +1,18 @@
-// falcon/mod.rs
-pub mod api;
-mod bindings;
-pub mod engine;
-pub mod types;
+#[cfg(not(rust_analyzer))]
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
+#[allow(non_upper_case_globals)]
+pub mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/falcon_bindings.rs"));
+}
+pub mod falcon512;
+pub mod falcon1024;
+pub mod common;
+pub use falcon512::Falcon512;
+pub use falcon1024::Falcon1024;
 
-//pub use api::Falcon;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FalconVariant {
+    Falcon512,
+    Falcon1024,
+}
