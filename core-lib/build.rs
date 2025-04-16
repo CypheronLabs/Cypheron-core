@@ -114,10 +114,12 @@ fn build_falcon_all(manifest_dir: &Path) {
 }
 
 fn build_sphincsplus_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir.join("..").join("vendor/sphincsplus/ref"); // Adjust if needed
+    let ref_dir = manifest_dir.join("..").join("vendor/sphincsplus/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    PQBuilder::new("sphincsplus".into(), &ref_dir)
+    let params_set = "sphincs-shake-128f-simple";
+
+    PQBuilder::new(format!("sphincsplus_{}", params_set.replace('-', "_")), &ref_dir)
         .files(vec![
             "address.c",
             "context.c",
@@ -132,7 +134,7 @@ fn build_sphincsplus_all(manifest_dir: &Path) {
             "randombytes.c",
             "fips202.c",
         ])
-        .defines(vec![]) 
+        .defines(vec![("PARAMS", "sphincs-shake-128f-simple")])
         .header("api.h")
         .allowlist(vec![
             "crypto_sign_keypair".into(),
@@ -153,7 +155,6 @@ fn build_sphincsplus_all(manifest_dir: &Path) {
         ])
         .build();
 }
-
 
 // Generic Build Pattern for building the FFI bindings
 struct PQBuilder<'a> {
