@@ -117,43 +117,74 @@ fn build_sphincsplus_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("..").join("vendor/sphincsplus/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    let params_set = "sphincs-shake-128f-simple";
+    let params_set = "sphincs-shake-128f";
 
-    PQBuilder::new(format!("sphincsplus_{}", params_set.replace('-', "_")), &ref_dir)
-        .files(vec![
-            "address.c",
-            "context.c",
-            "fors.c",
-            "hash.c",
-            "merkle.c",
-            "sign.c",
-            "thash.c",
-            "utils.c",
-            "wots.c",
-            "wotsx1.c",
-            "randombytes.c",
-            "fips202.c",
-        ])
-        .defines(vec![("PARAMS", "sphincs-shake-128f-simple")])
-        .header("api.h")
-        .allowlist(vec![
-            "crypto_sign_keypair".into(),
-            "crypto_sign_seed_keypair".into(),
-            "crypto_sign_signature".into(),
-            "crypto_sign_verify".into(),
-            "crypto_sign".into(),
-            "crypto_sign_open".into(),
-            "crypto_sign_secretkeybytes".into(),
-            "crypto_sign_publickeybytes".into(),
-            "crypto_sign_bytes".into(),
-            "crypto_sign_seedbytes".into(),
-            "CRYPTO_ALGNAME".into(),
-            "CRYPTO_SECRETKEYBYTES".into(),
-            "CRYPTO_PUBLICKEYBYTES".into(),
-            "CRYPTO_BYTES".into(),
-            "CRYPTO_SEEDBYTES".into(),
-        ])
-        .build();
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let generated_params_dir = out_dir.join("sphincsplus_params");
+
+    let original_template = ref_dir.join("params").join(format!("params-{}.h", params_set));
+    let patched_template = generated_params_dir.join(format!("params-{}.h", params_set));
+    let patched_params_h = generated_params_dir.join("params.h");
+    let shake_offsets_src = ref_dir.join("shake_offsets.h");
+    let shake_offsets_dst = generated_params_dir.join("shake_offsets.h");
+
+    std::fs::create_dir_all(&generated_params_dir)
+        .expect("[build.rs] Failed to create sphincsplus_params directory");
+
+    let include_line = format!("#include \"params-{}.h\"\n", params_set);
+    std::fs::write(&patched_params_h, include_line)
+        .expect("[build.rs] Failed to write patched params.h for SPHINCS+");
+
+    if !patched_template.exists() {
+        let contents = std::fs::read_to_string(&original_template)
+            .expect("Failed to read original params header");
+        let patched_contents =
+            contents.replace(r#"#include "../shake_offsets.h""#, r#"#include "shake_offsets.h""#);
+        std::fs::write(&patched_template, patched_contents)
+            .expect("Failed to write patched params header");
+    }
+
+    std::fs::copy(&shake_offsets_src, &shake_offsets_dst)
+        .expect("Failed to copy shake_offsets.h");
+
+    PQBuilder::new(
+        format!("sphincsplus_{}", params_set.replace('-', "_")),
+        &ref_dir,
+    )
+    .files(vec![
+        "address.c",
+        "fors.c",
+        "hash_shake.c",
+        "merkle.c",
+        "sign.c",
+        "thash_shake_robust.c",
+        "thash_shake_simple.c",
+        "utils.c",
+        "wots.c",
+        "wotsx1.c",
+        "randombytes.c",
+        "fips202.c",
+    ])
+    .defines(vec![("PARAMS", "sphincs-shake-128f")])
+    .header(patched_params_h.to_str().unwrap()) // redirect header
+    .allowlist(vec![
+        "crypto_sign_keypair".into(),
+        "crypto_sign_seed_keypair".into(),
+        "crypto_sign_signature".into(),
+        "crypto_sign_verify".into(),
+        "crypto_sign".into(),
+        "crypto_sign_open".into(),
+        "crypto_sign_secretkeybytes".into(),
+        "crypto_sign_publickeybytes".into(),
+        "crypto_sign_bytes".into(),
+        "crypto_sign_seedbytes".into(),
+        "CRYPTO_ALGNAME".into(),
+        "CRYPTO_SECRETKEYBYTES".into(),
+        "CRYPTO_PUBLICKEYBYTES".into(),
+        "CRYPTO_BYTES".into(),
+        "CRYPTO_SEEDBYTES".into(),
+    ])
+    .build();
 }
 
 // Generic Build Pattern for building the FFI bindings
