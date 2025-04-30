@@ -1,12 +1,12 @@
-use crate::sig::dilithium5::bindings::*;
-use crate::sig::dilithium5::types::*;
-use crate::sig::dilithium_common::sizes::*;
+use crate::sig::dilithium::dilithium5::bindings::*;
+use crate::sig::dilithium::dilithium5::types::*;
+use crate::sig::dilithium::common::*;
 use secrecy::{ExposeSecret, Secret};
 use std::mem::MaybeUninit;
 
 pub struct Dilithium5Engine;
 
-impl super::super::traits::SignatureEngine for Dilithium5Engine {
+impl crate::sig::traits::SignatureEngine for Dilithium5Engine {
     type PublicKey = PublicKey;
     type SecretKey = SecretKey;
     type Signature = Signature;

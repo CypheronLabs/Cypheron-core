@@ -1,4 +1,4 @@
-use crate::sig::dilithium_common::sizes::*;
+use crate::sig::dilithium::common::*;
 use secrecy::Secret;
 
 #[derive(Clone)]
