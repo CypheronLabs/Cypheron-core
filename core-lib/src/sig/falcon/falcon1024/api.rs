@@ -4,7 +4,7 @@ use crate::sig::traits::SignatureEngine;
 use secrecy::Secret;
 use std::mem::MaybeUninit;
 
-impl SignatureScheme for Falcon1024 {
+impl SignatureEngine for Falcon1024 {
     type PublicKey = PublicKey;
     type SecretKey = SecretKey;
     type Signature = Signature;

@@ -1,13 +1,11 @@
 use super::types::*;
-use crate::sig::falcon::bindings::*;
 use crate::sig::traits::SignatureEngine;
-use secrecy::Secret;
-use std::mem::MaybeUninit;
+use crate::sig::falcon::Falcon512;
 
-impl SignatureScheme for Falcon512 {
-    type PublicKey = PublicKey;
-    type SecretKey = SecretKey;
-    type Signature = Signature;
+impl SignatureEngine for Falcon512 {
+    type PublicKey = super::types::Falcon512PublicKey;
+    type SecretKey = super::types::Falcon512SecretKey;
+    type Signature = super::types::Falcon512Signature;
 
     fn keypair() -> (Self::PublicKey, Self::SecretKey) {
         <Self as crate::sig::traits::SignatureEngine>::keypair()

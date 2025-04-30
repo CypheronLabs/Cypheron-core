@@ -1,12 +1,13 @@
-use crate::sig::dilithium2::bindings::*;
-use crate::sig::dilithium2::types::*;
-use crate::sig::dilithium_common::sizes::*;
+use crate::sig::traits;
+use crate::sig::dilithium::dilithium2::bindings::*;
+use crate::sig::dilithium::dilithium2::types::*;
+use crate::sig::dilithium::common::*;
 use secrecy::{ExposeSecret, Secret};
 use std::mem::MaybeUninit;
 
 pub struct Dilithium2Engine;
 
-impl super::super::traits::SignatureEngine for Dilithium2Engine {
+impl crate::sig::traits::SignatureEngine for Dilithium2Engine {
     type PublicKey = PublicKey;
     type SecretKey = SecretKey;
     type Signature = Signature;

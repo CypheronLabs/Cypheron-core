@@ -1,4 +1,4 @@
-use crate::sig::dilithium5::engine::Dilithium5Engine;
+use crate::sig::dilithium::dilithium5::engine::Dilithium5Engine;
 use crate::sig::traits::{SignatureEngine, SignatureScheme};
 
 pub struct Dilithium5;

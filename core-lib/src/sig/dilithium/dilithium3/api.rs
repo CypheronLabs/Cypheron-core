@@ -1,4 +1,4 @@
-use crate::sig::dilithium3::engine::Dilithium3Engine;
+use crate::sig::dilithium::dilithium3::engine::Dilithium3Engine;
 use crate::sig::traits::{SignatureEngine, SignatureScheme};
 
 pub struct Dilithium3;
