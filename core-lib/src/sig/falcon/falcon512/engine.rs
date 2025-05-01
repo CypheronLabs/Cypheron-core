@@ -1,18 +1,26 @@
 use secrecy::Secret;
+use secrecy::ExposeSecret;
+use std::ffi::c_void;
 use std::mem::MaybeUninit;
 
-use crate::sig::falcon::falcon512::constants::*;
 use crate::sig::falcon::bindings::*;
-use crate::sig::falcon::falcon512::types::{PublicKey, SecretKey, Signature};
-
+use crate::sig::falcon::falcon512::constants::*;
+use crate::sig::falcon::falcon512::types::{
+    Falcon512PublicKey,
+    Falcon512SecretKey,
+    Falcon512Signature,
+    PublicKey,
+    SecretKey,
+    Signature,
+};
 use crate::sig::traits::SignatureEngine;
 
 pub struct Falcon512;
 
 impl SignatureEngine for Falcon512 {
-    type PublicKey = PublicKey;
-    type SecretKey = SecretKey;
-    type Signature = Signature;
+    type PublicKey = Falcon512PublicKey;
+    type SecretKey = Falcon512SecretKey;
+    type Signature = Falcon512Signature;
 
     fn keypair() -> (Self::PublicKey, Self::SecretKey) {
         let mut pk = [0u8; FALCON_PUBLIC];
@@ -25,19 +33,24 @@ impl SignatureEngine for Falcon512 {
             falcon_keygen_make(
                 rng.as_mut_ptr(),
                 FALCON_LOGN as u32,
-                sk.as_mut_ptr() as *mut _,
-                sk.len(),
-                pk.as_mut_ptr() as *mut _,
+                pk.as_mut_ptr() as *mut c_void,
                 pk.len(),
-                tmp.as_mut_ptr() as *mut _,
+                sk.as_mut_ptr() as *mut c_void,
+                sk.len(),
+                tmp.as_mut_ptr() as *mut c_void,
                 tmp.len(),
             );
         }
 
-        (PublicKey(pk), SecretKey(Secret::new(sk)))
+        (
+            PublicKey(pk),
+            SecretKey(Secret::new(sk)),
+        )
     }
 
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Self::Signature {
+        let SecretKey(secret) = sk;
+
         let mut sig = [0u8; FALCON_SIGNATURE];
         let mut siglen = 0usize;
         let mut tmp = vec![0u8; FALCON_TMPSIZE_SIGNDYN];
@@ -50,11 +63,11 @@ impl SignatureEngine for Falcon512 {
                 sig.as_mut_ptr() as *mut _,
                 &mut siglen,
                 FALCON_SIG_COMPRESSED,
-                sk.0.expose_secret().as_ptr() as *const _,
-                sk.0.expose_secret().len(),
-                msg.as_ptr() as *const _,
+                secret.expose_secret().as_ptr() as *mut c_void,
+                secret.expose_secret().len(),
+                msg.as_ptr() as *mut c_void,
                 msg.len(),
-                tmp.as_mut_ptr() as *mut _,
+                tmp.as_mut_ptr() as *mut c_void,
                 tmp.len(),
             );
         }
@@ -63,18 +76,21 @@ impl SignatureEngine for Falcon512 {
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
+        let Signature(sig_bytes) = sig;
+        let PublicKey(pk_bytes) = pk;
+
         let mut tmp = vec![0u8; FALCON_TMPSIZE_VERIFY];
 
         unsafe {
             falcon_verify(
-                sig.0.as_ptr() as *const _,
-                sig.0.len(),
+                sig_bytes.as_ptr() as *mut c_void,
+                sig_bytes.len(),
                 FALCON_SIG_COMPRESSED,
-                pk.0.as_ptr() as *const _,
-                pk.0.len(),
-                msg.as_ptr() as *const _,
+                pk_bytes.as_ptr() as *mut c_void,
+                pk_bytes.len(),
+                msg.as_ptr() as *mut c_void,
                 msg.len(),
-                tmp.as_mut_ptr() as *mut _,
+                tmp.as_mut_ptr() as *mut c_void,
                 tmp.len(),
             ) == 0
         }
