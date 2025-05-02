@@ -1,5 +1,4 @@
 use secrecy::Secret;
-use zeroize::Zeroize;
 
 pub const FALCON512_PUBLIC: usize = 897;
 pub const FALCON512_SECRET: usize = 1281;
