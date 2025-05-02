@@ -1,4 +1,4 @@
-use crate::sig::traits;
+use crate::sig::traits::SignatureEngine;
 use crate::sig::dilithium::dilithium2::bindings::*;
 use crate::sig::dilithium::dilithium2::types::*;
 use crate::sig::dilithium::common::*;
@@ -7,7 +7,7 @@ use std::mem::MaybeUninit;
 
 pub struct Dilithium2Engine;
 
-impl crate::sig::traits::SignatureEngine for Dilithium2Engine {
+impl SignatureEngine for Dilithium2Engine {
     type PublicKey = PublicKey;
     type SecretKey = SecretKey;
     type Signature = Signature;

@@ -1,4 +1,5 @@
 use secrecy::Secret;
+use secrecy::ExposeSecret;
 use std::ffi::c_void;
 use std::mem::MaybeUninit;
 
@@ -42,8 +43,8 @@ impl SignatureEngine for Falcon1024 {
         }
 
         (
-            Falcon1024PublicKey(pk),
-            Falcon1024SecretKey(Secret::new(sk)),
+            PublicKey(pk),
+            SecretKey(Secret::new(sk)),
         )
     }
 
@@ -62,16 +63,16 @@ impl SignatureEngine for Falcon1024 {
                 sig.as_mut_ptr() as *mut _,
                 &mut siglen,
                 FALCON_SIG_COMPRESSED,
-                secret.expose_secret().as_ptr(),
+                secret.expose_secret().as_ptr() as *mut c_void,
                 secret.expose_secret().len(),
-                msg.as_ptr(),
+                msg.as_ptr() as *mut c_void,
                 msg.len(),
                 tmp.as_mut_ptr() as *mut c_void,
                 tmp.len(),
             );
         }
 
-        Falcon1024Signature(sig)
+        Signature(sig)
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {

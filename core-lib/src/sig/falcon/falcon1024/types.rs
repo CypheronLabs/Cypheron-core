@@ -1,9 +1,8 @@
 use secrecy::Secret;
-use zeroize::Zeroize;
 
-pub const FALCON1024_PUBLIC: usize = 897;
-pub const FALCON1024_SECRET: usize = 1281;
-pub const FALCON1024_SIGNATURE: usize = 752;
+pub const FALCON1024_PUBLIC: usize = 1793;
+pub const FALCON1024_SECRET: usize = 2305;
+pub const FALCON1024_SIGNATURE: usize = 1462;
 
 #[derive(Clone)]
 pub struct PublicKey<const N: usize>(pub [u8; N]);
