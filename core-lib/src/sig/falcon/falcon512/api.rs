@@ -1,8 +1,10 @@
+// src/sig/falcon/falcon512/api.rs (Ensure matches trait)
+
 use super::engine::Falcon512Engine;
 use super::types::{Falcon512PublicKey, Falcon512SecretKey, Falcon512Signature};
 use crate::sig::falcon::errors::FalconErrors;
 use crate::sig::traits::{SignatureEngine, SignatureScheme};
-#[derive(Debug, Clone, Copy, Default)] 
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Falcon512;
 
 impl SignatureEngine for Falcon512 {
