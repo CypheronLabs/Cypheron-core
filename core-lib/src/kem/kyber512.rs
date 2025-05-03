@@ -1,7 +1,7 @@
 use crate::kem::sizes;
 use crate::kem::{Kem, KemVariant};
 
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretBox};
 use zeroize::Zeroize;
 
 #[cfg(not(rust_analyzer))]
@@ -13,8 +13,6 @@ mod bindings {
 }
 use bindings::*;
 
-#[derive(Zeroize)]
-#[zeroize(drop)]
 pub struct KyberSecretKey(pub [u8; sizes::KYBER512_SECRET]);
 
 #[derive(Clone)]
@@ -27,7 +25,7 @@ impl Kyber512 {
         KemVariant::Kyber512
     }
 
-    pub fn expose_shared(secret: &Secret<[u8; sizes::KYBER512_SHARED]>) -> &[u8] {
+    pub fn expose_shared(secret: &SecretBox<[u8; sizes::KYBER512_SHARED]>) -> &[u8] {
         secret.expose_secret()
     }
 }
@@ -36,7 +34,7 @@ impl Kem for Kyber512 {
     type PublicKey = KyberPublicKey;
     type SecretKey = KyberSecretKey;
     type Ciphertext = Vec<u8>;
-    type SharedSecret = Secret<[u8; sizes::KYBER512_SHARED]>;
+    type SharedSecret = SecretBox<[u8; sizes::KYBER512_SHARED]>;
 
     fn keypair() -> (Self::PublicKey, Self::SecretKey) {
         let mut pk = [0u8; sizes::KYBER512_PUBLIC];
@@ -53,7 +51,7 @@ impl Kem for Kyber512 {
         unsafe {
             pqcrystals_kyber512_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr());
         }
-        (ct, Secret::new(ss))
+        (ct, SecretBox::new(ss.into()))
     }
 
     fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Self::SharedSecret {
@@ -61,6 +59,6 @@ impl Kem for Kyber512 {
         unsafe {
             pqcrystals_kyber512_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.as_ptr());
         }
-        Secret::new(ss)
+        SecretBox::new(ss.into())
     }
 }

@@ -1,21 +1,23 @@
-use crate::sig::dilithium::dilithium5::engine::Dilithium5Engine;
+use super::engine::Dilithium5Engine;
+use super::types::{PublicKey, SecretKey, Signature};
+use crate::sig::dilithium::errors::DilithiumError;
 use crate::sig::traits::{SignatureEngine, SignatureScheme};
 
+#[derive(Clone, Debug, Copy, Default)]
 pub struct Dilithium5;
 
 impl SignatureEngine for Dilithium5 {
-    type PublicKey = <Dilithium5Engine as SignatureEngine>::PublicKey;
-    type SecretKey = <Dilithium5Engine as SignatureEngine>::SecretKey;
-    type Signature = <Dilithium5Engine as SignatureEngine>::Signature;
+    type PublicKey = PublicKey; 
+    type SecretKey = SecretKey; 
+    type Signature = Signature; 
+    type Error = DilithiumError;
 
-    fn keypair() -> (Self::PublicKey, Self::SecretKey) {
-        Dilithium5Engine::keypair()
+    fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
+        Ok(Dilithium5Engine::keypair()?)
     }
-
-    fn sign(msg: &[u8], sk: &Self::SecretKey) -> Self::Signature {
+    fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error> {
         Dilithium5Engine::sign(msg, sk)
     }
-
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
         Dilithium5Engine::verify(msg, sig, pk)
     }
