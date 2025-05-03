@@ -3,4 +3,4 @@ pub mod engine;
 pub mod types;
 pub mod constants;
 
-pub use crate::sig::falcon::falcon512::engine::Falcon512;
+pub use api::Falcon512;

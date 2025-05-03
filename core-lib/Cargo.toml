@@ -4,13 +4,14 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 [dependencies]
-zeroize = { version = "1.6", features = ["derive"] }
-secrecy = "0.8"
-rand_core = "0.6"
+secrecy = "0.10.3"
+thiserror = "2.0.12"
+libc = "0.2.171"
+zeroize = "1.8.1"
 
 [build-dependencies]
-cc = "1.0"
-bindgen = "0.69"
+cc = "1.2.18"
+bindgen = "0.71.1"
 
 [dev-dependencies]
 core-lib = { path = "." }

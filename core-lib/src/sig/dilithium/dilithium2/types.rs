@@ -1,10 +1,33 @@
 use crate::sig::dilithium::common::*;
-use secrecy::Secret;
+use secrecy::SecretBox;
+use zeroize::Zeroize;
+use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey(pub [u8; DILITHIUM2_PUBLIC]);
+impl fmt::Debug for PublicKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "PublicKey([... {} bytes ...])", DILITHIUM2_PUBLIC)
+    }
+}
+pub struct SecretKey(pub SecretBox<[u8; DILITHIUM2_SECRET]>);
+impl Zeroize for SecretKey {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SecretKey([REDACTED {} bytes])", DILITHIUM2_SECRET)
+    }
+}
 
-pub struct SecretKey(pub Secret<[u8; DILITHIUM2_SECRET]>); 
-
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Signature(pub [u8; DILITHIUM2_SIGNATURE]);
+impl fmt::Debug for Signature {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let len = self.0.len();
+        let display_len = std::cmp::min(len, 16);
+        write!(f, "Signature({:02X?}... {} bytes total ...)", &self.0[..display_len], len)
+    }
+}

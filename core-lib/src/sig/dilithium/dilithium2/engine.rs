@@ -1,60 +1,90 @@
-use crate::sig::traits::SignatureEngine;
-use crate::sig::dilithium::dilithium2::bindings::*;
-use crate::sig::dilithium::dilithium2::types::*;
+use super::bindings::*;
+use super::types::*;
 use crate::sig::dilithium::common::*;
-use secrecy::{ExposeSecret, Secret};
+use crate::sig::dilithium::errors::DilithiumError;
+use crate::sig::traits::SignatureEngine;
+
+use secrecy::{ExposeSecret, SecretBox};
 use std::mem::MaybeUninit;
 
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Dilithium2Engine;
 
 impl SignatureEngine for Dilithium2Engine {
     type PublicKey = PublicKey;
     type SecretKey = SecretKey;
     type Signature = Signature;
+    type Error = DilithiumError;
 
-    fn keypair() -> (Self::PublicKey, Self::SecretKey) {
+    fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
         let mut pk = MaybeUninit::<[u8; DILITHIUM2_PUBLIC]>::uninit();
         let mut sk = MaybeUninit::<[u8; DILITHIUM2_SECRET]>::uninit();
-        unsafe {
+
+        let result = unsafe {
             pqcrystals_dilithium2_ref_keypair(
                 pk.as_mut_ptr() as *mut u8,
                 sk.as_mut_ptr() as *mut u8,
-            );
-            (
-                PublicKey(pk.assume_init()),
-                SecretKey(Secret::new(sk.assume_init())),
             )
+        };
+        match result {
+            0 => {
+                let pk = unsafe { pk.assume_init() };
+                let sk = unsafe { sk.assume_init() };
+                Ok(
+                    (
+                        PublicKey(pk),
+                        SecretKey(SecretBox::new(sk.into())),
+                    ),
+                )
+            },
+            i32::MIN..=-1_i32 | 1_i32..=i32::MAX => {
+                Err(DilithiumError::KeyGenerationInternalError)
+            }
         }
     }
 
-    fn sign(msg: &[u8], sk: &Self::SecretKey) -> Self::Signature {
+    fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error> {
         let mut sig = MaybeUninit::<[u8; DILITHIUM2_SIGNATURE]>::uninit();
         let mut siglen = 0usize;
-        unsafe {
+        let sk_bytes = sk.0.expose_secret();
+
+        let result = unsafe {
             pqcrystals_dilithium2_ref_signature(
                 sig.as_mut_ptr() as *mut u8,
                 &mut siglen,
                 msg.as_ptr(),
                 msg.len(),
-                std::ptr::null(), // ctx
-                0,                // ctxlen
-                sk.0.expose_secret().as_ptr(),
-            );
-            Signature(sig.assume_init())
+                std::ptr::null(),
+                0,
+                sk_bytes.as_ptr(),
+            )
+        };
+        match result {
+            0 => {
+                let sig = unsafe { sig.assume_init() };
+
+                Ok(Signature(sig))
+            }
+            _ => {
+                // TODO: Map specific C error codes if available/needed
+                Err(DilithiumError::SigningInternalError)
+            }
         }
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
-        unsafe {
+        let sig_len = sig.0.len();
+        let result = unsafe {
             pqcrystals_dilithium2_ref_verify(
                 sig.0.as_ptr(),
-                sig.0.len(),
+                sig_len,
                 msg.as_ptr(),
                 msg.len(),
-                std::ptr::null(), // ctx
-                0,                // ctxlen
+                std::ptr::null(),
+                0,
                 pk.0.as_ptr(),
-            ) == 0
-        }
+            )
+        };
+        result == 0
     }
 }
