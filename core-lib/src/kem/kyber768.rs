@@ -2,7 +2,6 @@ use crate::kem::sizes;
 use crate::kem::{Kem, KemVariant};
 
 use secrecy::{ExposeSecret, SecretBox};
-use zeroize::Zeroize;
 
 #[cfg(not(rust_analyzer))]
 #[allow(non_camel_case_types)]
