@@ -356,9 +356,10 @@ impl<'a> PQBuilder<'a> {
     fn build(self) {
         let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
         let out_bindings = out_dir.join(format!("{}_bindings.rs", self.lib_name));
-
+        
         let mut build = cc::Build::new();
         build.include(self.src_dir);
+        
         build.files(self.c_files.iter().map(|f| self.src_dir.join(f)));
         build.flag_if_supported("-O3");
         for (k, v) in &self.defines {
@@ -377,6 +378,16 @@ impl<'a> PQBuilder<'a> {
         let mut builder = bindgen::Builder::default()
             .header(self.src_dir.join(header_file).to_str().unwrap())
             .clang_arg(format!("-I{}", self.src_dir.display()));
+        let params_dir = self.src_dir.join("params");
+        if params_dir.exists() && std::env::var("VERBOSE").is_ok() {
+            println!("cargo:warning=[build.rs] Including params dir: {}", params_dir.display());
+            build.include(&params_dir);
+            builder = builder.clang_arg(format!("-I{}", params_dir.display()));
+        }
+
+        for (key, val) in &self.defines {
+            builder = builder.clang_arg(format!("-D{}={}", key, val));
+        }
 
         for func in &self.allowlist_functions {
             builder = builder.allowlist_function(func);
