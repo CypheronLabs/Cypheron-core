@@ -1,1 +1,1 @@
-fn main() {}
+// main.rs
