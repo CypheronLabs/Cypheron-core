@@ -4,4 +4,4 @@ mod bindings;
 pub mod engine;
 pub mod types;
 
-//pub use api::SphincsPlus;
+pub use api::SphincsPlusShake128fSimple;
