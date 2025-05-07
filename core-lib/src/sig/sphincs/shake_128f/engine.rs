@@ -1,85 +1,171 @@
-use super::bindings::*;
-use super::types::*;
-use crate::sig::sphincs::common::*;
+use super::bindings::robust_ffi as ffi; 
+use super::types::{PublicKey, SecretKey, Signature, Seed};
 use crate::sig::sphincs::errors::SphincsError;
-use crate::sig::traits::SignatureEngine;
 
-use secrecy::{ExposeSecret, SecretBox};
-use std::mem::MaybeUninit;
+pub fn public_key_bytes() -> usize {
+    unsafe { ffi::crypto_sign_publickeybytes() as usize }
+}
+pub fn secret_key_bytes() -> usize {
+    unsafe { ffi::crypto_sign_secretkeybytes() as usize }
+}
+pub fn signature_bytes() -> usize {
+    unsafe { ffi::crypto_sign_bytes() as usize }
+}
+pub fn seed_bytes() -> usize {
+    unsafe { ffi::crypto_sign_seedbytes() as usize }
+}
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct SphincsShake128fEngine;
 
-impl SignatureEngine for SphincsShake128fEngine {
-    type PublicKey = PublicKey;
-    type SecretKey = SecretKey;
-    type Signature = Signature;
-    type Error = SphincsError;
-
-    fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
-        let mut pk = MaybeUninit::<[u8; SPHINCS_SHAKE_128F_PUBLIC]>::uninit();
-        let mut sk = MaybeUninit::<[u8; SPHINCS_SHAKE_128F_SECRET]>::uninit();
-
-        let result = unsafe {
-            pqcrystals_sphincs_haraka_128f_simple_keypair(
-                pk.as_mut_ptr() as *mut u8,
-                sk.as_mut_ptr() as *mut u8,
-            )
-        };
-        match result {
-            0 => {
-                let pk = unsafe { pk.assume_init() };
-                let sk = unsafe { sk.assume_init() };
-                Ok(
-                    (
-                        PublicKey(pk),
-                        SecretKey(SecretBox::new(sk.into())),
-                    ),
-                )
-            },
-            i32::MIN..=-1_i32 | 1_i32..=i32::MAX => {
-                Err(SphincsError::KeyGenerationInternalError)
-            }
-        }
+pub fn keypair_from_seed_generate(seed: &Seed) -> Result<(PublicKey, SecretKey), SphincsError> {
+    if seed.as_bytes().len() != seed_bytes() {
+        return Err(SphincsError::InvalidSeedLength { expected: seed_bytes(), actual: seed.as_bytes().len() });
     }
-    fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error> {
-        let mut sig = MaybeUninit::<[u8; SPHINCS_SHAKE_128F_SIGNATURE]>::uninit();
-        let mut siglen = 0usize;
-        let sk_bytes = sk.0.expose_secret();
 
-        let result = unsafe {
-            pqcrystals_sphincs_haraka_128f_simple_signature(
-                sig.as_mut_ptr() as *mut u8,
-                &mut siglen,
-                msg.as_ptr(),
-                msg.len(),
-                std::ptr::null(),
-                0,
-                sk_bytes.as_ptr(),
-            )
-        };
-        match result {
-            0 => {
-                let sig = unsafe { sig.assume_init() };
-                Ok(Signature(sig))
-            },
-            i32::MIN..=-1_i32 | 1_i32..=i32::MAX => {
-                Err(SphincsError::SigningInternalError)
-            }
-        }
+    let mut pk = PublicKey::new_uninitialized();
+    let mut sk = SecretKey::new_uninitialized();
+
+    let ret_code = unsafe {
+        ffi::crypto_sign_seed_keypair(
+            pk.as_mut_ptr(),
+            sk.as_mut_ptr(),
+            seed.as_ptr(),
+        )
+    };
+
+    if ret_code == 0 {
+        Ok((pk, sk))
+    } else {
+        Err(SphincsError::KeyPairGenerationFailed(ret_code))
     }
-    fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
-        let pk_bytes = pk.0;
-        let sig_bytes = sig.0;
+}
 
-        let result = unsafe {
-            pqcrystals_sphincs_haraka_128f_simple_verify(
-                sig_bytes.as_ptr(),
-                msg.as_ptr(),
-                msg.len(),
-                pk_bytes.as_ptr(),
-            )
-        };
-        result == 0
+pub fn keypair_generate() -> Result<(PublicKey, SecretKey), SphincsError> {
+    let mut pk = PublicKey::new_uninitialized();
+    let mut sk = SecretKey::new_uninitialized();
+
+    let ret_code = unsafe { ffi::crypto_sign_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
+
+    if ret_code == 0 {
+        Ok((pk, sk))
+    } else {
+        Err(SphincsError::KeyPairGenerationFailed(ret_code))
+    }
+}
+
+pub fn sign_detached_create(
+    message: &[u8],
+    sk: &SecretKey,
+) -> Result<Signature, SphincsError> {
+    if sk.as_bytes().len() != secret_key_bytes() {
+         return Err(SphincsError::InvalidSecretKeyLength { expected: secret_key_bytes(), actual: sk.as_bytes().len() });
+    }
+
+    let mut sig = Signature::new_uninitialized();
+    let mut sig_len_written: usize = 0; 
+
+    let ret_code = unsafe {
+        ffi::crypto_sign_signature(
+            sig.as_mut_ptr(),
+            &mut sig_len_written,
+            message.as_ptr(),
+            message.len(),
+            sk.as_ptr(),
+        )
+    };
+
+    if ret_code == 0 {
+        if sig_len_written != signature_bytes() {
+            return Err(SphincsError::UnexpectedSignatureLength {
+                expected: signature_bytes(),
+                actual: sig_len_written,
+            });
+        }
+        Ok(sig)
+    } else {
+        Err(SphincsError::SigningFailed(ret_code))
+    }
+}
+
+pub fn verify_detached_check(
+    signature: &Signature,
+    message: &[u8],
+    pk: &PublicKey,
+) -> Result<(), SphincsError> {
+    if signature.as_bytes().len() != signature_bytes() {
+        return Err(SphincsError::InvalidSignatureLength { expected: signature_bytes(), actual: signature.as_bytes().len() });
+    }
+    if pk.as_bytes().len() != public_key_bytes() {
+        return Err(SphincsError::InvalidPublicKeyLength { expected: public_key_bytes(), actual: pk.as_bytes().len() });
+    }
+
+    let ret_code = unsafe {
+        ffi::crypto_sign_verify(
+            signature.as_ptr(),
+            signature.as_bytes().len(), 
+            message.as_ptr(),
+            message.len(),
+            pk.as_bytes().as_ptr(),
+        )
+    };
+
+    if ret_code == 0 {
+        Ok(())
+    } else {
+        Err(SphincsError::VerificationFailed)
+    }
+}
+
+pub fn sign_combined_create(message: &[u8], sk: &SecretKey) -> Result<Vec<u8>, SphincsError> {
+    if sk.as_bytes().len() != secret_key_bytes() {
+         return Err(SphincsError::InvalidSecretKeyLength { expected: secret_key_bytes(), actual: sk.as_bytes().len() });
+    }
+
+    let mut signed_msg_buf = vec![0u8; message.len() + signature_bytes()];
+    let mut signed_msg_len_written: u64 = 0;
+
+    let ret_code = unsafe {
+        ffi::crypto_sign(
+            signed_msg_buf.as_mut_ptr(),
+            &mut signed_msg_len_written,
+            message.as_ptr(),
+            message.len() as u64,
+            sk.as_ptr(),
+        )
+    };
+
+    if ret_code == 0 {
+        signed_msg_buf.truncate(signed_msg_len_written as usize);
+        Ok(signed_msg_buf)
+    } else {
+        Err(SphincsError::SigningFailed(ret_code))
+    }
+}
+
+pub fn open_combined_verify(
+    signed_message: &[u8],
+    pk: &PublicKey,
+) -> Result<Vec<u8>, SphincsError> {
+    if pk.as_bytes().len() != public_key_bytes() {
+        return Err(SphincsError::InvalidPublicKeyLength { expected: public_key_bytes(), actual: pk.as_bytes().len() });
+    }
+    
+    let mut original_msg_buf = vec![0u8; signed_message.len()];
+    let mut original_msg_len_written: u64 = 0;
+
+    let ret_code = unsafe {
+        ffi::crypto_sign_open(
+            original_msg_buf.as_mut_ptr(),
+            &mut original_msg_len_written,
+            signed_message.as_ptr(),
+            signed_message.len() as u64,
+            pk.as_bytes().as_ptr(),
+        )
+    };
+
+    if ret_code == 0 {
+        original_msg_buf.truncate(original_msg_len_written as usize);
+        Ok(original_msg_buf)
+    } else {
+        Err(SphincsError::OpenFailed(ret_code)) 
     }
 }
