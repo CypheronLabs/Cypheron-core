@@ -7,7 +7,6 @@ use std::fmt;
 
 use once_cell::sync::Lazy;
 
-// These Lazy statics are correctly defined.
 static PUBLIC_KEY_BYTES_USIZE: Lazy<usize> =
     Lazy::new(|| unsafe { bindings::robust_ffi::crypto_sign_publickeybytes() as usize });
 static SECRET_KEY_BYTES_USIZE: Lazy<usize> =
