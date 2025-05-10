@@ -21,7 +21,7 @@ pub fn keypair_from_seed_generate(seed: &Seed) -> Result<(PublicKey, SecretKey),
     if Seed::length() != seed_bytes() {
         return Err(SphincsError::InvalidSeedLength { expected: seed_bytes(), actual: Seed::length() });
     }
-    let mut pk = PublicKey::new_unintialized();
+    let mut pk = PublicKey::new_uninitialized();
     let mut sk = SecretKey::new_uninitialized();
     let ret_code = unsafe {
         ffi::crypto_sign_seed_keypair(pk.as_mut_ptr(), sk.as_mut_ptr(), seed.as_ptr())
@@ -30,7 +30,7 @@ pub fn keypair_from_seed_generate(seed: &Seed) -> Result<(PublicKey, SecretKey),
 }
 
 pub fn keypair_generate() -> Result<(PublicKey, SecretKey), SphincsError> {
-    let mut pk = PublicKey::new_unintialized();
+    let mut pk = PublicKey::new_uninitialized();
     let mut sk = SecretKey::new_uninitialized();
 
     let ret_code = unsafe { ffi::crypto_sign_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };

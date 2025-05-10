@@ -25,7 +25,7 @@ static SEED_BYTES_REF: Lazy<usize> = Lazy::new(||
 #[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey(Vec<u8>);
 impl PublicKey {
-    pub(crate) fn new_unintialized() -> Self {
+    pub(crate) fn new_uninitialized() -> Self {
         PublicKey(vec![0u8; *PUBLIC_KEY_BYTES_REF])
     }
 
