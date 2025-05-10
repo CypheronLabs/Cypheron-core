@@ -1,9 +1,9 @@
 use super::engine;
-use super::bindings::robust_ffi as ffi; // Or simple_ffi, or allow selection based on features
+use super::bindings::robust_ffi as ffi; 
 use super::types::{PublicKey, SecretKey, Signature, Seed};
 use crate::sig::sphincs::errors::SphincsError;
 
-pub const ALGORITHM_NAME: &str = "SPHINCS+-Haraka-192f-robust"; // Updated algorithm name
+pub const ALGORITHM_NAME: &str = "SPHINCS+-Haraka-192f-robust"; 
 
 pub fn public_key_bytes() -> usize {
     unsafe { ffi::crypto_sign_publickeybytes() as usize }
@@ -12,7 +12,6 @@ pub fn secret_key_bytes() -> usize {
     unsafe { ffi::crypto_sign_secretkeybytes() as usize }
 }
 pub fn signature_bytes() -> usize {
-    // This is CRYPTO_BYTES, typically for the detached signature.
     unsafe { ffi::crypto_sign_bytes() as usize }
 }
 pub fn seed_bytes() -> usize {

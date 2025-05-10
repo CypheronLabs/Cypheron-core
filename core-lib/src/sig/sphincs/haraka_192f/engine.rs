@@ -1,4 +1,4 @@
-use super::bindings::robust_ffi as ffi; // Assuming robust is the default for haraka_192f
+use super::bindings::robust_ffi as ffi; 
 use super::types::{PublicKey, SecretKey, Signature, Seed};
 use crate::sig::sphincs::errors::SphincsError;
 
@@ -148,7 +148,7 @@ pub fn open_combined_verify(
         return Err(SphincsError::InvalidPublicKeyLength { expected: public_key_bytes(), actual: pk.as_bytes().len() });
     }
 
-    let mut original_msg_buf = vec![0u8; signed_message.len()]; // Max possible size
+    let mut original_msg_buf = vec![0u8; signed_message.len()]; 
     let mut original_msg_len_written: u64 = 0;
 
     let ret_code = unsafe {
