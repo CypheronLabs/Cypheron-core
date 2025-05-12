@@ -1,0 +1,95 @@
+use secrecy::ExposeSecret;
+use core_lib::sig::falcon::falcon512::api::Falcon512; 
+use core_lib::sig::traits::SignatureEngine;
+use core_lib::sig::falcon::falcon512::types::{Falcon512PublicKey, Falcon512SecretKey, Falcon512Signature, Signature};
+use core_lib::sig::falcon::falcon512::constants::{ 
+                                                   FALCON_PUBLIC,
+                                                   FALCON_SECRET,
+                                                   FALCON_SIGNATURE,
+};
+
+const TEST_MESSAGE_FALCON512: &[u8] = b"This is a test message for Falcon-512 implementation.";
+
+#[test]
+fn falcon512_test_keypair_generation_lengths() {
+    let result = Falcon512::keypair();
+    assert!(result.is_ok(), "Falcon-512: Keypair generation failed: {:?}", result.err());
+    let (pk, sk) = result.unwrap();
+
+    assert_eq!(pk.0.len(), FALCON_PUBLIC, "Falcon-512: Public key length mismatch");
+    assert_eq!(sk.0.expose_secret().len(), FALCON_SECRET, "Falcon-512: Secret key length mismatch");
+}
+
+#[test]
+fn falcon512_test_sign_verify_roundtrip() {
+    let keypair_result = Falcon512::keypair();
+    assert!(keypair_result.is_ok(), "Falcon-512: Keypair generation failed for roundtrip: {:?}", keypair_result.err());
+    let (pk, sk) = keypair_result.unwrap();
+
+    let sign_result = Falcon512::sign(TEST_MESSAGE_FALCON512, &sk);
+    assert!(sign_result.is_ok(), "Falcon-512: Signing failed: {:?}", sign_result.err());
+    let signature = sign_result.unwrap();
+
+    assert_eq!(signature.0.len(), FALCON_SIGNATURE, "Falcon-512: Signature length mismatch");
+
+    let is_valid = Falcon512::verify(TEST_MESSAGE_FALCON512, &signature, &pk);
+    assert!(is_valid, "Falcon-512: Verification failed for a valid signature");
+}
+
+#[test]
+fn falcon512_test_verify_failure_wrong_message() {
+    let keypair_result = Falcon512::keypair();
+    assert!(keypair_result.is_ok(), "Falcon-512: Keypair generation failed for wrong message test: {:?}", keypair_result.err());
+    let (pk, sk) = keypair_result.unwrap();
+
+    let sign_result = Falcon512::sign(TEST_MESSAGE_FALCON512, &sk);
+    assert!(sign_result.is_ok(), "Falcon-512: Signing failed for wrong message test: {:?}", sign_result.err());
+    let signature = sign_result.unwrap();
+
+    let wrong_message: &[u8] = b"This is definitely not the original message for Falcon-512.";
+    let is_valid = Falcon512::verify(wrong_message, &signature, &pk);
+
+    assert!(!is_valid, "Falcon-512: Verification should fail for a wrong message");
+}
+
+#[test]
+fn falcon512_test_verify_failure_wrong_public_key() {
+    let keypair1_result = Falcon512::keypair();
+    assert!(keypair1_result.is_ok(), "Falcon-512: Keypair 1 generation failed: {:?}", keypair1_result.err());
+    let (_pk1, sk1) = keypair1_result.unwrap();
+
+    let keypair2_result = Falcon512::keypair();
+    assert!(keypair2_result.is_ok(), "Falcon-512: Keypair 2 generation failed: {:?}", keypair2_result.err());
+    let (pk2, _sk2) = keypair2_result.unwrap(); 
+
+    let sign_result = Falcon512::sign(TEST_MESSAGE_FALCON512, &sk1);
+    assert!(sign_result.is_ok(), "Falcon-512: Signing with sk1 failed: {:?}", sign_result.err());
+    let signature = sign_result.unwrap();
+
+    let is_valid = Falcon512::verify(TEST_MESSAGE_FALCON512, &signature, &pk2); 
+    assert!(!is_valid, "Falcon-512: Verification should fail for a wrong public key");
+}
+
+#[test]
+fn falcon512_test_verify_failure_corrupted_signature() {
+    let keypair_result = Falcon512::keypair(); 
+    assert!(keypair_result.is_ok(), "Falcon-512: Keypair generation failed for corrupted sig test: {:?}", keypair_result.err());
+    let (pk, sk) = keypair_result.unwrap();
+
+    let sign_result = Falcon512::sign(TEST_MESSAGE_FALCON512, &sk);
+    assert!(sign_result.is_ok(), "Falcon-512: Signing failed for corrupted sig test: {:?}", sign_result.err());
+
+    let signature_instance = sign_result.unwrap(); 
+    let mut signature_array: [u8; FALCON_SIGNATURE] = signature_instance.0;
+
+    if FALCON_SIGNATURE > 0 {
+        signature_array[0] ^= 0x01; // Flip a bit
+    } else {
+        panic!("Falcon-512: FALCON_SIGNATURE constant is 0, cannot corrupt meaningfully");
+    }
+
+    let corrupted_signature: Falcon512Signature = Signature(signature_array);
+
+    let is_valid = Falcon512::verify(TEST_MESSAGE_FALCON512, &corrupted_signature, &pk); 
+    assert!(!is_valid, "Falcon-512: Verification should fail for a corrupted signature");
+}
