@@ -1,1 +1,9 @@
-// kem.rs
+use axum::{Router, routing::post};
+use crate::handlers::kem_handler;
+
+pub fn routes() -> Router {
+    Router::new()
+        .route("/kem/:variant/keygen", post(kem_handler::keygen))
+        .route("/kem/:variant/encapsulate", post(kem_handler::encapsulate))
+        .route("/kem/:variant/decapsulate", post(kem_handler::decapsulate))
+}
