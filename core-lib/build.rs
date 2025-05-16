@@ -150,7 +150,15 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                     
                     let mut owned_files: Vec<String> = vec![];
                     let mut c_files: Vec<&str> = vec![
-                        "address.c", "fors.c", "sign.c", "utils.c", "wots.c", "randombytes.c"
+                        "address.c",
+                        "fors.c",
+                        "merkle.c",      // <--- ADDED
+                        "sign.c",
+                        "utils.c",
+                        "utilsx1.c",     // <--- ADDED
+                        "wots.c",
+                        "wotsx1.c",      // <--- ADDED
+                        "randombytes.c"
                     ];
 
                     match hash {

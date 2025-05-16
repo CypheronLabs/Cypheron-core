@@ -11,10 +11,7 @@ pub trait SignatureEngine {
     type Error: StdError + Debug + Send + Sync + 'static;
 
     fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error>;
-
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error>;
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool;
-
-    // Removed the unidiomatic `error()` method.
 }
 pub trait SignatureScheme: SignatureEngine {}
