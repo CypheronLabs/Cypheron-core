@@ -1,8 +1,4 @@
-use axum::{
-    routing::post,
-    Router,
-    serve,
-};
+use axum::serve;
 use tokio::net::TcpListener;
 use tracing_subscriber;
 

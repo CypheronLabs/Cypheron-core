@@ -1,2 +1,2 @@
-// mod.rs
 pub mod kem;
+pub mod sig;

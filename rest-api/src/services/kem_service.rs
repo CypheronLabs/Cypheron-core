@@ -1,4 +1,3 @@
-use std::env::var;
 use core_lib::kem::{self, Kem, KemVariant, Kyber512, Kyber768, Kyber1024};
 use secrecy::ExposeSecret;
 use base64::{engine::general_purpose, Engine as _};
