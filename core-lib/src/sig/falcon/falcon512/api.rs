@@ -1,5 +1,3 @@
-// src/sig/falcon/falcon512/api.rs (Ensure matches trait)
-
 use super::engine::Falcon512Engine;
 use super::types::{Falcon512PublicKey, Falcon512SecretKey, Falcon512Signature};
 use crate::sig::falcon::errors::FalconErrors;

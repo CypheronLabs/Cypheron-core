@@ -9,8 +9,18 @@ pub enum AppError {
     InvalidLength,
     #[error("Unsupported variant")]
     InvalidVariant,
-    #[error("Internal error")]
-    Internal,
+    #[error("Key generation failed")]
+    KeyGenFailed,
+    #[error("Signing failed:")]
+    SigningFailed,
+    #[error("Invalid Secret key")]
+    InvalidSecretKey,
+    #[error("Invalid public key")]
+    InvalidPublicKey,
+    #[error("Invalid base64 encoding")]
+    InvalidBase64,
+    #[error("Invalid Signature")]
+    InvalidSignature,
 }
 
 impl IntoResponse for AppError {
@@ -18,7 +28,12 @@ impl IntoResponse for AppError {
         let code = match self {
             AppError::Base64Decode(_) | AppError::InvalidLength => StatusCode::BAD_REQUEST,
             AppError::InvalidVariant => StatusCode::NOT_FOUND,
-            AppError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::KeyGenFailed => StatusCode::NOT_FOUND,
+            AppError::SigningFailed => StatusCode::BAD_REQUEST,
+            AppError::InvalidSecretKey => StatusCode::UNAUTHORIZED,
+            AppError::InvalidPublicKey => StatusCode::UNAUTHORIZED,
+            AppError::InvalidBase64 => StatusCode::BAD_REQUEST,
+            AppError::InvalidSignature => StatusCode::BAD_REQUEST,
         };
         (code, self.to_string()).into_response()
     }
