@@ -21,6 +21,8 @@ pub enum AppError {
     InvalidBase64,
     #[error("Invalid Signature")]
     InvalidSignature,
+    #[error("Invalid Hex encoding")]
+    InvalidHex,
 }
 
 impl IntoResponse for AppError {
@@ -34,6 +36,7 @@ impl IntoResponse for AppError {
             AppError::InvalidPublicKey => StatusCode::UNAUTHORIZED,
             AppError::InvalidBase64 => StatusCode::BAD_REQUEST,
             AppError::InvalidSignature => StatusCode::BAD_REQUEST,
+            AppError::InvalidHex => StatusCode::BAD_REQUEST,
         };
         (code, self.to_string()).into_response()
     }
