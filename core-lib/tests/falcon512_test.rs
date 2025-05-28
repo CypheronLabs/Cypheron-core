@@ -1,7 +1,7 @@
 use secrecy::ExposeSecret;
 use core_lib::sig::falcon::falcon512::api::Falcon512; 
 use core_lib::sig::traits::SignatureEngine;
-use core_lib::sig::falcon::falcon512::types::{Falcon512PublicKey, Falcon512SecretKey, Falcon512Signature, Signature};
+use core_lib::sig::falcon::falcon512::types::{Falcon512Signature, Signature};
 use core_lib::sig::falcon::falcon512::constants::{ 
                                                    FALCON_PUBLIC,
                                                    FALCON_SECRET,

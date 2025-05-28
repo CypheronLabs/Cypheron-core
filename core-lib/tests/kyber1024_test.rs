@@ -21,3 +21,23 @@ fn test_variant_and_expose() {
         Kyber1024::expose_shared(&ss2)
     );
 }
+
+#[test]
+fn test_decapsulate_with_wrong_secret_key() {
+    let (pk1, _sk1) = Kyber1024::keypair();
+    let (_pk2, sk2) = Kyber1024::keypair();
+    let (ct, ss1) = Kyber1024::encapsulate(&pk1);
+    let ss_wrong = Kyber1024::decapsulate(&ct, &sk2);
+    assert_ne!(Kyber1024::expose_shared(&ss1), Kyber1024::expose_shared(&ss_wrong));
+}
+
+#[test]
+fn test_decapsulate_with_corrupted_ciphertext() {
+    let (pk, sk) = Kyber1024::keypair();
+    let (mut ct, ss1) = Kyber1024::encapsulate(&pk);
+    if !ct.is_empty() {
+        ct[0] ^= 0xFF;
+    }
+    let ss_corrupt = Kyber1024::decapsulate(&ct, &sk);
+    assert_ne!(Kyber1024::expose_shared(&ss1), Kyber1024::expose_shared(&ss_corrupt));
+}

@@ -18,3 +18,23 @@ fn test_variant_and_expose() {
 
     assert_eq!(Kyber512::expose_shared(&ss1), Kyber512::expose_shared(&ss2));
 }
+
+#[test]
+fn test_decapsulate_with_wrong_secret_key() {
+    let (pk1, _sk1) = Kyber512::keypair();
+    let (_, sk2) = Kyber512::keypair();
+    let (ct, ss1) = Kyber512::encapsulate(&pk1);
+    let ss_wrong = Kyber512::decapsulate(&ct, &sk2);
+    assert_ne!(Kyber512::expose_shared(&ss1), Kyber512::expose_shared(&ss_wrong), "Decapsulation with wrong secret key should yield different shared secret");
+}
+
+#[test]
+fn test_decapsulate_with_corrupted_ciphertext() {
+    let (pk, sk) = Kyber512::keypair();
+    let (mut ct, ss1) = Kyber512::encapsulate(&pk);
+    if !ct.is_empty() {
+        ct[0] ^= 0xFF; 
+    }
+    let ss_corrupt = Kyber512::decapsulate(&ct, &sk);
+    assert_ne!(Kyber512::expose_shared(&ss1), Kyber512::expose_shared(&ss_corrupt), "Decapsulation with corrupted ciphertext should yield different shared secret");
+}
