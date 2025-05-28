@@ -34,7 +34,6 @@ impl KemService {
     }
     pub fn encapsulate(variant: KemVariant, pk_64: &str) -> Result<(String, String), AppError> {
         let pk_bytes = general_purpose::STANDARD.decode(pk_64)?;
-
         match variant {
             KemVariant::Kyber512 => {
                 let pk = kem::kyber512::KyberPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);

@@ -1,9 +1,11 @@
 use axum::{extract::{Path, Json}};
-use crate::{models::sig::*, services::sig_service::SignatureService};
+use crate::models::sig::*;
 use crate::services::sig_service::SigService;
+use crate::services::sig_service::AnySignature;
 use crate::error::AppError;
 use crate::models::sig::parse_sig_variant;
-use crate::services::sig_service::AnySignature;fn encode_signature(sig: AnySignature) -> String {
+
+fn encode_signature(sig: AnySignature) -> String {
     use base64::{engine::general_purpose, Engine as _};
     match sig {
         AnySignature::Dilithium2(s) => general_purpose::STANDARD.encode(&s.0),
