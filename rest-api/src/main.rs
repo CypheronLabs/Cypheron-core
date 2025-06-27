@@ -14,9 +14,9 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     let app = Router::new()
-        .nest("/", api::kem::routes())
-        .nest("/", api::sig::routes())
-        .nest("/", api::hybrid::routes());
+        .merge(api::kem::routes())
+        .merge(api::sig::routes())
+        .merge(api::hybrid::routes());
 
     let listener = TcpListener::bind("127.0.0.1:3000")
         .await
