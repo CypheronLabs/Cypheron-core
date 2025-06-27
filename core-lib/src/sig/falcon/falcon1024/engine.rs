@@ -39,10 +39,10 @@ impl SignatureEngine for Falcon1024Engine {
             falcon_keygen_make(
                 rng.as_mut_ptr(),
                 FALCON_LOGN as u32,
-                pk.as_mut_ptr() as *mut c_void,
-                pk.len(),
                 sk.as_mut_ptr() as *mut c_void,
                 sk.len(),
+                pk.as_mut_ptr() as *mut c_void,
+                pk.len(),
                 tmp.as_mut_ptr() as *mut c_void,
                 tmp.len(),
             )
@@ -58,7 +58,7 @@ impl SignatureEngine for Falcon1024Engine {
         let sk_bytes = sk.0.expose_secret();
 
         let mut sig = [0u8; FALCON_SIGNATURE];
-        let mut siglen: usize = 0;
+        let mut siglen: usize = FALCON_SIGNATURE;
         let mut tmp = vec![0u8; FALCON_TMPSIZE_SIGNDYN];
         let mut rng = MaybeUninit::uninit();
 
@@ -87,13 +87,31 @@ impl SignatureEngine for Falcon1024Engine {
         if sign_result != 0 {
             return Err(FalconErrors::SigningFailed);
         }
-        Ok(Signature(sig))
+        
+        // Truncate signature to actual length
+        let mut actual_sig = [0u8; FALCON_SIGNATURE];
+        actual_sig[..siglen].copy_from_slice(&sig[..siglen]);
+        if siglen < FALCON_SIGNATURE {
+            // Zero out unused bytes
+            actual_sig[siglen..].fill(0);
+        }
+        Ok(Signature(actual_sig))
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
         let sig_bytes = &sig.0;
         let pk_bytes = &pk.0;
-        let sig_len = sig_bytes.len();
+        
+        // Find actual signature length by looking for the first non-zero trailing byte
+        let mut actual_sig_len = sig_bytes.len();
+        while actual_sig_len > 0 && sig_bytes[actual_sig_len - 1] == 0 {
+            actual_sig_len -= 1;
+        }
+        
+        // Falcon signatures should have a minimum length
+        if actual_sig_len < 40 {
+            actual_sig_len = sig_bytes.len(); // fallback to full length
+        }
 
         let mut tmp = vec![0u8; FALCON_TMPSIZE_VERIFY];
 
@@ -101,7 +119,7 @@ impl SignatureEngine for Falcon1024Engine {
         let verify_result: c_int = unsafe {
             falcon_verify(
                 sig_bytes.as_ptr() as *const c_void,
-                sig_len,
+                actual_sig_len,
                 FALCON_SIG_COMPRESSED,
                 pk_bytes.as_ptr() as *const c_void,
                 pk_bytes.len(),
