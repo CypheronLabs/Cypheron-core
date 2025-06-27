@@ -16,6 +16,9 @@ fn falcon1024_test_keypair_generation_lengths() {
     assert!(result.is_ok(), "Falcon-1024: Keypair generation failed: {:?}", result.err());
     let (pk, sk) = result.unwrap();
 
+    println!("Falcon-1024 Public Key (len={}): {:02x?}", pk.0.len(), &pk.0[..16]);
+    println!("Falcon-1024 Secret Key (len={}): {:02x?}", sk.0.expose_secret().len(), &sk.0.expose_secret()[..16]);
+
     assert_eq!(pk.0.len(), FALCON_PUBLIC, "Falcon-1024: Public key length mismatch");
     assert_eq!(sk.0.expose_secret().len(), FALCON_SECRET, "Falcon-1024: Secret key length mismatch");
 }
@@ -29,6 +32,16 @@ fn falcon1024_test_sign_verify_roundtrip() {
     let sign_result = Falcon1024::sign(TEST_MESSAGE_FALCON1024, &sk);
     assert!(sign_result.is_ok(), "Falcon-1024: Signing failed: {:?}", sign_result.err());
     let signature = sign_result.unwrap();
+
+    println!("Falcon-1024 Message: {:?}", std::str::from_utf8(TEST_MESSAGE_FALCON1024).unwrap_or("Invalid UTF-8"));
+    println!("Falcon-1024 Signature (len={}): {:02x?}", signature.0.len(), &signature.0[..32]);
+    
+    // Find actual signature length 
+    let mut actual_sig_len = signature.0.len();
+    while actual_sig_len > 0 && signature.0[actual_sig_len - 1] == 0 {
+        actual_sig_len -= 1;
+    }
+    println!("Falcon-1024 Actual Signature Length: {}", actual_sig_len);
 
     assert_eq!(signature.0.len(), FALCON_SIGNATURE, "Falcon-1024: Signature length mismatch");
 
