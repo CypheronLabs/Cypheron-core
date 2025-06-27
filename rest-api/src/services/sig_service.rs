@@ -1,5 +1,4 @@
 use base64::{engine::general_purpose, Engine as _};
-use core_lib::sig::falcon::falcon512::types::SecretKey;
 use core_lib::sig::Falcon512;
 use core_lib::sig::Falcon1024;
 use core_lib::sig::traits::SignatureEngine;
@@ -204,8 +203,6 @@ impl SigService {
                 let sig = Shake128fSignature::from_bytes(&sig_bytes).map_err(|_| AppError::InvalidSignature)?;
                 Ok(shake_128f::verify_detached(&sig, msg_bytes, &pk).is_ok())
             }
-
-            _ => Err(AppError::InvalidVariant),
         }
     }
 }

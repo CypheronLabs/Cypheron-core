@@ -1,4 +1,4 @@
-use axum::serve;
+use axum::{serve, Router};
 use tokio::net::TcpListener;
 use tracing_subscriber;
 
@@ -13,7 +13,10 @@ mod utils;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let app = api::kem::routes();
+    let app = Router::new()
+        .nest("/", api::kem::routes())
+        .nest("/", api::sig::routes())
+        .nest("/", api::hybrid::routes());
 
     let listener = TcpListener::bind("127.0.0.1:3000")
         .await
