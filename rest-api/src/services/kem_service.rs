@@ -2,10 +2,28 @@ use core_lib::kem::{self, Kem, KemVariant, Kyber512, Kyber768, Kyber1024};
 use secrecy::ExposeSecret;
 use base64::{engine::general_purpose, Engine as _};
 use crate::error::AppError;
+use crate::utils::encoding::{encode_base64, encode_hex, encode_base64_url, decode_base64, decode_hex, decode_base64_url};
 
 pub struct KemService;
 
 impl KemService {
+    // Utility function to encode data based on format preference
+    fn encode_data(data: &[u8], format: &str) -> String {
+        match format {
+            "hex" => encode_hex(data),
+            "base64url" => encode_base64_url(data),
+            _ => encode_base64(data), // default to base64
+        }
+    }
+    
+    // Utility function to decode data based on format
+    fn decode_data(data: &str, format: &str) -> Result<Vec<u8>, AppError> {
+        match format {
+            "hex" => decode_hex(data),
+            "base64url" => decode_base64_url(data),
+            _ => decode_base64(data), // default to base64
+        }
+    }
     pub fn generate_keypair(variant: KemVariant) -> Result<(String, String), AppError> {
         match variant {
             KemVariant::Kyber512 => {
