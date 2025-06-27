@@ -17,3 +17,4 @@ hex = "0.4"
 
 core-lib = { path = "../core-lib" }
 hyper = "1.6.0"
+p256 = "0.13.2"

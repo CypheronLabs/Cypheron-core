@@ -2,7 +2,7 @@ use secrecy::ExposeSecret;
 use core_lib::sig::falcon::falcon1024::api::Falcon1024;
 use core_lib::sig::falcon::falcon1024::types::Signature;
 use core_lib::sig::traits::SignatureEngine;
-use core_lib::sig::falcon::falcon512::constants::{
+use core_lib::sig::falcon::falcon1024::constants::{
     FALCON_PUBLIC,
     FALCON_SECRET,
     FALCON_SIGNATURE,
