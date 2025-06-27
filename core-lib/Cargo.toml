@@ -10,6 +10,22 @@ libc = "0.2.171"
 zeroize = { version = "1.8.1", features = ["derive"] }
 rand = "0.9.1"
 once_cell = "1.18.0"
+num_cpus = "1.16"
+
+# Platform-specific dependencies
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.52", features = [
+    "Win32_Security_Cryptography",
+    "Win32_System_Memory",
+    "Win32_System_SystemInformation",
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.9"
+security-framework = "2.9"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Linux uses standard libc, no additional dependencies needed
 
 [build-dependencies]
 cc = "1.2.18"

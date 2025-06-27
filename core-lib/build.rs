@@ -1,6 +1,14 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
+// Cross-platform build configuration
+#[cfg(target_os = "windows")]
+const OS_SUFFIX: &str = "windows";
+#[cfg(target_os = "macos")]
+const OS_SUFFIX: &str = "macos";
+#[cfg(target_os = "linux")]
+const OS_SUFFIX: &str = "linux";
+
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let sphincs_dir = manifest_dir.join("..").join("vendor/sphincsplus");
@@ -368,8 +376,14 @@ impl<'a> PQBuilder<'a> {
         let mut build = cc::Build::new();
         build.include(self.src_dir);
         
+        // Cross-platform compiler configuration
+        self.configure_cross_platform(&mut build);
+        
         build.files(self.c_files.iter().map(|f| self.src_dir.join(f)));
-        build.flag_if_supported("-O3");
+        
+        // Platform-specific optimization flags
+        self.add_optimization_flags(&mut build);
+        
         for (k, v) in &self.defines {
             build.define(k, Some(*v));
         }
@@ -417,6 +431,78 @@ impl<'a> PQBuilder<'a> {
                 eprintln!("Try: `sudo apt install libclang-dev`");
                 eprintln!("Or set the environment variable: `LIBCLANG_PATH=/path/to/libclang.so`");
                 std::process::exit(1);
+            }
+        }
+    }
+
+    // Cross-platform compiler configuration
+    fn configure_cross_platform(&self, build: &mut cc::Build) {
+        // Windows-specific configuration
+        #[cfg(target_os = "windows")]
+        {
+            // Use MSVC on Windows
+            build.flag_if_supported("/std:c11");
+            build.define("_CRT_SECURE_NO_WARNINGS", None);
+            build.define("WIN32_LEAN_AND_MEAN", None);
+            
+            // Windows-specific crypto APIs
+            if self.lib_name.contains("sphincs") || self.lib_name.contains("kyber") {
+                build.define("USE_WINDOWS_CRYPTO", None);
+            }
+        }
+
+        // macOS-specific configuration
+        #[cfg(target_os = "macos")]
+        {
+            build.flag_if_supported("-std=c99");
+            build.flag_if_supported("-Wno-unused-function");
+            
+            // macOS Security Framework for random number generation
+            println!("cargo:rustc-link-lib=framework=Security");
+            println!("cargo:rustc-link-lib=framework=CoreFoundation");
+            
+            // Apple Silicon optimization
+            if std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default() == "aarch64" {
+                build.flag_if_supported("-mcpu=apple-m1");
+            }
+        }
+
+        // Linux-specific configuration (existing)
+        #[cfg(target_os = "linux")]
+        {
+            build.flag_if_supported("-std=c99");
+            build.flag_if_supported("-Wno-unused-function");
+            
+            // Link with pthread for random number generation
+            println!("cargo:rustc-link-lib=pthread");
+        }
+
+        // Common Unix configuration
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        {
+            build.flag_if_supported("-fPIC");
+            build.flag_if_supported("-fno-strict-aliasing");
+        }
+    }
+
+    // Platform-specific optimization flags
+    fn add_optimization_flags(&self, build: &mut cc::Build) {
+        #[cfg(target_os = "windows")]
+        {
+            build.flag_if_supported("/O2");
+            build.flag_if_supported("/Oi"); // Enable intrinsic functions
+            build.flag_if_supported("/GL"); // Whole program optimization
+        }
+
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        {
+            build.flag_if_supported("-O3");
+            build.flag_if_supported("-fomit-frame-pointer");
+            build.flag_if_supported("-march=native");
+            
+            // Add AVX2 support if available
+            if std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default().contains("avx2") {
+                build.flag_if_supported("-mavx2");
             }
         }
     }
