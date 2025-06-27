@@ -32,6 +32,7 @@ pub struct KeypairResponse {
 
 #[derive(Deserialize)]
 pub struct KeypairRequest {
+    #[allow(dead_code)]
     pub variant: String,
 }
 
