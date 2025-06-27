@@ -11,7 +11,7 @@ static SECRET_KEY_BYTES_USIZE: Lazy<usize> = Lazy::new(
 static SIGNATURE_BYTES_USIZE: Lazy<usize> = Lazy::new(
     || unsafe { bindings::robust_ffi::crypto_sign_bytes() as usize });
 static SEED_BYTES_USIZE: Lazy<usize> = Lazy::new(
-    || unsafe { bindings::robust_ffi::crypto_sign_publickeybytes() as usize });
+    || unsafe { bindings::robust_ffi::crypto_sign_seedbytes() as usize });
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey (Vec<u8>);
