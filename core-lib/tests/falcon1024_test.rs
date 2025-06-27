@@ -11,7 +11,6 @@ use core_lib::sig::falcon::falcon1024::constants::{
 const TEST_MESSAGE_FALCON1024: &[u8] = b"This is a test message for Falcon-1024 implementation.";
 
 #[test]
-#[ignore = "Falcon FFI bindings require system setup"]
 fn falcon1024_test_keypair_generation_lengths() {
     let result = Falcon1024::keypair();
     assert!(result.is_ok(), "Falcon-1024: Keypair generation failed: {:?}", result.err());
@@ -22,7 +21,6 @@ fn falcon1024_test_keypair_generation_lengths() {
 }
 
 #[test]
-#[ignore = "Falcon FFI bindings require system setup"]
 fn falcon1024_test_sign_verify_roundtrip() {
     let keypair_result = Falcon1024::keypair();
     assert!(keypair_result.is_ok(), "Falcon-1024: Keypair generation failed for roundtrip: {:?}", keypair_result.err());
@@ -39,7 +37,6 @@ fn falcon1024_test_sign_verify_roundtrip() {
 }
 
 #[test]
-#[ignore = "Falcon FFI bindings require system setup"]
 fn falcon1024_test_verify_failure_wrong_message() {
     let keypair_result = Falcon1024::keypair();
     assert!(keypair_result.is_ok(), "Falcon-1024: Keypair generation failed for wrong message test: {:?}", keypair_result.err());
@@ -56,7 +53,6 @@ fn falcon1024_test_verify_failure_wrong_message() {
 }
 
 #[test]
-#[ignore = "Falcon FFI bindings require system setup"]
 fn falcon1024_test_verify_failure_wrong_public_key() {
     let keypair1_result = Falcon1024::keypair();
     assert!(keypair1_result.is_ok(), "Falcon-1024: Keypair 1 generation failed: {:?}", keypair1_result.err());
@@ -75,7 +71,6 @@ fn falcon1024_test_verify_failure_wrong_public_key() {
 }
 
 #[test]
-#[ignore = "Falcon FFI bindings require system setup"]
 fn falcon1024_test_verify_failure_corrupted_signature() {
     let keypair_result = Falcon1024::keypair(); 
     assert!(keypair_result.is_ok(), "Falcon-1024: Keypair generation failed for corrupted sig test: {:?}", keypair_result.err());
