@@ -8,6 +8,7 @@ pub struct KemService;
 
 impl KemService {
     // Utility function to encode data based on format preference
+    #[allow(dead_code)]
     fn encode_data(data: &[u8], format: &str) -> String {
         match format {
             "hex" => encode_hex(data),
@@ -17,6 +18,7 @@ impl KemService {
     }
     
     // Utility function to decode data based on format
+    #[allow(dead_code)]
     fn decode_data(data: &str, format: &str) -> Result<Vec<u8>, AppError> {
         match format {
             "hex" => decode_hex(data),

@@ -8,6 +8,7 @@ pub fn encode_base64(data: &[u8]) -> String {
     general_purpose::STANDARD.encode(data)
 }
 
+#[allow(dead_code)]
 pub fn decode_base64(s: &str) -> Result<Vec<u8>, AppError> {
     general_purpose::STANDARD.decode(s).map_err(|_| AppError::InvalidBase64)
 }
@@ -22,10 +23,12 @@ pub fn decode_base64_url(s: &str) -> Result<Vec<u8>, AppError> {
 }
 
 // Hex encoding (useful for key material display/debugging)
+#[allow(dead_code)]
 pub fn encode_hex(data: &[u8]) -> String {
     hex::encode(data)
 }
 
+#[allow(dead_code)]
 pub fn decode_hex(s: &str) -> Result<Vec<u8>, AppError> {
     hex::decode(s).map_err(|_| AppError::InvalidBase64) // Reusing InvalidBase64 for simplicity
 }
@@ -36,6 +39,7 @@ pub fn encode_struct_base64<T: Serialize>(data: &T) -> Result<String, AppError> 
     Ok(encode_base64(&json))
 }
 
+#[allow(dead_code)]
 pub fn decode_struct_base64<T: DeserializeOwned>(s: &str) -> Result<T, AppError> {
     let bytes = decode_base64(s)?;
     serde_json::from_slice(&bytes).map_err(|_| AppError::InvalidBase64)
