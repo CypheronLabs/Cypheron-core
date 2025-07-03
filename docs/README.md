@@ -37,7 +37,7 @@ Welcome to the comprehensive documentation for PQ-Core, a production-ready post-
 - [Monitoring & Observability](advanced/monitoring.md)
 - [Production Deployment](advanced/deployment.md)
 
-## 🚀 Quick Navigation
+## Quick Navigation
 
 **New to Post-Quantum Crypto?** Start with [Introduction to Post-Quantum Cryptography](getting-started/introduction.md)
 
@@ -49,7 +49,7 @@ Welcome to the comprehensive documentation for PQ-Core, a production-ready post-
 
 **Security Questions?** Read the [Security Documentation](security/)
 
-## 🔧 What is PQ-Core?
+## What is PQ-Core?
 
 PQ-Core is a comprehensive REST API that provides access to standardized post-quantum cryptographic algorithms. It offers:
 
@@ -59,7 +59,7 @@ PQ-Core is a comprehensive REST API that provides access to standardized post-qu
 - **Enterprise Security**: API key management, rate limiting, audit logging
 - **Production Ready**: OWASP-compliant security, monitoring, and observability
 
-## 🛡️ Why Post-Quantum Cryptography?
+## Why Post-Quantum Cryptography?
 
 With the advent of quantum computers, traditional cryptographic algorithms (RSA, ECDSA, ECDH) become vulnerable to attack. Post-quantum cryptography provides algorithms that remain secure even against quantum adversaries.
 
@@ -69,7 +69,7 @@ PQ-Core implements NIST-standardized algorithms that are:
 - **Battle-tested**: Extensively analyzed by the cryptographic community
 - **Production-ready**: Optimized implementations with security hardening
 
-## 📊 Supported Algorithms
+## Supported Algorithms
 
 ### Key Encapsulation Mechanisms (KEM)
 - **Kyber-512**: NIST security level 1, ~800 bytes public key
@@ -88,7 +88,7 @@ PQ-Core implements NIST-standardized algorithms that are:
 - **Hybrid Signatures**: Combines classical (Ed25519, ECDSA) with post-quantum signatures
 - **Migration-Friendly**: Gradual transition from classical to post-quantum
 
-## 🎯 Who Should Use This Documentation?
+## Who Should Use This Documentation?
 
 - **Developers** integrating post-quantum cryptography into applications
 - **Security Engineers** evaluating post-quantum security models
@@ -96,7 +96,7 @@ PQ-Core implements NIST-standardized algorithms that are:
 - **Researchers** experimenting with post-quantum algorithms
 - **Organizations** planning quantum-safe migrations
 
-## 💡 Documentation Philosophy
+## Documentation Philosophy
 
 This documentation follows a progressive disclosure approach:
 
@@ -106,7 +106,7 @@ This documentation follows a progressive disclosure approach:
 4. **Real-World Examples**: Always include working code
 5. **Security Focus**: Emphasize secure implementation patterns
 
-## 🔗 External Resources
+## External Resources
 
 - [NIST Post-Quantum Cryptography Standards](https://csrc.nist.gov/Projects/post-quantum-cryptography)
 - [Open Quantum Safe Project](https://openquantumsafe.org/)
