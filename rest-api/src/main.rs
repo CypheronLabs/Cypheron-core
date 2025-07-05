@@ -9,17 +9,16 @@ mod services;
 mod error;
 mod utils;
 mod security;
+mod validation;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    // Initialize security components
     let api_key_store = security::ApiKeyStore::new();
-    let rate_limiter = security::RateLimiter::new(60); // 60 requests per minute default
-    let audit_logger = security::AuditLogger::new(10000); // Keep last 10k events
+    let rate_limiter = security::RateLimiter::new(60); 
+    let audit_logger = security::AuditLogger::new(10000); 
 
-    // Create API routes with security middleware
     let api_routes = Router::new()
         .merge(api::kem::routes())
         .merge(api::sig::routes())
@@ -36,7 +35,6 @@ async fn main() {
         .layer(middleware::from_fn(security::timing_middleware))
         .layer(middleware::from_fn(security::security_headers_middleware));
 
-    // Create admin routes (API key management and audit logs)
     let admin_api_routes = security::api_key_management_routes()
         .with_state(api_key_store.clone());
     
@@ -61,7 +59,13 @@ async fn main() {
     tracing::info!("  - Request Validation");
     tracing::info!("  - Security Headers");
     tracing::info!("  - Audit Logging");
-    tracing::info!("📝 Test API Key: pq_test_key_12345");
+    
+    if std::env::var("PQ_TEST_API_KEY").is_ok() {
+        tracing::info!("📝 Test API Key loaded from PQ_TEST_API_KEY environment variable");
+    } else {
+        tracing::info!("📝 No test API key configured. Use PQ_TEST_API_KEY environment variable for testing.");
+    }
+    
     tracing::info!("🔧 Admin endpoints: /admin/api-keys, /admin/audit-logs");
 
     serve(listener, app)

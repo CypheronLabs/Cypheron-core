@@ -15,3 +15,15 @@ target/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# Security validation and demo files
+test_security*
+demo_security*
+*_security.sh
+setup_vendor.sh
+SECURITY*.md
+HOW_TO_TEST.md
+VERIFICATION_REPORT.md
+SETUP_NIST_IMPLEMENTATIONS.md
+PROJECT_STATUS.md
+OWASP_API_COMPLIANCE.md

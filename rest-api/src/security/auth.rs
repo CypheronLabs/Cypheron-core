@@ -36,28 +36,29 @@ impl ApiKeyStore {
     pub fn new() -> Self {
         let mut store = HashMap::new();
         
-        // Create a default API key for testing (remove in production!)
-        let test_key = "pq_test_key_12345";
-        let test_key_hash = format!("{:x}", Sha256::digest(test_key.as_bytes()));
-        
-        let api_key = ApiKey {
-            id: Uuid::new_v4(),
-            name: "Test Key".to_string(),
-            key_hash: test_key_hash.clone(),
-            permissions: vec![
-                "kem:*".to_string(),
-                "sig:*".to_string(),
-                "hybrid:*".to_string(),
-            ],
-            rate_limit: 100, // 100 requests per minute
-            created_at: Utc::now(),
-            expires_at: Some(Utc::now() + Duration::days(30)),
-            is_active: true,
-            last_used: None,
-            usage_count: 0,
-        };
-        
-        store.insert(test_key_hash, api_key);
+        if let Ok(test_key) = std::env::var("PQ_TEST_API_KEY") {
+            let test_key_hash = format!("{:x}", Sha256::digest(test_key.as_bytes()));
+            
+            let api_key = ApiKey {
+                id: Uuid::new_v4(),
+                name: "Test Key".to_string(),
+                key_hash: test_key_hash.clone(),
+                permissions: vec![
+                    "kem:*".to_string(),
+                    "sig:*".to_string(),
+                    "hybrid:*".to_string(),
+                ],
+                rate_limit: 100, 
+                created_at: Utc::now(),
+                expires_at: Some(Utc::now() + Duration::days(30)),
+                is_active: true,
+                last_used: None,
+                usage_count: 0,
+            };
+            
+            store.insert(test_key_hash, api_key);
+            tracing::info!("Test API key loaded from environment");
+        }
         
         Self {
             keys: Arc::new(RwLock::new(store)),
@@ -71,21 +72,23 @@ impl ApiKeyStore {
         if let Some(api_key) = keys.get_mut(&key_hash) {
             // Check if key is active and not expired
             if !api_key.is_active {
+                tracing::warn!("Attempt to use inactive API key: {}", api_key.id);
                 return None;
             }
             
             if let Some(expires_at) = api_key.expires_at {
                 if Utc::now() > expires_at {
+                    tracing::warn!("Attempt to use expired API key: {}", api_key.id);
                     return None;
                 }
             }
             
-            // Update usage statistics
             api_key.last_used = Some(Utc::now());
-            api_key.usage_count += 1;
+            api_key.usage_count = api_key.usage_count.saturating_add(1);
             
             Some(api_key.clone())
         } else {
+            tracing::warn!("Attempt to use unknown API key hash: {}", &key_hash[..8]);
             None
         }
     }
@@ -116,10 +119,8 @@ pub async fn auth_middleware(
     request: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<AuthError>)> {
-    // Extract API key from Authorization header or X-API-Key header
     let api_key = extract_api_key(&headers)?;
     
-    // Validate the API key
     let validated_key = api_store.validate_key(&api_key).await
         .ok_or_else(|| (
             StatusCode::UNAUTHORIZED,
@@ -130,7 +131,6 @@ pub async fn auth_middleware(
             }),
         ))?;
     
-    // Check permissions based on the request path
     let path = request.uri().path();
     let resource = extract_resource_from_path(path);
     
@@ -156,7 +156,6 @@ pub async fn auth_middleware(
 }
 
 fn extract_api_key(headers: &HeaderMap) -> Result<String, (StatusCode, Json<AuthError>)> {
-    // Try X-API-Key header first
     if let Some(api_key) = headers.get("x-api-key") {
         return api_key
             .to_str()
@@ -171,7 +170,6 @@ fn extract_api_key(headers: &HeaderMap) -> Result<String, (StatusCode, Json<Auth
             ));
     }
     
-    // Try Authorization: Bearer <token>
     if let Some(auth_header) = headers.get("authorization") {
         if let Ok(auth_str) = auth_header.to_str() {
             if auth_str.starts_with("Bearer ") {

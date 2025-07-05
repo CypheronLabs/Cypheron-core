@@ -1,5 +1,5 @@
 use axum::extract::{Path, Json};
-use crate::models::kem::*;
+use crate::{models::kem::*, validation};
 use crate::services::kem_service::KemService;
 use crate::error::AppError;
 use core_lib::kem::KemVariant;
@@ -7,13 +7,14 @@ use crate::utils::encoding::encode_struct_base64;
 use serde_json::json;
 
 pub async fn keygen(Path(variant): Path<String>) -> Result<Json<KeypairResponse>, AppError> {
+    validation::validate_path_parameter(&variant)?;
     let variant = parse_variant(&variant)?;
     let (pk, sk) = KemService::generate_keypair(variant)?;
     Ok(Json(KeypairResponse { 
         pk: pk.clone(), 
         sk: sk.clone(),
         format: "base64".to_string(),
-        pk_hex: None, // Could add hex encoding here if desired
+        pk_hex: None, 
         sk_hex: None,
     }))
 }
@@ -22,6 +23,9 @@ pub async fn encapsulate(
     Path(variant): Path<String>,
     Json(payload): Json<EncapsulateRequest>,
 ) -> Result<Json<EncapsulateResponse>, AppError> {
+    validation::validate_path_parameter(&variant)?;
+    validation::validate_base64_key(&payload.pk)?;
+    
     let variant = parse_variant(&variant)?;
     let (ct, ss) = KemService::encapsulate(variant, &payload.pk)?;
     Ok(Json(EncapsulateResponse { 
@@ -35,13 +39,17 @@ pub async fn decapsulate(
     Path(variant): Path<String>,
     Json(payload): Json<DecapsulateRequest>,
 ) -> Result<Json<DecapsulateResponse>, AppError> {
+    validation::validate_path_parameter(&variant)?;
+    validation::validate_base64_key(&payload.sk)?;
+    validation::validate_base64_key(&payload.ct)?; 
+    
     let variant = parse_variant(&variant)?;
     let ss = KemService::decapsulate(variant, &payload.ct, &payload.sk)?;
     Ok(Json(DecapsulateResponse { ss, format: payload.format }))
 }
 
-// New endpoint to demonstrate struct encoding
 pub async fn variant_info(Path(variant): Path<String>) -> Result<Json<serde_json::Value>, AppError> {
+    validation::validate_path_parameter(&variant)?;
     let variant_enum = parse_variant(&variant)?;
     
     let info = json!({
@@ -69,7 +77,6 @@ pub async fn variant_info(Path(variant): Path<String>) -> Result<Json<serde_json
         ]
     });
     
-    // Demonstrate struct encoding by adding an encoded version
     let encoded_info = encode_struct_base64(&info)?;
     let response = json!({
         "info": info,
