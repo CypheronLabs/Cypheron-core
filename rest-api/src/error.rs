@@ -11,7 +11,7 @@ pub enum AppError {
     InvalidVariant,
     #[error("Key generation failed")]
     KeyGenFailed,
-    #[error("Signing failed:")]
+    #[error("Signing failed")]
     SigningFailed,
     #[error("Invalid Secret key")]
     InvalidSecretKey,
@@ -21,20 +21,26 @@ pub enum AppError {
     InvalidBase64,
     #[error("Invalid Signature")]
     InvalidSignature,
+    #[error("Validation error: {0}")]
+    ValidationError(String),
 }
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let code = match self {
-            AppError::Base64Decode(_) | AppError::InvalidLength => StatusCode::BAD_REQUEST,
-            AppError::InvalidVariant => StatusCode::NOT_FOUND,
-            AppError::KeyGenFailed => StatusCode::NOT_FOUND,
-            AppError::SigningFailed => StatusCode::BAD_REQUEST,
-            AppError::InvalidSecretKey => StatusCode::UNAUTHORIZED,
-            AppError::InvalidPublicKey => StatusCode::UNAUTHORIZED,
-            AppError::InvalidBase64 => StatusCode::BAD_REQUEST,
-            AppError::InvalidSignature => StatusCode::BAD_REQUEST,
+        let (code, message) = match self {
+            AppError::Base64Decode(_) | AppError::InvalidLength => (StatusCode::BAD_REQUEST, "Invalid input format".to_string()),
+            AppError::InvalidVariant => (StatusCode::NOT_FOUND, "Algorithm variant not supported".to_string()),
+            AppError::KeyGenFailed => (StatusCode::INTERNAL_SERVER_ERROR, "Key generation failed".to_string()),
+            AppError::SigningFailed => (StatusCode::INTERNAL_SERVER_ERROR, "Signing operation failed".to_string()),
+            AppError::InvalidSecretKey => (StatusCode::BAD_REQUEST, "Invalid secret key".to_string()),
+            AppError::InvalidPublicKey => (StatusCode::BAD_REQUEST, "Invalid public key".to_string()),
+            AppError::InvalidBase64 => (StatusCode::BAD_REQUEST, "Invalid base64 encoding".to_string()),
+            AppError::InvalidSignature => (StatusCode::BAD_REQUEST, "Invalid signature".to_string()),
+            AppError::ValidationError(msg) => (StatusCode::BAD_REQUEST, format!("Validation failed: {}", msg)),
         };
-        (code, self.to_string()).into_response()
+        
+        tracing::error!("API Error: {:?}", self);
+        
+        (code, message).into_response()
     }
 }

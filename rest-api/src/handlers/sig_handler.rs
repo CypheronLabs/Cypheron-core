@@ -1,5 +1,5 @@
 use axum::{extract::{Path, Json}};
-use crate::{models::sig::*};
+use crate::{models::sig::*, validation};
 use crate::utils::encoding::encode_base64;
 use crate::services::sig_service::SigService;
 use crate::error::AppError;
@@ -20,6 +20,7 @@ fn encode_signature(sig: AnySignature) -> String {
 }
 
 pub async fn keygen(Path(variant): Path<String>) -> Result<Json<KeypairResponse>, AppError> {
+    validation::validate_path_parameter(&variant)?;
     let variant = parse_sig_variant(&variant)?;
     let keypair = SigService::generate_keypair(variant)?;
     Ok(Json(keypair))
@@ -28,6 +29,10 @@ pub async fn sign(
     Path(variant): Path<String>,
     Json(payload): Json<SignRequest>,
 ) -> Result<Json<SignResponse>, AppError> {
+    validation::validate_path_parameter(&variant)?;
+    validation::validate_message(&payload.message)?;
+    validation::validate_base64_key(&payload.sk)?;
+    
     let variant = parse_sig_variant(&variant)?;
     let signature = SigService::sign(variant, &payload.message, &payload.sk)?;
     let signature = encode_signature(signature);
@@ -37,7 +42,12 @@ pub async fn verify(
     Path(variant): Path<String>,
     Json(payload): Json<VerifyRequest>,
 ) -> Result<Json<VerifyResponse>, AppError> {
+    validation::validate_path_parameter(&variant)?;
+    validation::validate_message(&payload.message)?;
+    validation::validate_base64_key(&payload.pk)?;
+    validation::validate_base64_signature(&payload.signature)?;
+    
     let variant = parse_sig_variant(&variant)?;
-    let valid = SigService::verify(variant, &payload.message, &payload.signature, &payload.pk)?;
+    let valid = SigService::verify(variant, &payload.pk, &payload.message, &payload.signature)?;
     Ok(Json(VerifyResponse { valid }))
 }

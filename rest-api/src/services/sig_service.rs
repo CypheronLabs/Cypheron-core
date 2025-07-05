@@ -3,17 +3,15 @@ use core_lib::sig::Falcon512;
 use core_lib::sig::Falcon1024;
 use core_lib::sig::traits::SignatureEngine;
 use secrecy::ExposeSecret;
-use crate::error::AppError;
+use crate::{error::AppError, validation};
 use core_lib::sig::dilithium::common::*;
 use crate::models::sig::*;
 use core_lib::sig::dilithium::{dilithium2::Dilithium2, dilithium3::Dilithium3, dilithium5::Dilithium5};
 use core_lib::sig::sphincs::{haraka_192f, sha2_256s, shake_128f};
 
-// Sphincs+ type aliases for ergonomic use
 use core_lib::sig::sphincs::haraka_192f::types::{PublicKey as Haraka192fPublicKey, SecretKey as Haraka192fSecretKey, Signature as Haraka192fSignature};
 use core_lib::sig::sphincs::sha2_256s::types::{PublicKey as Sha2_256sPublicKey, SecretKey as Sha2_256sSecretKey, Signature as Sha2_256sSignature};
 use core_lib::sig::sphincs::shake_128f::types::{PublicKey as Shake128fPublicKey, SecretKey as Shake128fSecretKey, Signature as Shake128fSignature};
-// Falcon1024 constant
 use core_lib::sig::falcon::falcon1024::constants::FALCON_SECRET;
 
 pub struct SigService;
@@ -44,7 +42,6 @@ impl SigService {
             }
             SigVariant::FALCON512 => {
                 let (pk, sk) = Falcon512::keypair().map_err(|_| AppError::KeyGenFailed)?;
-                //let (pk, sk) = crate::services.map_err(|_| AppError::KeyGenFailed)?;
                 Ok(KeypairResponse {
                     pk: general_purpose::STANDARD.encode(&pk.0),
                     sk: general_purpose::STANDARD.encode(&sk.0.expose_secret()),
@@ -82,10 +79,26 @@ impl SigService {
     }
 
     pub fn sign(variant: SigVariant, message: &str, sk_b64: &str) -> Result<AnySignature, AppError> {
+        validation::validate_message(message)?;
+        validation::validate_base64_key(sk_b64)?;
+        
         let sk_bytes = general_purpose::STANDARD
             .decode(sk_b64)
             .map_err(|_| AppError::InvalidSecretKey)?;
         let message_bytes = message.as_bytes();
+        
+        let algorithm_name = match variant {
+            SigVariant::Dilithium2 => "dilithium2",
+            SigVariant::Dilithium3 => "dilithium3",
+            SigVariant::Dilithium5 => "dilithium5",
+            SigVariant::FALCON512 => "falcon512",
+            SigVariant::FALCON1024 => "falcon1024",
+            _ => "", 
+        };
+        
+        if !algorithm_name.is_empty() {
+            validation::validate_decoded_key_size(algorithm_name, &sk_bytes, false)?;
+        }
         match variant {
             SigVariant::Dilithium2 => {
                 use secrecy::SecretBox;
@@ -156,9 +169,26 @@ impl SigService {
     }
     
     pub fn verify(variant: SigVariant, pk_b64: &str, msg: &str, sig_b64: &str) -> Result<bool, AppError> {
+        validation::validate_base64_key(pk_b64)?;
+        validation::validate_message(msg)?;
+        validation::validate_base64_signature(sig_b64)?;
+        
         let pk_bytes = general_purpose::STANDARD.decode(pk_b64).map_err(|_| AppError::InvalidBase64)?;
         let sig_bytes = general_purpose::STANDARD.decode(sig_b64).map_err(|_| AppError::InvalidBase64)?;
         let msg_bytes = msg.as_bytes();
+        
+        let algorithm_name = match variant {
+            SigVariant::Dilithium2 => "dilithium2",
+            SigVariant::Dilithium3 => "dilithium3",
+            SigVariant::Dilithium5 => "dilithium5",
+            SigVariant::FALCON512 => "falcon512",
+            SigVariant::FALCON1024 => "falcon1024",
+            _ => "", 
+        };
+        
+        if !algorithm_name.is_empty() {
+            validation::validate_decoded_key_size(algorithm_name, &pk_bytes, true)?;
+        }
         match variant {
             SigVariant::Dilithium2 => {
                 let pk = core_lib::sig::dilithium::dilithium2::types::PublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidPublicKey)?);
