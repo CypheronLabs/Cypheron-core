@@ -52,8 +52,8 @@ async fn main() {
         .await
         .expect("Failed to bind port");
 
-    tracing::info!("🚀 PQ-Core API Server listening on http://127.0.0.1:3000");
-    tracing::info!("🔐 API Security Features Enabled:");
+    tracing::info!("PQ-Core API Server listening on http://127.0.0.1:3000");
+    tracing::info!("API Security Features Enabled:");
     tracing::info!("  - API Key Authentication");
     tracing::info!("  - Rate Limiting (60 req/min default)");
     tracing::info!("  - Request Validation");
@@ -61,12 +61,12 @@ async fn main() {
     tracing::info!("  - Audit Logging");
     
     if std::env::var("PQ_TEST_API_KEY").is_ok() {
-        tracing::info!("📝 Test API Key loaded from PQ_TEST_API_KEY environment variable");
+        tracing::info!("Test API Key loaded from PQ_TEST_API_KEY environment variable");
     } else {
-        tracing::info!("📝 No test API key configured. Use PQ_TEST_API_KEY environment variable for testing.");
+        tracing::info!("No test API key configured. Use PQ_TEST_API_KEY environment variable for testing.");
     }
     
-    tracing::info!("🔧 Admin endpoints: /admin/api-keys, /admin/audit-logs");
+    tracing::info!("Admin endpoints: /admin/api-keys, /admin/audit-logs");
 
     serve(listener, app)
         .await
