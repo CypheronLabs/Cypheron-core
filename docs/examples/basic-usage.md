@@ -13,11 +13,13 @@ This guide provides practical examples for common post-quantum cryptography task
 This example shows how to digitally sign a document and verify the signature.
 
 ### Scenario
+
 You need to sign a contract or document to prove authenticity and prevent tampering.
 
 ### Implementation
 
 **Step 1: Generate signing keys**
+
 ```bash
 curl -X POST "https://api.pq-core.com/sig/dilithium3/keygen" \
   -H "X-API-Key: your_api_key" \
@@ -25,6 +27,7 @@ curl -X POST "https://api.pq-core.com/sig/dilithium3/keygen" \
 ```
 
 **Response:**
+
 ```json
 {
   "pk": "RGlsaXRoaXVtMyBwdWJsaWMga2V5IGRhdGE...",
@@ -33,6 +36,7 @@ curl -X POST "https://api.pq-core.com/sig/dilithium3/keygen" \
 ```
 
 **Step 2: Prepare document**
+
 ```bash
 # Create hash of document (in practice, hash the actual file)
 DOCUMENT_HASH=$(echo "This is my important contract" | base64)
@@ -40,6 +44,7 @@ echo "Document hash: $DOCUMENT_HASH"
 ```
 
 **Step 3: Sign the document**
+
 ```bash
 curl -X POST "https://api.pq-core.com/sig/dilithium3/sign" \
   -H "X-API-Key: your_api_key" \
@@ -51,6 +56,7 @@ curl -X POST "https://api.pq-core.com/sig/dilithium3/sign" \
 ```
 
 **Response:**
+
 ```json
 {
   "signature": "RGlsaXRoaXVtMyBzaWduYXR1cmUgZGF0YQ...",
@@ -59,6 +65,7 @@ curl -X POST "https://api.pq-core.com/sig/dilithium3/sign" \
 ```
 
 **Step 4: Verify the signature**
+
 ```bash
 curl -X POST "https://api.pq-core.com/sig/dilithium3/verify" \
   -H "X-API-Key: your_api_key" \
@@ -71,6 +78,7 @@ curl -X POST "https://api.pq-core.com/sig/dilithium3/verify" \
 ```
 
 **Response:**
+
 ```json
 {
   "valid": true,
@@ -165,11 +173,13 @@ if __name__ == "__main__":
 This example demonstrates secure communication between two parties using key encapsulation.
 
 ### Scenario
+
 Alice wants to send Bob a confidential message. They need to establish a shared secret for encryption.
 
 ### Implementation
 
 **Step 1: Bob generates KEM keys**
+
 ```bash
 # Bob generates his key pair
 curl -X POST "https://api.pq-core.com/kem/kyber768/keygen" \
@@ -178,6 +188,7 @@ curl -X POST "https://api.pq-core.com/kem/kyber768/keygen" \
 ```
 
 **Bob's response:**
+
 ```json
 {
   "pk": "Qm9iJ3MgS3liZXI3NjggcHVibGljIGtleQ==",
@@ -186,6 +197,7 @@ curl -X POST "https://api.pq-core.com/kem/kyber768/keygen" \
 ```
 
 **Step 2: Alice encapsulates a shared secret**
+
 ```bash
 # Alice creates shared secret using Bob's public key
 curl -X POST "https://api.pq-core.com/kem/kyber768/encapsulate" \
@@ -197,6 +209,7 @@ curl -X POST "https://api.pq-core.com/kem/kyber768/encapsulate" \
 ```
 
 **Alice's response:**
+
 ```json
 {
   "shared_secret": "QWxpY2UgYW5kIEJvYiBzaGFyZWQgc2VjcmV0",
@@ -205,6 +218,7 @@ curl -X POST "https://api.pq-core.com/kem/kyber768/encapsulate" \
 ```
 
 **Step 3: Alice encrypts her message**
+
 ```python
 # Alice encrypts her message with the shared secret
 from cryptography.fernet import Fernet
@@ -220,10 +234,12 @@ encrypted_message = cipher.encrypt(message.encode())
 
 **Step 4: Alice sends to Bob**
 Alice sends Bob:
+
 - The ciphertext from KEM encapsulation
 - The encrypted message
 
 **Step 5: Bob decapsulates and decrypts**
+
 ```bash
 # Bob recovers the shared secret
 curl -X POST "https://api.pq-core.com/kem/kyber768/decapsulate" \
@@ -236,6 +252,7 @@ curl -X POST "https://api.pq-core.com/kem/kyber768/decapsulate" \
 ```
 
 **Bob's response:**
+
 ```json
 {
   "shared_secret": "QWxpY2UgYW5kIEJvYiBzaGFyZWQgc2VjcmV0"
@@ -366,6 +383,7 @@ if __name__ == "__main__":
 This example shows how to verify signatures from multiple parties, useful for document approval workflows.
 
 ### Scenario
+
 A document needs approval from three department heads. Each must sign with their own key.
 
 ### Implementation
@@ -505,15 +523,15 @@ def multi_party_approval_example():
     print()
     
     for result in results["verification_results"]:
-        status = "✓ VALID" if result["valid"] else "✗ INVALID"
+        status = "VALID" if result["valid"] else "INVALID"
         print(f"{status} - {result['signer']} ({result['algorithm']})")
         if result["error"]:
             print(f"  Error: {result['error']}")
     
     if results["all_valid"]:
-        print("\n🎉 Document fully approved by all parties!")
+        print("\nDocument fully approved by all parties!")
     else:
-        print(f"\n⚠️ Document approval incomplete ({results['valid_signatures']}/{results['total_signatures']})")
+        print(f"\nDocument approval incomplete ({results['valid_signatures']}/{results['total_signatures']})")
 
 if __name__ == "__main__":
     multi_party_approval_example()
@@ -524,6 +542,7 @@ if __name__ == "__main__":
 This example shows how to use hybrid cryptography to gradually migrate from classical to post-quantum algorithms.
 
 ### Scenario
+
 Your organization is migrating from RSA/ECDSA to post-quantum cryptography but needs to maintain compatibility during the transition.
 
 ### Implementation
@@ -541,6 +560,7 @@ curl -X POST "https://api.pq-core.com/hybrid/sign" \
 ```
 
 **Response:**
+
 ```json
 {
   "classical_signature": "RWQyNTUxOSBzaWduYXR1cmU=",
@@ -635,23 +655,23 @@ def migration_workflow_example():
     # Phase 1: Create hybrid signature
     print("Phase 1: Creating hybrid signature...")
     hybrid_sig = hybrid_manager.create_hybrid_signature(document)
-    print("✓ Hybrid signature created")
+    print("Hybrid signature created")
     
     # Phase 2: Verify with both algorithms required (strict mode)
     print("\nPhase 2: Strict verification (both signatures required)...")
     strict_valid = hybrid_manager.verify_hybrid_signature(
         document, hybrid_sig, require_both=True
     )
-    print(f"✓ Strict verification: {strict_valid}")
+    print(f"Strict verification: {strict_valid}")
     
     # Phase 3: Verify with either algorithm sufficient (migration mode)
     print("\nPhase 3: Migration verification (either signature sufficient)...")
     migration_valid = hybrid_manager.verify_hybrid_signature(
         document, hybrid_sig, require_both=False
     )
-    print(f"✓ Migration verification: {migration_valid}")
+    print(f"Migration verification: {migration_valid}")
     
-    print("\n📋 Migration Strategy:")
+    print("\nMigration Strategy:")
     print("1. Deploy hybrid signatures in all new systems")
     print("2. Gradually update verification to prefer PQ signatures")
     print("3. Eventually phase out classical signatures")
@@ -664,6 +684,7 @@ if __name__ == "__main__":
 ## Common Patterns Summary
 
 ### Pattern 1: Document Authentication
+
 - Generate signing keys
 - Hash document content
 - Sign hash with private key
@@ -671,6 +692,7 @@ if __name__ == "__main__":
 - Recipients verify signature
 
 ### Pattern 2: Secure Communication
+
 - Recipient generates KEM keys
 - Sender encapsulates shared secret
 - Use shared secret for symmetric encryption
@@ -678,12 +700,14 @@ if __name__ == "__main__":
 - Decrypt messages with shared secret
 
 ### Pattern 3: Multi-Party Approval
+
 - Multiple parties sign same document
 - Collect all signatures and public keys
 - Verify each signature independently
 - Require all signatures to be valid
 
 ### Pattern 4: Migration Strategy
+
 - Use hybrid signatures during transition
 - Verify both classical and post-quantum
 - Gradually phase out classical algorithms

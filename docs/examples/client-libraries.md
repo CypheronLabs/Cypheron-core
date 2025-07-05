@@ -529,7 +529,7 @@ def example_kem_workflow():
     
     # Verify both parties have same secret
     assert kem_result.shared_secret == bob_secret
-    print("✓ KEM workflow successful!")
+    print("KEM workflow successful!")
 
 
 def example_signature_workflow():
@@ -553,7 +553,7 @@ def example_signature_workflow():
         signature.signature
     )
     
-    print(f"✓ Signature verification: {verification.valid}")
+    print(f"Signature verification: {verification.valid}")
 
 
 def example_hybrid_workflow():
@@ -569,7 +569,7 @@ def example_hybrid_workflow():
         pq_algorithm=Algorithm.DILITHIUM_3
     )
     
-    print("✓ Hybrid signature created")
+    print("Hybrid signature created")
     print(f"Classical signature: {hybrid_sig.classical_signature[:50]}...")
     print(f"PQ signature: {hybrid_sig.pq_signature[:50]}...")
     print(f"Combined signature: {hybrid_sig.combined_signature[:50]}...")
@@ -1011,9 +1011,9 @@ async function exampleKEMWorkflow() {
         
         // Verify both parties have same secret
         if (kemResult.sharedSecret === bobSecret) {
-            console.log('✓ KEM workflow successful!');
+            console.log('KEM workflow successful!');
         } else {
-            console.log('✗ KEM workflow failed!');
+            console.log('KEM workflow failed!');
         }
         
     } catch (error) {
@@ -1042,7 +1042,7 @@ async function exampleSignatureWorkflow() {
             signature.signature
         );
         
-        console.log(`✓ Signature verification: ${verification.valid}`);
+        console.log(`Signature verification: ${verification.valid}`);
         
     } catch (error) {
         console.error('Signature workflow error:', error.message);
@@ -1062,7 +1062,7 @@ async function exampleHybridWorkflow() {
             Algorithm.DILITHIUM_3
         );
         
-        console.log('✓ Hybrid signature created');
+        console.log('Hybrid signature created');
         console.log(`Classical signature: ${hybridSig.classicalSignature.substring(0, 50)}...`);
         console.log(`PQ signature: ${hybridSig.pqSignature.substring(0, 50)}...`);
         console.log(`Combined signature: ${hybridSig.combinedSignature.substring(0, 50)}...`);
@@ -1384,10 +1384,10 @@ func main() {
 
 | Feature | Python | JavaScript | Go | Java | C# |
 |---------|--------|------------|----|----- |----|
-| **Ease of Use** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-| **Performance** | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Type Safety** | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Community** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+| **Ease of Use** | Excellent | Excellent | Good | Fair | Fair |
+| **Performance** | Fair | Fair | Excellent | Good | Good |
+| **Type Safety** | Basic | Basic | Excellent | Excellent | Excellent |
+| **Community** | Excellent | Excellent | Good | Good | Fair |
 | **Documentation** | Excellent | Excellent | Good | Planned | Planned |
 
 ## Next Steps
