@@ -21,29 +21,29 @@ KEMs are the post-quantum replacement for key exchange mechanisms like Diffie-He
 
 ## Supported Algorithms
 
-Cypheron-Core implements the Kyber family of KEM algorithms, standardized by NIST as ML-KEM.
+Cypheron-Core implements the ML-KEM family of algorithms (formerly known as Kyber), standardized by NIST.
 
-| Algorithm | Security Level | Public Key Size | Private Key Size | Ciphertext Size | Shared Secret Size |
-|-----------|----------------|-----------------|------------------|-----------------|-------------------|
-| kyber512  | NIST Level 1   | 800 bytes       | 1,632 bytes      | 768 bytes       | 32 bytes          |
-| kyber768  | NIST Level 3   | 1,184 bytes     | 2,400 bytes      | 1,088 bytes     | 32 bytes          |
-| kyber1024 | NIST Level 5   | 1,568 bytes     | 3,168 bytes      | 1,568 bytes     | 32 bytes          |
+| Algorithm | Former Name | Security Level | Public Key Size | Private Key Size | Ciphertext Size | Shared Secret Size |
+|-----------|-------------|----------------|-----------------|------------------|-----------------|-------------------|
+| ml-kem-512  | Kyber-512   | NIST Level 1   | 800 bytes       | 1,632 bytes      | 768 bytes       | 32 bytes          |
+| ml-kem-768  | Kyber-768   | NIST Level 3   | 1,184 bytes     | 2,400 bytes      | 1,088 bytes     | 32 bytes          |
+| ml-kem-1024 | Kyber-1024  | NIST Level 5   | 1,568 bytes     | 3,168 bytes      | 1,568 bytes     | 32 bytes          |
 
 ### Algorithm Selection Guide
 
-**Kyber-512** (NIST Level 1):
+**ML-KEM-512** (formerly Kyber-512, NIST Level 1):
 - **Use Case**: IoT devices, constrained environments
 - **Security**: Equivalent to AES-128
 - **Performance**: Fastest, smallest keys
 - **Recommendation**: Only for non-critical applications
 
-**Kyber-768** (NIST Level 3):
+**ML-KEM-768** (formerly Kyber-768, NIST Level 3):
 - **Use Case**: Most applications, web services, mobile apps
 - **Security**: Equivalent to AES-192  
 - **Performance**: Good balance of security and speed
 - **Recommendation**: Default choice for most use cases
 
-**Kyber-1024** (NIST Level 5):
+**ML-KEM-1024** (formerly Kyber-1024, NIST Level 5):
 - **Use Case**: High-security applications, government, finance
 - **Security**: Equivalent to AES-256
 - **Performance**: Slower, larger keys
@@ -58,11 +58,11 @@ Generate a new KEM key pair.
 **Endpoint**: `POST /kem/{algorithm}/keygen`
 
 **Parameters**:
-- `algorithm`: One of `kyber512`, `kyber768`, `kyber1024`
+- `algorithm`: One of `ml-kem-512`, `ml-kem-768`, `ml-kem-1024`
 
 **Request**:
 ```bash
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/keygen" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/keygen" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json"
 ```
@@ -86,7 +86,7 @@ Generate a shared secret and ciphertext using a public key.
 **Endpoint**: `POST /kem/{algorithm}/encapsulate`
 
 **Parameters**:
-- `algorithm`: One of `kyber512`, `kyber768`, `kyber1024`
+- `algorithm`: One of `ml-kem-512`, `ml-kem-768`, `ml-kem-1024`
 
 **Request Body**:
 ```json
@@ -97,7 +97,7 @@ Generate a shared secret and ciphertext using a public key.
 
 **Request**:
 ```bash
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/encapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/encapsulate" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -124,7 +124,7 @@ Recover the shared secret from ciphertext using a private key.
 **Endpoint**: `POST /kem/{algorithm}/decapsulate`
 
 **Parameters**:
-- `algorithm`: One of `kyber512`, `kyber768`, `kyber1024`
+- `algorithm`: One of `ml-kem-512`, `ml-kem-768`, `ml-kem-1024`
 
 **Request Body**:
 ```json
@@ -136,7 +136,7 @@ Recover the shared secret from ciphertext using a private key.
 
 **Request**:
 ```bash
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/decapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/decapsulate" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -163,7 +163,7 @@ Here's a complete example showing how two parties (Alice and Bob) can establish 
 
 ```bash
 # Bob generates his KEM key pair
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/keygen" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/keygen" \
   -H "X-API-Key: bob_api_key" \
   -H "Content-Type: application/json"
 ```
@@ -182,7 +182,7 @@ Bob keeps his private key (`sk`) secret and shares his public key (`pk`) with Al
 
 ```bash
 # Alice creates shared secret using Bob's public key
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/encapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/encapsulate" \
   -H "X-API-Key: alice_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -210,7 +210,7 @@ Alice sends the `ciphertext` to Bob through any communication channel (email, me
 
 ```bash
 # Bob recovers the shared secret using his private key
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/decapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/decapsulate" \
   -H "X-API-Key: bob_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -243,7 +243,7 @@ For establishing a single shared secret:
 def establish_shared_secret(recipient_public_key):
     # Encapsulate using recipient's public key
     response = requests.post(
-        "https://api.cypheronlabs.com/kem/kyber768/encapsulate",
+        "https://api.cypheronlabs.com/kem/ml-kem-768/encapsulate",
         headers={"X-API-Key": api_key},
         json={"public_key": recipient_public_key}
     )
@@ -258,7 +258,7 @@ def establish_shared_secret(recipient_public_key):
 def receive_shared_secret(private_key, ciphertext):
     # Decapsulate to get shared secret
     response = requests.post(
-        "https://api.cypheronlabs.com/kem/kyber768/decapsulate", 
+        "https://api.cypheronlabs.com/kem/ml-kem-768/decapsulate", 
         headers={"X-API-Key": api_key},
         json={
             "private_key": private_key,
@@ -276,7 +276,7 @@ For perfect forward secrecy, generate new key pairs for each session:
 def establish_ephemeral_secret():
     # Generate new key pair for this session
     keygen_response = requests.post(
-        "https://api.cypheronlabs.com/kem/kyber768/keygen",
+        "https://api.cypheronlabs.com/kem/ml-kem-768/keygen",
         headers={"X-API-Key": api_key}
     )
     keys = keygen_response.json()
@@ -300,7 +300,7 @@ def hybrid_key_exchange(classical_pubkey, pq_pubkey):
     
     # Post-quantum KEM
     pq_response = requests.post(
-        "https://api.cypheronlabs.com/kem/kyber768/encapsulate",
+        "https://api.cypheronlabs.com/kem/ml-kem-768/encapsulate",
         headers={"X-API-Key": api_key},
         json={"public_key": pq_pubkey}
     )
@@ -400,24 +400,24 @@ Typical performance characteristics on modern hardware:
 
 | Algorithm | Key Generation | Encapsulation | Decapsulation |
 |-----------|----------------|---------------|---------------|
-| kyber512  | ~0.1ms        | ~0.1ms        | ~0.1ms        |
-| kyber768  | ~0.2ms        | ~0.2ms        | ~0.2ms        |
-| kyber1024 | ~0.3ms        | ~0.3ms        | ~0.3ms        |
+| ml-kem-512  | ~0.1ms        | ~0.1ms        | ~0.1ms        |
+| ml-kem-768  | ~0.2ms        | ~0.2ms        | ~0.2ms        |
+| ml-kem-1024 | ~0.3ms        | ~0.3ms        | ~0.3ms        |
 
 ### Optimization Tips
 
 1. **Cache Key Pairs**: Reuse key pairs when appropriate
 2. **Batch Operations**: Group multiple operations when possible
-3. **Algorithm Choice**: Use Kyber-768 for best security/performance balance
+3. **Algorithm Choice**: Use ML-KEM-768 for best security/performance balance
 4. **Connection Pooling**: Reuse HTTP connections for multiple requests
 
 ### Memory Usage
 
 | Algorithm | Public Key | Private Key | Ciphertext | Memory Peak |
 |-----------|------------|-------------|------------|-------------|
-| kyber512  | 800 B      | 1,632 B     | 768 B      | ~4 KB       |
-| kyber768  | 1,184 B    | 2,400 B     | 1,088 B    | ~6 KB       |
-| kyber1024 | 1,568 B    | 3,168 B     | 1,568 B    | ~8 KB       |
+| ml-kem-512  | 800 B      | 1,632 B     | 768 B      | ~4 KB       |
+| ml-kem-768  | 1,184 B    | 2,400 B     | 1,088 B    | ~6 KB       |
+| ml-kem-1024 | 1,568 B    | 3,168 B     | 1,568 B    | ~8 KB       |
 
 ## Security Considerations
 
@@ -459,19 +459,19 @@ bob_public = bob_private.public_key()
 shared_secret = alice_private.exchange(bob_public)
 ```
 
-**After (Kyber)**:
+**After (ML-KEM)**:
 ```python
 # Post-quantum KEM
 # Bob generates key pair
-bob_keys = cypheron_client.kem_keygen("kyber768")
+bob_keys = cypheron_client.kem_keygen("ml-kem-768")
 
 # Alice encapsulates
-result = cypheron_client.kem_encapsulate("kyber768", bob_keys["pk"])
+result = cypheron_client.kem_encapsulate("ml-kem-768", bob_keys["pk"])
 alice_secret = result["shared_secret"]
 
 # Alice sends ciphertext to Bob
 # Bob decapsulates
-bob_result = cypheron_client.kem_decapsulate("kyber768", bob_keys["sk"], result["ciphertext"])
+bob_result = cypheron_client.kem_decapsulate("ml-kem-768", bob_keys["sk"], result["ciphertext"])
 bob_secret = bob_result["shared_secret"]
 
 # alice_secret == bob_secret
@@ -479,9 +479,9 @@ bob_secret = bob_result["shared_secret"]
 
 ### Migration Strategy
 
-1. **Phase 1**: Deploy hybrid (ECDH + Kyber) systems
-2. **Phase 2**: Gradually increase reliance on Kyber
-3. **Phase 3**: Phase out ECDH in favor of Kyber-only
+1. **Phase 1**: Deploy hybrid (ECDH + ML-KEM) systems
+2. **Phase 2**: Gradually increase reliance on ML-KEM
+3. **Phase 3**: Phase out ECDH in favor of ML-KEM-only
 
 ## Next Steps
 

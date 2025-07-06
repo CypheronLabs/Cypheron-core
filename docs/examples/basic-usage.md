@@ -21,7 +21,7 @@ You need to sign a contract or document to prove authenticity and prevent tamper
 **Step 1: Generate signing keys**
 
 ```bash
-curl -X POST "https://api.cypheronlabs.com/sig/dilithium3/keygen" \
+curl -X POST "https://api.cypheronlabs.com/sig/ml-dsa-65/keygen" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json"
 ```
@@ -46,7 +46,7 @@ echo "Document hash: $DOCUMENT_HASH"
 **Step 3: Sign the document**
 
 ```bash
-curl -X POST "https://api.cypheronlabs.com/sig/dilithium3/sign" \
+curl -X POST "https://api.cypheronlabs.com/sig/ml-dsa-65/sign" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d "{
@@ -60,14 +60,14 @@ curl -X POST "https://api.cypheronlabs.com/sig/dilithium3/sign" \
 ```json
 {
   "signature": "RGlsaXRoaXVtMyBzaWduYXR1cmUgZGF0YQ...",
-  "algorithm": "dilithium3"
+  "algorithm": "ml-dsa-65"
 }
 ```
 
 **Step 4: Verify the signature**
 
 ```bash
-curl -X POST "https://api.cypheronlabs.com/sig/dilithium3/verify" \
+curl -X POST "https://api.cypheronlabs.com/sig/ml-dsa-65/verify" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d "{
@@ -82,7 +82,7 @@ curl -X POST "https://api.cypheronlabs.com/sig/dilithium3/verify" \
 ```json
 {
   "valid": true,
-  "algorithm": "dilithium3"
+  "algorithm": "ml-dsa-65"
 }
 ```
 
@@ -102,7 +102,7 @@ class DocumentSigner:
             "Content-Type": "application/json"
         }
     
-    def generate_signing_keys(self, algorithm="dilithium3"):
+    def generate_signing_keys(self, algorithm="ml-dsa-65"):
         """Generate a new signing key pair"""
         response = requests.post(
             f"{self.base_url}/sig/{algorithm}/keygen",
@@ -111,7 +111,7 @@ class DocumentSigner:
         response.raise_for_status()
         return response.json()
     
-    def sign_document(self, document_content, private_key, algorithm="dilithium3"):
+    def sign_document(self, document_content, private_key, algorithm="ml-dsa-65"):
         """Sign a document and return signature"""
         # Hash the document
         document_hash = hashlib.sha256(document_content.encode()).digest()
@@ -128,7 +128,7 @@ class DocumentSigner:
         response.raise_for_status()
         return response.json()
     
-    def verify_document(self, document_content, signature, public_key, algorithm="dilithium3"):
+    def verify_document(self, document_content, signature, public_key, algorithm="ml-dsa-65"):
         """Verify a document signature"""
         # Hash the document (same as signing)
         document_hash = hashlib.sha256(document_content.encode()).digest()
@@ -182,7 +182,7 @@ Alice wants to send Bob a confidential message. They need to establish a shared 
 
 ```bash
 # Bob generates his key pair
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/keygen" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/keygen" \
   -H "X-API-Key: bob_api_key" \
   -H "Content-Type: application/json"
 ```
@@ -200,7 +200,7 @@ curl -X POST "https://api.cypheronlabs.com/kem/kyber768/keygen" \
 
 ```bash
 # Alice creates shared secret using Bob's public key
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/encapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/encapsulate" \
   -H "X-API-Key: alice_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -242,7 +242,7 @@ Alice sends Bob:
 
 ```bash
 # Bob recovers the shared secret
-curl -X POST "https://api.cypheronlabs.com/kem/kyber768/decapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/ml-kem-768/decapsulate" \
   -H "X-API-Key: bob_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -286,7 +286,7 @@ class SecureMessenger:
             "Content-Type": "application/json"
         }
     
-    def generate_kem_keys(self, algorithm="kyber768"):
+    def generate_kem_keys(self, algorithm="ml-kem-768"):
         """Generate KEM key pair for receiving messages"""
         response = requests.post(
             f"{self.base_url}/kem/{algorithm}/keygen",
@@ -295,7 +295,7 @@ class SecureMessenger:
         response.raise_for_status()
         return response.json()
     
-    def encapsulate_secret(self, public_key, algorithm="kyber768"):
+    def encapsulate_secret(self, public_key, algorithm="ml-kem-768"):
         """Create shared secret using recipient's public key"""
         response = requests.post(
             f"{self.base_url}/kem/{algorithm}/encapsulate",
@@ -305,7 +305,7 @@ class SecureMessenger:
         response.raise_for_status()
         return response.json()
     
-    def decapsulate_secret(self, private_key, ciphertext, algorithm="kyber768"):
+    def decapsulate_secret(self, private_key, ciphertext, algorithm="ml-kem-768"):
         """Recover shared secret using private key"""
         response = requests.post(
             f"{self.base_url}/kem/{algorithm}/decapsulate",
@@ -403,7 +403,7 @@ class MultiPartyVerifier:
             "Content-Type": "application/json"
         }
     
-    def verify_signature(self, document_hash, signature, public_key, algorithm="dilithium3"):
+    def verify_signature(self, document_hash, signature, public_key, algorithm="ml-dsa-65"):
         """Verify a single signature"""
         response = requests.post(
             f"{self.base_url}/sig/{algorithm}/verify",
@@ -426,7 +426,7 @@ class MultiPartyVerifier:
                 "signature": "base64_signature",
                 "public_key": "base64_public_key", 
                 "signer_name": "Alice",
-                "algorithm": "dilithium3"
+                "algorithm": "ml-dsa-65"
             },
             ...
         ]
@@ -497,19 +497,19 @@ def multi_party_approval_example():
             "signature": "Q1RPIHNpZ25hdHVyZSBkYXRh...",
             "public_key": "Q1RPIHB1YmxpYyBrZXkgZGF0YQ==",
             "signer_name": "Alice Johnson (CTO)",
-            "algorithm": "dilithium3"
+            "algorithm": "ml-dsa-65"
         },
         {
             "signature": "Q0ZPIHNpZ25hdHVyZSBkYXRh...",
             "public_key": "Q0ZPIHB1YmxpYyBrZXkgZGF0YQ==", 
             "signer_name": "Bob Smith (CFO)",
-            "algorithm": "dilithium3"
+            "algorithm": "ml-dsa-65"
         },
         {
             "signature": "Q0VPIHNpZ25hdHVyZSBkYXRh...",
             "public_key": "Q0VPIHB1YmxpYyBrZXkgZGF0YQ==",
             "signer_name": "Carol Brown (CEO)",
-            "algorithm": "dilithium3"
+            "algorithm": "ml-dsa-65"
         }
     ]
     
@@ -555,7 +555,7 @@ curl -X POST "https://api.cypheronlabs.com/hybrid/sign" \
   -d '{
     "message": "SW1wb3J0YW50IGRvY3VtZW50IGZvciBtaWdyYXRpb24=",
     "classical_algorithm": "ed25519",
-    "pq_algorithm": "dilithium3"
+    "pq_algorithm": "ml-dsa-65"
   }'
 ```
 
@@ -583,7 +583,7 @@ class HybridCryptoManager:
             "Content-Type": "application/json"
         }
     
-    def create_hybrid_signature(self, message, classical_alg="ed25519", pq_alg="dilithium3"):
+    def create_hybrid_signature(self, message, classical_alg="ed25519", pq_alg="ml-dsa-65"):
         """Create hybrid signature combining classical and post-quantum"""
         message_b64 = base64.b64encode(message.encode()).decode()
         
@@ -632,7 +632,7 @@ class HybridCryptoManager:
         # In practice, use cryptography library or similar
         return True  # Placeholder
     
-    def verify_pq_signature(self, message, signature, public_key, algorithm="dilithium3"):
+    def verify_pq_signature(self, message, signature, public_key, algorithm="ml-dsa-65"):
         """Verify post-quantum signature"""
         response = requests.post(
             f"{self.base_url}/sig/{algorithm}/verify",

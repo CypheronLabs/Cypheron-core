@@ -16,7 +16,7 @@ All API endpoints require authentication using an API key. The API supports two 
 The recommended method for API authentication:
 
 ```bash
-curl -X POST "https://api.cypheronlabs.com/sig/dilithium2/keygen" \
+curl -X POST "https://api.cypheronlabs.com/sig/ml-dsa-44/keygen" \
   -H "X-API-Key: your_api_key_here" \
   -H "Content-Type: application/json"
 ```
@@ -26,7 +26,7 @@ curl -X POST "https://api.cypheronlabs.com/sig/dilithium2/keygen" \
 Alternative method using the Authorization header:
 
 ```bash
-curl -X POST "https://api.cypheronlabs.com/sig/dilithium2/keygen" \
+curl -X POST "https://api.cypheronlabs.com/sig/ml-dsa-44/keygen" \
   -H "Authorization: Bearer your_api_key_here" \
   -H "Content-Type: application/json"
 ```
@@ -262,7 +262,7 @@ All authentication errors return a consistent format:
 **Missing API Key**:
 ```bash
 # Request without authentication
-curl -X POST "https://api.cypheronlabs.com/sig/dilithium2/keygen"
+curl -X POST "https://api.cypheronlabs.com/sig/ml-dsa-44/keygen"
 ```
 
 ```json

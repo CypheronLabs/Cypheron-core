@@ -23,7 +23,7 @@ cypheron_test_key_12345
 Test your connection to the API:
 
 ```bash
-curl -X POST "http://127.0.0.1:3000/sig/dilithium2/keygen" \
+curl -X POST "http://127.0.0.1:3000/sig/ml-dsa-44/keygen" \
   -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json"
 ```
@@ -48,7 +48,7 @@ Digital signatures provide authentication, integrity, and non-repudiation.
 #### 1. Generate a Signing Key Pair
 
 ```bash
-curl -X POST "http://127.0.0.1:3000/sig/dilithium2/keygen" \
+curl -X POST "http://127.0.0.1:3000/sig/ml-dsa-44/keygen" \
   -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json"
 ```
@@ -71,7 +71,7 @@ Save these keys for the next steps:
 
 ```bash
 # Replace YOUR_PRIVATE_KEY with the sk value from step 1
-curl -X POST "http://127.0.0.1:3000/sig/dilithium2/sign" \
+curl -X POST "http://127.0.0.1:3000/sig/ml-dsa-44/sign" \
   -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -87,7 +87,7 @@ curl -X POST "http://127.0.0.1:3000/sig/dilithium2/sign" \
 ```json
 {
   "signature": "3xKj9L8mN2pQ7...",
-  "algorithm": "dilithium2"
+  "algorithm": "ml-dsa-44"
 }
 ```
 
@@ -95,7 +95,7 @@ curl -X POST "http://127.0.0.1:3000/sig/dilithium2/sign" \
 
 ```bash
 # Replace YOUR_PUBLIC_KEY and YOUR_SIGNATURE with values from previous steps
-curl -X POST "http://127.0.0.1:3000/sig/dilithium2/verify" \
+curl -X POST "http://127.0.0.1:3000/sig/ml-dsa-44/verify" \
   -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -110,7 +110,7 @@ curl -X POST "http://127.0.0.1:3000/sig/dilithium2/verify" \
 ```json
 {
   "valid": true,
-  "algorithm": "dilithium2"
+  "algorithm": "ml-dsa-44"
 }
 ```
 
@@ -121,7 +121,7 @@ Key encapsulation mechanisms (KEMs) establish shared secrets for secure communic
 #### 1. Generate a KEM Key Pair
 
 ```bash
-curl -X POST "http://127.0.0.1:3000/kem/kyber512/keygen" \
+curl -X POST "http://127.0.0.1:3000/kem/ml-kem-512/keygen" \
   -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json"
 ```
@@ -141,7 +141,7 @@ Use the public key to create a shared secret and ciphertext:
 
 ```bash
 # Replace YOUR_PUBLIC_KEY with the pk value from step 1
-curl -X POST "http://127.0.0.1:3000/kem/kyber512/encapsulate" \
+curl -X POST "http://127.0.0.1:3000/kem/ml-kem-512/encapsulate" \
   -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -164,7 +164,7 @@ Use the private key to recover the shared secret:
 
 ```bash
 # Replace YOUR_PRIVATE_KEY and YOUR_CIPHERTEXT
-curl -X POST "http://127.0.0.1:3000/kem/kyber512/decapsulate" \
+curl -X POST "http://127.0.0.1:3000/kem/ml-kem-512/decapsulate" \
   -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
@@ -194,7 +194,7 @@ curl -X POST "http://127.0.0.1:3000/hybrid/sign" \
   -d '{
     "message": "SGVsbG8gSHlicmlkIFdvcmxkIQ==",
     "classical_algorithm": "ed25519",
-    "pq_algorithm": "dilithium2"
+    "pq_algorithm": "ml-dsa-44"
   }'
 ```
 
@@ -203,9 +203,9 @@ curl -X POST "http://127.0.0.1:3000/hybrid/sign" \
 ```json
 {
   "classical_signature": "Ed25519_signature...",
-  "pq_signature": "Dilithium2_signature...",
+  "pq_signature": "ML-DSA-44_signature...",
   "classical_public_key": "Ed25519_pubkey...",
-  "pq_public_key": "Dilithium2_pubkey...",
+  "pq_public_key": "ML-DSA-44_pubkey...",
   "combined_signature": "combined_signature_data..."
 }
 ```
@@ -258,10 +258,10 @@ Cypheron-Core supports multiple algorithms. Try these variations:
 ### Signature Algorithms
 
 ```bash
-# Dilithium variants (lattice-based)
-/sig/dilithium2/keygen  # NIST Level 2
-/sig/dilithium3/keygen  # NIST Level 3  
-/sig/dilithium5/keygen  # NIST Level 5
+# ML-DSA variants (formerly Dilithium, lattice-based)
+/sig/ml-dsa-44/keygen  # NIST Level 2 (formerly Dilithium-2)
+/sig/ml-dsa-65/keygen  # NIST Level 3 (formerly Dilithium-3)
+/sig/ml-dsa-87/keygen  # NIST Level 5 (formerly Dilithium-5)
 
 # Falcon variants (lattice-based, compact)
 /sig/falcon512/keygen   # NIST Level 1
@@ -275,10 +275,10 @@ Cypheron-Core supports multiple algorithms. Try these variations:
 ### KEM Algorithms
 
 ```bash
-# Kyber variants
-/kem/kyber512/keygen   # NIST Level 1
-/kem/kyber768/keygen   # NIST Level 3
-/kem/kyber1024/keygen  # NIST Level 5
+# ML-KEM variants (formerly Kyber)
+/kem/ml-kem-512/keygen   # NIST Level 1 (formerly Kyber-512)
+/kem/ml-kem-768/keygen   # NIST Level 3 (formerly Kyber-768)
+/kem/ml-kem-1024/keygen  # NIST Level 5 (formerly Kyber-1024)
 ```
 
 ## Step 6: Monitor Your Usage
