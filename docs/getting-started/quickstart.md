@@ -1,19 +1,19 @@
 # Quick Start Guide
 
-Get up and running with PQ-Core in 5 minutes! This guide will have you making your first post-quantum cryptographic operations.
+Get up and running with Cypheron-Core in 5 minutes! This guide will have you making your first post-quantum cryptographic operations.
 
 ## Prerequisites
 
-- Access to a PQ-Core API instance
+- Access to a Cypheron-Core API instance
 - `curl` or any HTTP client
 - Basic understanding of REST APIs
 
 ## Step 1: Get Your API Key
 
-PQ-Core uses API key authentication. For this quickstart, we'll use the test API key:
+Cypheron-Core uses API key authentication. For this quickstart, we'll use the test API key:
 
-```
-pq_test_key_12345
+```bash
+cypheron_test_key_12345
 ```
 
 > **Production Note**: In production, you'll create unique API keys through the admin interface. See [Authentication](../api-reference/authentication.md) for details.
@@ -24,7 +24,7 @@ Test your connection to the API:
 
 ```bash
 curl -X POST "http://127.0.0.1:3000/sig/dilithium2/keygen" \
-  -H "X-API-Key: pq_test_key_12345" \
+  -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json"
 ```
 
@@ -49,11 +49,12 @@ Digital signatures provide authentication, integrity, and non-repudiation.
 
 ```bash
 curl -X POST "http://127.0.0.1:3000/sig/dilithium2/keygen" \
-  -H "X-API-Key: pq_test_key_12345" \
+  -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json"
 ```
 
 **Response:**
+
 ```json
 {
   "pk": "5FtUEZJao8UFF6TQnCIwob...",
@@ -62,6 +63,7 @@ curl -X POST "http://127.0.0.1:3000/sig/dilithium2/keygen" \
 ```
 
 Save these keys for the next steps:
+
 - `pk`: Public key (share this)
 - `sk`: Private key (keep this secret!)
 
@@ -70,7 +72,7 @@ Save these keys for the next steps:
 ```bash
 # Replace YOUR_PRIVATE_KEY with the sk value from step 1
 curl -X POST "http://127.0.0.1:3000/sig/dilithium2/sign" \
-  -H "X-API-Key: pq_test_key_12345" \
+  -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
     "private_key": "YOUR_PRIVATE_KEY",
@@ -81,6 +83,7 @@ curl -X POST "http://127.0.0.1:3000/sig/dilithium2/sign" \
 > **Note**: The message is base64 encoded. "SGVsbG8gUG9zdC1RdWFudHVtIFdvcmxkIQ==" decodes to "Hello Post-Quantum World!"
 
 **Response:**
+
 ```json
 {
   "signature": "3xKj9L8mN2pQ7...",
@@ -93,7 +96,7 @@ curl -X POST "http://127.0.0.1:3000/sig/dilithium2/sign" \
 ```bash
 # Replace YOUR_PUBLIC_KEY and YOUR_SIGNATURE with values from previous steps
 curl -X POST "http://127.0.0.1:3000/sig/dilithium2/verify" \
-  -H "X-API-Key: pq_test_key_12345" \
+  -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
     "public_key": "YOUR_PUBLIC_KEY",
@@ -103,6 +106,7 @@ curl -X POST "http://127.0.0.1:3000/sig/dilithium2/verify" \
 ```
 
 **Response:**
+
 ```json
 {
   "valid": true,
@@ -118,11 +122,12 @@ Key encapsulation mechanisms (KEMs) establish shared secrets for secure communic
 
 ```bash
 curl -X POST "http://127.0.0.1:3000/kem/kyber512/keygen" \
-  -H "X-API-Key: pq_test_key_12345" \
+  -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json"
 ```
 
 **Response:**
+
 ```json
 {
   "pk": "dGhpcyBpcyBhIGZha2Uga3li...",
@@ -137,7 +142,7 @@ Use the public key to create a shared secret and ciphertext:
 ```bash
 # Replace YOUR_PUBLIC_KEY with the pk value from step 1
 curl -X POST "http://127.0.0.1:3000/kem/kyber512/encapsulate" \
-  -H "X-API-Key: pq_test_key_12345" \
+  -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
     "public_key": "YOUR_PUBLIC_KEY"
@@ -145,6 +150,7 @@ curl -X POST "http://127.0.0.1:3000/kem/kyber512/encapsulate" \
 ```
 
 **Response:**
+
 ```json
 {
   "shared_secret": "mK8rX9vB3pL2...",
@@ -159,7 +165,7 @@ Use the private key to recover the shared secret:
 ```bash
 # Replace YOUR_PRIVATE_KEY and YOUR_CIPHERTEXT
 curl -X POST "http://127.0.0.1:3000/kem/kyber512/decapsulate" \
-  -H "X-API-Key: pq_test_key_12345" \
+  -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
     "private_key": "YOUR_PRIVATE_KEY",
@@ -168,6 +174,7 @@ curl -X POST "http://127.0.0.1:3000/kem/kyber512/decapsulate" \
 ```
 
 **Response:**
+
 ```json
 {
   "shared_secret": "mK8rX9vB3pL2..."
@@ -182,7 +189,7 @@ Hybrid cryptography combines classical and post-quantum algorithms for enhanced 
 
 ```bash
 curl -X POST "http://127.0.0.1:3000/hybrid/sign" \
-  -H "X-API-Key: pq_test_key_12345" \
+  -H "X-API-Key: cypheron_test_key_12345" \
   -H "Content-Type: application/json" \
   -d '{
     "message": "SGVsbG8gSHlicmlkIFdvcmxkIQ==",
@@ -192,6 +199,7 @@ curl -X POST "http://127.0.0.1:3000/hybrid/sign" \
 ```
 
 **Response:**
+
 ```json
 {
   "classical_signature": "Ed25519_signature...",
@@ -207,6 +215,7 @@ curl -X POST "http://127.0.0.1:3000/hybrid/sign" \
 All successful API calls return JSON with the requested cryptographic data:
 
 ### Key Generation Responses
+
 ```json
 {
   "pk": "base64_encoded_public_key",
@@ -215,6 +224,7 @@ All successful API calls return JSON with the requested cryptographic data:
 ```
 
 ### Signature Responses
+
 ```json
 {
   "signature": "base64_encoded_signature",
@@ -223,6 +233,7 @@ All successful API calls return JSON with the requested cryptographic data:
 ```
 
 ### Verification Responses
+
 ```json
 {
   "valid": true,
@@ -231,6 +242,7 @@ All successful API calls return JSON with the requested cryptographic data:
 ```
 
 ### Error Responses
+
 ```json
 {
   "error": "error_code",
@@ -241,9 +253,10 @@ All successful API calls return JSON with the requested cryptographic data:
 
 ## Step 5: Try Different Algorithms
 
-PQ-Core supports multiple algorithms. Try these variations:
+Cypheron-Core supports multiple algorithms. Try these variations:
 
 ### Signature Algorithms
+
 ```bash
 # Dilithium variants (lattice-based)
 /sig/dilithium2/keygen  # NIST Level 2
@@ -260,6 +273,7 @@ PQ-Core supports multiple algorithms. Try these variations:
 ```
 
 ### KEM Algorithms
+
 ```bash
 # Kyber variants
 /kem/kyber512/keygen   # NIST Level 1
@@ -274,16 +288,17 @@ Check your API key usage and create new keys:
 ```bash
 # List your API keys
 curl -X GET "http://127.0.0.1:3000/admin/api-keys" \
-  -H "X-API-Key: pq_test_key_12345"
+  -H "X-API-Key: cypheron_test_key_12345"
 
 # View audit logs
 curl -X GET "http://127.0.0.1:3000/admin/audit-logs?limit=10" \
-  -H "X-API-Key: pq_test_key_12345"
+  -H "X-API-Key: cypheron_test_key_12345"
 ```
 
 ## Common Patterns
 
 ### Pattern 1: Secure Message Exchange
+
 1. Both parties generate KEM key pairs
 2. Party A encapsulates using Party B's public key
 3. Party A sends ciphertext to Party B
@@ -291,12 +306,14 @@ curl -X GET "http://127.0.0.1:3000/admin/audit-logs?limit=10" \
 5. Use shared secret for symmetric encryption
 
 ### Pattern 2: Document Signing
+
 1. Generate signature key pair
 2. Sign document hash with private key
 3. Distribute document + signature + public key
 4. Recipients verify signature with public key
 
 ### Pattern 3: Migration-Safe Deployment
+
 1. Use hybrid signatures for new systems
 2. Gradually phase out classical-only signatures
 3. Maintain compatibility during transition period
@@ -316,21 +333,25 @@ Now that you've completed the quickstart:
 ### Common Issues
 
 **401 Unauthorized**
+
 - Check your API key is correct
 - Verify the `X-API-Key` header is set
 - Ensure the API key hasn't expired
 
 **400 Bad Request**
+
 - Verify JSON payload is valid
 - Check base64 encoding of keys/messages
 - Ensure required fields are provided
 
 **429 Rate Limited**
+
 - Your API key has exceeded rate limits
 - Wait for the rate limit window to reset
 - Consider upgrading your API key limits
 
 **500 Internal Server Error**
+
 - Check server logs for details
 - Verify the cryptographic operation is valid
 - Contact support if the issue persists

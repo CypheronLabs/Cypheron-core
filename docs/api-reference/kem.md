@@ -1,6 +1,6 @@
 # Key Encapsulation Mechanisms (KEM)
 
-Key Encapsulation Mechanisms provide a secure way to establish shared secrets between parties. This document covers all KEM operations available in PQ-Core.
+Key Encapsulation Mechanisms provide a secure way to establish shared secrets between parties. This document covers all KEM operations available in Cypheron-Core.
 
 ## Overview
 
@@ -21,7 +21,7 @@ KEMs are the post-quantum replacement for key exchange mechanisms like Diffie-He
 
 ## Supported Algorithms
 
-PQ-Core implements the Kyber family of KEM algorithms, standardized by NIST as ML-KEM.
+Cypheron-Core implements the Kyber family of KEM algorithms, standardized by NIST as ML-KEM.
 
 | Algorithm | Security Level | Public Key Size | Private Key Size | Ciphertext Size | Shared Secret Size |
 |-----------|----------------|-----------------|------------------|-----------------|-------------------|
@@ -62,7 +62,7 @@ Generate a new KEM key pair.
 
 **Request**:
 ```bash
-curl -X POST "https://api.pq-core.com/kem/kyber768/keygen" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/keygen" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json"
 ```
@@ -97,7 +97,7 @@ Generate a shared secret and ciphertext using a public key.
 
 **Request**:
 ```bash
-curl -X POST "https://api.pq-core.com/kem/kyber768/encapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/encapsulate" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -136,7 +136,7 @@ Recover the shared secret from ciphertext using a private key.
 
 **Request**:
 ```bash
-curl -X POST "https://api.pq-core.com/kem/kyber768/decapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/decapsulate" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -163,7 +163,7 @@ Here's a complete example showing how two parties (Alice and Bob) can establish 
 
 ```bash
 # Bob generates his KEM key pair
-curl -X POST "https://api.pq-core.com/kem/kyber768/keygen" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/keygen" \
   -H "X-API-Key: bob_api_key" \
   -H "Content-Type: application/json"
 ```
@@ -182,7 +182,7 @@ Bob keeps his private key (`sk`) secret and shares his public key (`pk`) with Al
 
 ```bash
 # Alice creates shared secret using Bob's public key
-curl -X POST "https://api.pq-core.com/kem/kyber768/encapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/encapsulate" \
   -H "X-API-Key: alice_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -210,7 +210,7 @@ Alice sends the `ciphertext` to Bob through any communication channel (email, me
 
 ```bash
 # Bob recovers the shared secret using his private key
-curl -X POST "https://api.pq-core.com/kem/kyber768/decapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/decapsulate" \
   -H "X-API-Key: bob_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -243,7 +243,7 @@ For establishing a single shared secret:
 def establish_shared_secret(recipient_public_key):
     # Encapsulate using recipient's public key
     response = requests.post(
-        "https://api.pq-core.com/kem/kyber768/encapsulate",
+        "https://api.cypheronlabs.com/kem/kyber768/encapsulate",
         headers={"X-API-Key": api_key},
         json={"public_key": recipient_public_key}
     )
@@ -258,7 +258,7 @@ def establish_shared_secret(recipient_public_key):
 def receive_shared_secret(private_key, ciphertext):
     # Decapsulate to get shared secret
     response = requests.post(
-        "https://api.pq-core.com/kem/kyber768/decapsulate", 
+        "https://api.cypheronlabs.com/kem/kyber768/decapsulate", 
         headers={"X-API-Key": api_key},
         json={
             "private_key": private_key,
@@ -276,7 +276,7 @@ For perfect forward secrecy, generate new key pairs for each session:
 def establish_ephemeral_secret():
     # Generate new key pair for this session
     keygen_response = requests.post(
-        "https://api.pq-core.com/kem/kyber768/keygen",
+        "https://api.cypheronlabs.com/kem/kyber768/keygen",
         headers={"X-API-Key": api_key}
     )
     keys = keygen_response.json()
@@ -300,7 +300,7 @@ def hybrid_key_exchange(classical_pubkey, pq_pubkey):
     
     # Post-quantum KEM
     pq_response = requests.post(
-        "https://api.pq-core.com/kem/kyber768/encapsulate",
+        "https://api.cypheronlabs.com/kem/kyber768/encapsulate",
         headers={"X-API-Key": api_key},
         json={"public_key": pq_pubkey}
     )
@@ -371,7 +371,7 @@ def hybrid_key_exchange(classical_pubkey, pq_pubkey):
 def safe_kem_operation(operation, **kwargs):
     try:
         response = requests.post(
-            f"https://api.pq-core.com/kem/{operation}",
+            f"https://api.cypheronlabs.com/kem/{operation}",
             headers={"X-API-Key": api_key},
             json=kwargs
         )
@@ -389,7 +389,7 @@ def safe_kem_operation(operation, **kwargs):
         
     except requests.exceptions.RequestException:
         # Handle network errors
-        raise ConnectionError("Failed to connect to PQ-Core API")
+        raise ConnectionError("Failed to connect to Cypheron-Core API")
 ```
 
 ## Performance Considerations
@@ -463,15 +463,15 @@ shared_secret = alice_private.exchange(bob_public)
 ```python
 # Post-quantum KEM
 # Bob generates key pair
-bob_keys = pq_client.kem_keygen("kyber768")
+bob_keys = cypheron_client.kem_keygen("kyber768")
 
 # Alice encapsulates
-result = pq_client.kem_encapsulate("kyber768", bob_keys["pk"])
+result = cypheron_client.kem_encapsulate("kyber768", bob_keys["pk"])
 alice_secret = result["shared_secret"]
 
 # Alice sends ciphertext to Bob
 # Bob decapsulates
-bob_result = pq_client.kem_decapsulate("kyber768", bob_keys["sk"], result["ciphertext"])
+bob_result = cypheron_client.kem_decapsulate("kyber768", bob_keys["sk"], result["ciphertext"])
 bob_secret = bob_result["shared_secret"]
 
 # alice_secret == bob_secret

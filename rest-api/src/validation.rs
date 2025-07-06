@@ -1,5 +1,6 @@
 use crate::error::AppError;
 use serde_json::Value;
+use base64::Engine;
 
 pub const MAX_MESSAGE_SIZE: usize = 1024 * 1024; 
 pub const MAX_JSON_PAYLOAD_SIZE: usize = 10 * 1024 * 1024; 

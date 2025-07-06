@@ -1,10 +1,10 @@
 # Basic Usage Examples
 
-This guide provides practical examples for common post-quantum cryptography tasks using PQ-Core. Each example includes complete, working code that you can adapt for your applications.
+This guide provides practical examples for common post-quantum cryptography tasks using Cypheron-Core. Each example includes complete, working code that you can adapt for your applications.
 
 ## Prerequisites
 
-- PQ-Core API access with valid API key
+- Cypheron-Core API access with valid API key
 - Basic understanding of REST APIs
 - One of: `curl`, Python with `requests`, or Node.js with `axios`
 
@@ -21,7 +21,7 @@ You need to sign a contract or document to prove authenticity and prevent tamper
 **Step 1: Generate signing keys**
 
 ```bash
-curl -X POST "https://api.pq-core.com/sig/dilithium3/keygen" \
+curl -X POST "https://api.cypheronlabs.com/sig/dilithium3/keygen" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json"
 ```
@@ -46,7 +46,7 @@ echo "Document hash: $DOCUMENT_HASH"
 **Step 3: Sign the document**
 
 ```bash
-curl -X POST "https://api.pq-core.com/sig/dilithium3/sign" \
+curl -X POST "https://api.cypheronlabs.com/sig/dilithium3/sign" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d "{
@@ -67,7 +67,7 @@ curl -X POST "https://api.pq-core.com/sig/dilithium3/sign" \
 **Step 4: Verify the signature**
 
 ```bash
-curl -X POST "https://api.pq-core.com/sig/dilithium3/verify" \
+curl -X POST "https://api.cypheronlabs.com/sig/dilithium3/verify" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d "{
@@ -96,7 +96,7 @@ import hashlib
 class DocumentSigner:
     def __init__(self, api_key):
         self.api_key = api_key
-        self.base_url = "https://api.pq-core.com"
+        self.base_url = "https://api.cypheronlabs.com"
         self.headers = {
             "X-API-Key": api_key,
             "Content-Type": "application/json"
@@ -182,7 +182,7 @@ Alice wants to send Bob a confidential message. They need to establish a shared 
 
 ```bash
 # Bob generates his key pair
-curl -X POST "https://api.pq-core.com/kem/kyber768/keygen" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/keygen" \
   -H "X-API-Key: bob_api_key" \
   -H "Content-Type: application/json"
 ```
@@ -200,7 +200,7 @@ curl -X POST "https://api.pq-core.com/kem/kyber768/keygen" \
 
 ```bash
 # Alice creates shared secret using Bob's public key
-curl -X POST "https://api.pq-core.com/kem/kyber768/encapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/encapsulate" \
   -H "X-API-Key: alice_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -242,7 +242,7 @@ Alice sends Bob:
 
 ```bash
 # Bob recovers the shared secret
-curl -X POST "https://api.pq-core.com/kem/kyber768/decapsulate" \
+curl -X POST "https://api.cypheronlabs.com/kem/kyber768/decapsulate" \
   -H "X-API-Key: bob_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -280,7 +280,7 @@ import hashlib
 class SecureMessenger:
     def __init__(self, api_key):
         self.api_key = api_key
-        self.base_url = "https://api.pq-core.com"
+        self.base_url = "https://api.cypheronlabs.com"
         self.headers = {
             "X-API-Key": api_key,
             "Content-Type": "application/json"
@@ -397,7 +397,7 @@ from typing import List, Dict
 class MultiPartyVerifier:
     def __init__(self, api_key):
         self.api_key = api_key
-        self.base_url = "https://api.pq-core.com"
+        self.base_url = "https://api.cypheronlabs.com"
         self.headers = {
             "X-API-Key": api_key,
             "Content-Type": "application/json"
@@ -549,7 +549,7 @@ Your organization is migrating from RSA/ECDSA to post-quantum cryptography but n
 
 ```bash
 # Create a hybrid signature (classical + post-quantum)
-curl -X POST "https://api.pq-core.com/hybrid/sign" \
+curl -X POST "https://api.cypheronlabs.com/hybrid/sign" \
   -H "X-API-Key: your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -577,7 +577,7 @@ curl -X POST "https://api.pq-core.com/hybrid/sign" \
 class HybridCryptoManager:
     def __init__(self, api_key):
         self.api_key = api_key
-        self.base_url = "https://api.pq-core.com"
+        self.base_url = "https://api.cypheronlabs.com"
         self.headers = {
             "X-API-Key": api_key,
             "Content-Type": "application/json"
