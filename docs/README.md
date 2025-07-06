@@ -58,8 +58,8 @@ Welcome to the comprehensive documentation for Cypheron-Core, a production-ready
 
 Cypheron-Core is a comprehensive REST API that provides access to standardized post-quantum cryptographic algorithms. It offers:
 
-- **Key Encapsulation Mechanisms (KEM)**: Kyber family algorithms
-- **Digital Signatures**: Dilithium, Falcon, and SPHINCS+ families
+- **Key Encapsulation Mechanisms (KEM)**: ML-KEM (formerly Kyber) family algorithms
+- **Digital Signatures**: ML-DSA (formerly Dilithium), Falcon, and SPHINCS+ families
 - **Hybrid Cryptography**: Combining classical and post-quantum algorithms
 - **Enterprise Security**: API key management, rate limiting, audit logging
 - **Production Ready**: OWASP-compliant security, monitoring, and observability
@@ -79,15 +79,15 @@ Cypheron-Core implements NIST-standardized algorithms that are:
 
 ### Key Encapsulation Mechanisms (KEM)
 
-- **Kyber-512**: NIST security level 1, ~800 bytes public key
-- **Kyber-768**: NIST security level 3, ~1,184 bytes public key  
-- **Kyber-1024**: NIST security level 5, ~1,568 bytes public key
+- **ML-KEM-512** (formerly Kyber-512): NIST security level 1, ~800 bytes public key
+- **ML-KEM-768** (formerly Kyber-768): NIST security level 3, ~1,184 bytes public key  
+- **ML-KEM-1024** (formerly Kyber-1024): NIST security level 5, ~1,568 bytes public key
 
 ### Digital Signatures
 
-- **Dilithium-2**: NIST security level 2, ~1,312 bytes public key
-- **Dilithium-3**: NIST security level 3, ~1,952 bytes public key
-- **Dilithium-5**: NIST security level 5, ~2,592 bytes public key
+- **ML-DSA-44** (formerly Dilithium-2): NIST security level 2, ~1,312 bytes public key
+- **ML-DSA-65** (formerly Dilithium-3): NIST security level 3, ~1,952 bytes public key
+- **ML-DSA-87** (formerly Dilithium-5): NIST security level 5, ~2,592 bytes public key
 - **Falcon-512**: NIST security level 1, ~897 bytes public key
 - **Falcon-1024**: NIST security level 5, ~1,793 bytes public key
 - **SPHINCS+**: Hash-based signatures in multiple variants

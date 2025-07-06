@@ -46,15 +46,15 @@ class RateLimitError(CypheronCoreError):
 
 class Algorithm(Enum):
     """Supported algorithms"""
-    # KEM algorithms
-    KYBER_512 = "kyber512"
-    KYBER_768 = "kyber768"
-    KYBER_1024 = "kyber1024"
+    # KEM algorithms (ML-KEM, formerly Kyber)
+    ML_KEM_512 = "ml-kem-512"  # formerly Kyber-512
+    ML_KEM_768 = "ml-kem-768"  # formerly Kyber-768
+    ML_KEM_1024 = "ml-kem-1024"  # formerly Kyber-1024
     
-    # Signature algorithms
-    DILITHIUM_2 = "dilithium2"
-    DILITHIUM_3 = "dilithium3"
-    DILITHIUM_5 = "dilithium5"
+    # Signature algorithms (ML-DSA, formerly Dilithium)
+    ML_DSA_44 = "ml-dsa-44"  # formerly Dilithium-2
+    ML_DSA_65 = "ml-dsa-65"  # formerly Dilithium-3
+    ML_DSA_87 = "ml-dsa-87"  # formerly Dilithium-5
     FALCON_512 = "falcon512"
     FALCON_1024 = "falcon1024"
     SPHINCS_HARAKA_128F = "sphincs_haraka_128f"
@@ -198,7 +198,7 @@ class CypheronCoreClient:
         Generate a KEM key pair
         
         Args:
-            algorithm: KEM algorithm to use (kyber512, kyber768, kyber1024)
+            algorithm: KEM algorithm to use (ml-kem-512, ml-kem-768, ml-kem-1024)
             
         Returns:
             KeyPair object containing public and private keys
@@ -442,50 +442,56 @@ class CypheronCoreClient:
         
         # Algorithm information lookup
         algorithm_info = {
-            "kyber512": {
+            "ml-kem-512": {
                 "type": "KEM",
                 "security_level": 1,
                 "public_key_size": 800,
                 "private_key_size": 1632,
                 "ciphertext_size": 768,
-                "shared_secret_size": 32
+                "shared_secret_size": 32,
+                "formerly": "Kyber-512"
             },
-            "kyber768": {
+            "ml-kem-768": {
                 "type": "KEM", 
                 "security_level": 3,
                 "public_key_size": 1184,
                 "private_key_size": 2400,
                 "ciphertext_size": 1088,
-                "shared_secret_size": 32
+                "shared_secret_size": 32,
+                "formerly": "Kyber-768"
             },
-            "kyber1024": {
+            "ml-kem-1024": {
                 "type": "KEM",
                 "security_level": 5,
                 "public_key_size": 1568,
                 "private_key_size": 3168,
                 "ciphertext_size": 1568,
-                "shared_secret_size": 32
+                "shared_secret_size": 32,
+                "formerly": "Kyber-1024"
             },
-            "dilithium2": {
+            "ml-dsa-44": {
                 "type": "Signature",
                 "security_level": 2,
                 "public_key_size": 1312,
                 "private_key_size": 2528,
-                "signature_size": 2420
+                "signature_size": 2420,
+                "formerly": "Dilithium-2"
             },
-            "dilithium3": {
+            "ml-dsa-65": {
                 "type": "Signature",
                 "security_level": 3,
                 "public_key_size": 1952,
                 "private_key_size": 4000,
-                "signature_size": 3293
+                "signature_size": 3293,
+                "formerly": "Dilithium-3"
             },
-            "dilithium5": {
+            "ml-dsa-87": {
                 "type": "Signature",
                 "security_level": 5,
                 "public_key_size": 2592,
                 "private_key_size": 4864,
-                "signature_size": 4595
+                "signature_size": 4595,
+                "formerly": "Dilithium-5"
             },
             "falcon512": {
                 "type": "Signature",
@@ -512,17 +518,17 @@ def example_kem_workflow():
     client = CypheronCoreClient("your_api_key_here")
     
     # Generate Bob's key pair
-    bob_keys = client.kem_keygen(Algorithm.KYBER_768)
+    bob_keys = client.kem_keygen(Algorithm.ML_KEM_768)
     print(f"Bob's public key: {bob_keys.public_key[:50]}...")
     
     # Alice encapsulates shared secret
-    kem_result = client.kem_encapsulate(Algorithm.KYBER_768, bob_keys.public_key)
+    kem_result = client.kem_encapsulate(Algorithm.ML_KEM_768, bob_keys.public_key)
     print(f"Shared secret: {kem_result.shared_secret[:50]}...")
     print(f"Ciphertext: {kem_result.ciphertext[:50]}...")
     
     # Bob decapsulates shared secret
     bob_secret = client.kem_decapsulate(
-        Algorithm.KYBER_768, 
+        Algorithm.ML_KEM_768, 
         bob_keys.private_key, 
         kem_result.ciphertext
     )
@@ -537,17 +543,17 @@ def example_signature_workflow():
     client = CypheronCoreClient("your_api_key_here")
     
     # Generate signing keys
-    keys = client.sig_keygen(Algorithm.DILITHIUM_3)
+    keys = client.sig_keygen(Algorithm.ML_DSA_65)
     print(f"Signing keys generated: {keys.public_key[:50]}...")
     
     # Sign a message
     message = "This is an important document that needs to be signed."
-    signature = client.sign_message(Algorithm.DILITHIUM_3, keys.private_key, message)
+    signature = client.sign_message(Algorithm.ML_DSA_65, keys.private_key, message)
     print(f"Message signed: {signature.signature[:50]}...")
     
     # Verify signature
     verification = client.verify_signature(
-        Algorithm.DILITHIUM_3,
+        Algorithm.ML_DSA_65,
         keys.public_key,
         message,
         signature.signature
@@ -566,7 +572,7 @@ def example_hybrid_workflow():
     hybrid_sig = client.hybrid_sign(
         message,
         classical_algorithm="ed25519",
-        pq_algorithm=Algorithm.DILITHIUM_3
+        pq_algorithm=Algorithm.ML_DSA_65
     )
     
     print("Hybrid signature created")
@@ -597,11 +603,11 @@ from cypheron_core_client import CypheronCoreClient, Algorithm
 client = CypheronCoreClient("your_api_key_here")
 
 # Generate KEM keys
-keys = client.kem_keygen(Algorithm.KYBER_768)
+keys = client.kem_keygen(Algorithm.ML_KEM_768)
 
 # Sign a message
 signature = client.sign_message(
-    Algorithm.DILITHIUM_3, 
+    Algorithm.ML_DSA_65, 
     private_key, 
     "Hello, Post-Quantum World!"
 )
@@ -1138,15 +1144,15 @@ import (
 type Algorithm string
 
 const (
-    // KEM algorithms
-    Kyber512  Algorithm = "kyber512"
-    Kyber768  Algorithm = "kyber768"
-    Kyber1024 Algorithm = "kyber1024"
+    // KEM algorithms (ML-KEM, formerly Kyber)
+    MLKem512  Algorithm = "ml-kem-512"   // formerly Kyber-512
+    MLKem768  Algorithm = "ml-kem-768"   // formerly Kyber-768
+    MLKem1024 Algorithm = "ml-kem-1024"  // formerly Kyber-1024
     
-    // Signature algorithms
-    Dilithium2 Algorithm = "dilithium2"
-    Dilithium3 Algorithm = "dilithium3"
-    Dilithium5 Algorithm = "dilithium5"
+    // Signature algorithms (ML-DSA, formerly Dilithium)
+    MLDSA44 Algorithm = "ml-dsa-44"  // formerly Dilithium-2
+    MLDSA65 Algorithm = "ml-dsa-65"  // formerly Dilithium-3
+    MLDSA87 Algorithm = "ml-dsa-87"  // formerly Dilithium-5
     Falcon512  Algorithm = "falcon512"
     Falcon1024 Algorithm = "falcon1024"
 )
@@ -1362,7 +1368,7 @@ func main() {
     client := pqcore.NewClient("your_api_key_here", "https://api.cypheronlabs.com")
     
     // Generate KEM keys
-    keys, err := client.KEMKeygen(pqcore.Kyber768)
+    keys, err := client.KEMKeygen(pqcore.MLKem768)
     if err != nil {
         log.Fatal(err)
     }
@@ -1371,7 +1377,7 @@ func main() {
     
     // Sign a message
     message := []byte("Hello, Post-Quantum World!")
-    signature, err := client.SignMessage(pqcore.Dilithium3, privateKey, message)
+    signature, err := client.SignMessage(pqcore.MLDSA65, privateKey, message)
     if err != nil {
         log.Fatal(err)
     }
