@@ -1,6 +1,6 @@
 # Authentication
 
-PQ-Core uses API key-based authentication to secure access to cryptographic operations. This document covers everything you need to know about authenticating with the API.
+Cypheron-Core uses API key-based authentication to secure access to cryptographic operations. This document covers everything you need to know about authenticating with the API.
 
 ## Overview
 
@@ -16,7 +16,7 @@ All API endpoints require authentication using an API key. The API supports two 
 The recommended method for API authentication:
 
 ```bash
-curl -X POST "https://api.pq-core.com/sig/dilithium2/keygen" \
+curl -X POST "https://api.cypheronlabs.com/sig/dilithium2/keygen" \
   -H "X-API-Key: your_api_key_here" \
   -H "Content-Type: application/json"
 ```
@@ -26,7 +26,7 @@ curl -X POST "https://api.pq-core.com/sig/dilithium2/keygen" \
 Alternative method using the Authorization header:
 
 ```bash
-curl -X POST "https://api.pq-core.com/sig/dilithium2/keygen" \
+curl -X POST "https://api.cypheronlabs.com/sig/dilithium2/keygen" \
   -H "Authorization: Bearer your_api_key_here" \
   -H "Content-Type: application/json"
 ```
@@ -38,7 +38,7 @@ curl -X POST "https://api.pq-core.com/sig/dilithium2/keygen" \
 API keys are created through the admin interface:
 
 ```bash
-curl -X POST "https://api.pq-core.com/admin/api-keys" \
+curl -X POST "https://api.cypheronlabs.com/admin/api-keys" \
   -H "X-API-Key: your_admin_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -52,7 +52,7 @@ curl -X POST "https://api.pq-core.com/admin/api-keys" \
 **Response:**
 ```json
 {
-  "api_key": "pq_live_ABC123...",
+  "api_key": "cypheron_live_ABC123...",
   "key_info": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "name": "Production App Key",
@@ -83,7 +83,7 @@ curl -X POST "https://api.pq-core.com/admin/api-keys" \
 View all API keys associated with your account:
 
 ```bash
-curl -X GET "https://api.pq-core.com/admin/api-keys" \
+curl -X GET "https://api.cypheronlabs.com/admin/api-keys" \
   -H "X-API-Key: your_admin_key"
 ```
 
@@ -108,7 +108,7 @@ curl -X GET "https://api.pq-core.com/admin/api-keys" \
 
 ## Permission System
 
-PQ-Core implements a granular permission system to control access to different operations.
+Cypheron-Core implements a granular permission system to control access to different operations.
 
 ### Permission Format
 
@@ -221,7 +221,7 @@ Retry-After: 60
 
 **Environment Variables** (Recommended):
 ```bash
-export PQ_CORE_API_KEY="pq_live_your_key_here"
+export CYPHERON_CORE_API_KEY="cypheron_live_your_key_here"
 ```
 
 **Secure Key Management**:
@@ -231,16 +231,16 @@ from azure.keyvault.secrets import SecretClient
 
 # Load from Azure Key Vault
 client = SecretClient(vault_url="https://vault.vault.azure.net/")
-api_key = client.get_secret("pq-core-api-key").value
+api_key = client.get_secret("cypheron-core-api-key").value
 ```
 
 **Never Do This**:
 ```python
 # DON'T: Hardcode API keys
-api_key = "pq_live_ABC123..."  # BAD!
+api_key = "cypheron_live_ABC123..."  # BAD!
 
 # DON'T: Store in version control
-config.json: {"api_key": "pq_live_ABC123..."}  # BAD!
+config.json: {"api_key": "cypheron_live_ABC123..."}  # BAD!
 ```
 
 ## Authentication Errors
@@ -262,7 +262,7 @@ All authentication errors return a consistent format:
 **Missing API Key**:
 ```bash
 # Request without authentication
-curl -X POST "https://api.pq-core.com/sig/dilithium2/keygen"
+curl -X POST "https://api.cypheronlabs.com/sig/dilithium2/keygen"
 ```
 
 ```json
@@ -336,7 +336,7 @@ def make_authenticated_request(endpoint, api_key, data=None):
 All API key usage is logged for security monitoring:
 
 ```bash
-curl -X GET "https://api.pq-core.com/admin/audit-logs?limit=50" \
+curl -X GET "https://api.cypheronlabs.com/admin/audit-logs?limit=50" \
   -H "X-API-Key: your_admin_key"
 ```
 
@@ -375,8 +375,8 @@ Monitor these security events in audit logs:
 
 **Python Client**:
 ```python
-class PQCoreClient:
-    def __init__(self, api_key, base_url="https://api.pq-core.com"):
+class CypheronCoreClient:
+    def __init__(self, api_key, base_url="https://api.cypheronlabs.com"):
         self.api_key = api_key
         self.base_url = base_url
         self.session = requests.Session()
@@ -399,8 +399,8 @@ class PQCoreClient:
 
 **JavaScript Client**:
 ```javascript
-class PQCoreClient {
-    constructor(apiKey, baseUrl = 'https://api.pq-core.com') {
+class CypheronCoreClient {
+    constructor(apiKey, baseUrl = 'https://api.cypheronlabs.com') {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
     }

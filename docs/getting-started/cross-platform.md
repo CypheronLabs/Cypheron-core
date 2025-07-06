@@ -1,6 +1,6 @@
 # Cross-Platform Support
 
-PQ-Core provides full support for Windows, macOS, and Linux platforms with platform-specific optimizations and native integrations.
+Cypheron-Core provides full support for Windows, macOS, and Linux platforms with platform-specific optimizations and native integrations.
 
 ## Supported Platforms
 
@@ -40,8 +40,8 @@ PQ-Core provides full support for Windows, macOS, and Linux platforms with platf
 ```powershell
 # Run as Administrator
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/your-org/pq-core/main/scripts/install-windows.ps1" -OutFile "install-pqcore.ps1"
-.\install-pqcore.ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/your-org/cypheron-core/main/scripts/install-windows.ps1" -OutFile "install-cypheroncore.ps1"
+.\install-cypheroncore.ps1
 ```
 
 **Option 2: Manual Installation**
@@ -56,8 +56,8 @@ winget install Git.Git
 winget install Microsoft.VisualStudio.2022.BuildTools
 
 # Clone and build
-git clone https://github.com/your-org/pq-core.git
-cd pq-core
+git clone https://github.com/your-org/cypheron-core.git
+cd cypheron-core
 cargo build --release --bin rest-api
 ```
 
@@ -75,20 +75,20 @@ workers = 8
 
 [logging]
 # Windows path format
-file = "C:\\ProgramData\\PQCore\\logs\\pq-core.log"
+file = "C:\\ProgramData\\CypheronCore\\logs\\cypheron-core.log"
 ```
 
 ### macOS Installation
 
 **Option 1: Installation Script**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-org/pq-core/main/scripts/install-macos.sh | bash
+curl -fsSL https://raw.githubusercontent.com/your-org/cypheron-core/main/scripts/install-macos.sh | bash
 ```
 
 **Option 2: Homebrew (when available)**
 ```bash
-brew tap your-org/pq-core
-brew install pq-core
+brew tap your-org/cypheron-core
+brew install cypheron-core
 ```
 
 **Option 3: Manual Installation**
@@ -104,8 +104,8 @@ export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
 export OPENSSL_DIR="/opt/homebrew/opt/openssl"
 
 # Clone and build
-git clone https://github.com/your-org/pq-core.git
-cd pq-core
+git clone https://github.com/your-org/cypheron-core.git
+cd cypheron-core
 cargo build --release --bin rest-api
 ```
 
@@ -122,7 +122,7 @@ apple_silicon_optimizations = true  # if on Apple Silicon
 workers = 6
 
 [logging]
-file = "/usr/local/var/log/pq-core/pq-core.log"
+file = "/usr/local/var/log/cypheron-core/cypheron-core.log"
 ```
 
 ### Linux Installation
@@ -131,13 +131,13 @@ file = "/usr/local/var/log/pq-core/pq-core.log"
 ```bash
 # Ubuntu/Debian
 sudo apt update
-sudo apt install pq-core
+sudo apt install cypheron-core
 
 # RHEL/CentOS
-sudo dnf install pq-core
+sudo dnf install cypheron-core
 
 # Arch Linux
-yay -S pq-core
+yay -S cypheron-core
 ```
 
 **Option 2: Manual Installation**
@@ -154,8 +154,8 @@ sudo dnf groupinstall "Development Tools"
 sudo dnf install openssl-devel pkg-config git
 
 # Clone and build
-git clone https://github.com/your-org/pq-core.git
-cd pq-core
+git clone https://github.com/your-org/cypheron-core.git
+cd cypheron-core
 cargo build --release --bin rest-api
 ```
 
@@ -165,7 +165,7 @@ cargo build --release --bin rest-api
 
 **Windows CryptoAPI Integration**:
 ```rust
-use pq_core::platform::windows;
+use cypheron_core::platform::windows;
 
 // Uses CryptGenRandom for secure random generation
 let mut buffer = [0u8; 32];
@@ -178,8 +178,8 @@ windows::secure_zero(&mut buffer);
 **Windows Service**:
 ```powershell
 # Install as Windows Service
-sc create PQCoreAPI binPath= "C:\Program Files\PQCore\rest-api.exe --config C:\Program Files\PQCore\config\windows.toml"
-sc start PQCoreAPI
+sc create CypheronCoreAPI binPath= "C:\Program Files\CypheronCore\rest-api.exe --config C:\Program Files\CypheronCore\config\windows.toml"
+sc start CypheronCoreAPI
 ```
 
 **Windows Firewall**:
@@ -192,7 +192,7 @@ New-NetFirewallRule -DisplayName "PQ-Core API" -Direction Inbound -Port 3000 -Pr
 
 **Security Framework Integration**:
 ```rust
-use pq_core::platform::macos;
+use cypheron_core::platform::macos;
 
 // Uses Security Framework's SecRandomCopyBytes
 let mut buffer = [0u8; 32];
@@ -207,14 +207,14 @@ if macos::is_apple_silicon() {
 **launchd Service**:
 ```bash
 # Install as launchd service
-sudo cp com.pqcore.api.plist /Library/LaunchDaemons/
-sudo launchctl load /Library/LaunchDaemons/com.pqcore.api.plist
+sudo cp com.cypheroncore.api.plist /Library/LaunchDaemons/
+sudo launchctl load /Library/LaunchDaemons/com.cypheroncore.api.plist
 ```
 
 **Apple Silicon Optimizations**:
 ```rust
 // Automatic detection and optimization
-let platform_info = pq_core::get_platform_info();
+let platform_info = cypheron_core::get_platform_info();
 if platform_info.arch == "aarch64" && platform_info.os == "macOS" {
     // Apple Silicon specific optimizations enabled
     // - Native ARM64 crypto instructions
@@ -227,7 +227,7 @@ if platform_info.arch == "aarch64" && platform_info.os == "macOS" {
 
 **getrandom() Syscall**:
 ```rust
-use pq_core::platform::linux;
+use cypheron_core::platform::linux;
 
 // Uses getrandom() syscall or falls back to /dev/urandom
 let mut buffer = [0u8; 32];
@@ -242,15 +242,15 @@ if features.has_hardware_rng {
 
 **systemd Integration**:
 ```ini
-# /etc/systemd/system/pq-core.service
+# /etc/systemd/system/cypheron-core.service
 [Unit]
 Description=PQ-Core API Service
 After=network.target
 
 [Service]
 Type=simple
-User=pqcore
-ExecStart=/usr/local/bin/rest-api --config /etc/pq-core/linux.toml
+User=cypheroncore
+ExecStart=/usr/local/bin/rest-api --config /etc/cypheron-core/linux.toml
 Restart=always
 RestartSec=10
 
@@ -373,7 +373,7 @@ use_processor_groups = true  # For > 64 cores
 
 [logging]
 level = "info"
-file = "C:\\ProgramData\\PQCore\\logs\\pq-core.log"
+file = "C:\\ProgramData\\CypheronCore\\logs\\cypheron-core.log"
 rotation = "daily"
 ```
 
@@ -399,7 +399,7 @@ enable_accelerate_framework = true
 
 [logging]
 level = "info"
-file = "/var/log/pq-core/pq-core.log"
+file = "/var/log/cypheron-core/cypheron-core.log"
 use_os_log = true  # macOS unified logging
 ```
 
@@ -425,7 +425,7 @@ numa_aware = true
 
 [logging]
 level = "info"
-file = "/var/log/pq-core/pq-core.log"
+file = "/var/log/cypheron-core/cypheron-core.log"
 use_journald = true  # systemd journal integration
 ```
 

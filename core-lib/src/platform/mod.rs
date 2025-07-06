@@ -14,7 +14,7 @@ pub mod macos;
 #[cfg(target_os = "linux")]
 pub mod linux;
 
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 
 /// Cross-platform secure random number generation
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {

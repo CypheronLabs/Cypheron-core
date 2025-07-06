@@ -24,6 +24,7 @@ Quantum computers pose a fundamental threat to these systems because:
 ### Real-World Implications
 
 When cryptographically relevant quantum computers become available:
+
 - **RSA-2048 keys**: Could be broken in hours instead of millions of years
 - **ECDSA P-256**: Would provide no security
 - **Current TLS/SSL**: Would be completely compromised
@@ -35,16 +36,19 @@ When cryptographically relevant quantum computers become available:
 
 **Mathematical Foundation**: Based on problems in high-dimensional lattices, such as Learning With Errors (LWE) and Ring-LWE.
 
-**Examples in PQ-Core**:
-- **Kyber** (KEM): Key encapsulation mechanism
-- **Dilithium** (Signatures): Digital signature algorithm
+**Examples in Cypheron-Core**:
+
+- **ML-KEM** (KEM): Key encapsulation mechanism
+- **ML-DSA** (Signatures): Digital signature algorithm
 
 **Advantages**:
+
 - Well-studied mathematical foundation
 - Efficient implementations possible
 - Versatile (supports both KEMs and signatures)
 
 **Trade-offs**:
+
 - Larger key sizes than classical algorithms
 - Some parameter choices still being optimized
 
@@ -52,15 +56,18 @@ When cryptographically relevant quantum computers become available:
 
 **Mathematical Foundation**: Security based on the collision resistance of cryptographic hash functions.
 
-**Examples in PQ-Core**:
-- **SPHINCS+**: Stateless hash-based signatures
+**Examples in Cypheron-Core**:
+
+- **SLH-DSA**: Stateless hash-based signatures
 
 **Advantages**:
+
 - Very conservative security assumptions
 - Well-understood security proofs
 - Quantum-safe hash functions are straightforward
 
 **Trade-offs**:
+
 - Large signature sizes
 - Slower signing compared to other PQ algorithms
 
@@ -85,6 +92,7 @@ When cryptographically relevant quantum computers become available:
 ## NIST Standardization Process
 
 ### Timeline
+
 - **2016**: NIST announced PQC standardization project
 - **2017-2019**: First round evaluation (69 submissions)
 - **2019-2021**: Second round (26 candidates)
@@ -95,20 +103,23 @@ When cryptographically relevant quantum computers become available:
 ### Current NIST Standards
 
 **Primary Standards (FIPS 203, 204, 205)**:
+
 - **ML-KEM** (Kyber): Key encapsulation mechanism
 - **ML-DSA** (Dilithium): Digital signature algorithm
 - **SLH-DSA** (SPHINCS+): Hash-based digital signatures
 
 **Additional Standards**:
+
 - **FN-DSA** (Falcon): Compact digital signatures
 
 ### Security Levels
 
 NIST defines security levels equivalent to classical algorithms:
-- **Level 1**: Security equivalent to AES-128 (112-bit security)
+
+- **Level 1**: Security equivalent to AES-128 (128-bit security)
 - **Level 2**: Security equivalent to SHA-256 (128-bit security)
-- **Level 3**: Security equivalent to AES-192 (168-bit security)
-- **Level 5**: Security equivalent to AES-256 (224-bit security)
+- **Level 3**: Security equivalent to AES-192 (198-bit security)
+- **Level 5**: Security equivalent to AES-256 (256-bit security)
 
 *Note: Level 4 was not defined in the original NIST framework*
 
@@ -119,37 +130,40 @@ NIST defines security levels equivalent to classical algorithms:
 **Purpose**: Establish shared secret keys between parties.
 
 **How it works**:
+
 1. **Key Generation**: Create public/private key pair
 2. **Encapsulation**: Use public key to encapsulate a shared secret
 3. **Decapsulation**: Use private key to recover the shared secret
 
 **Classical Equivalent**: Diffie-Hellman key exchange, ECDH
 
-**PQ-Core Implementation**: Kyber family (Kyber-512, Kyber-768, Kyber-1024)
+**Cypheron-Core Implementation**: Kyber family (Kyber-512, Kyber-768, Kyber-1024)
 
 ### Digital Signatures
 
 **Purpose**: Provide authentication, integrity, and non-repudiation.
 
 **How it works**:
+
 1. **Key Generation**: Create signing/verification key pair
 2. **Signing**: Use private key to create signature on message
 3. **Verification**: Use public key to verify signature
 
 **Classical Equivalent**: RSA signatures, ECDSA
 
-**PQ-Core Implementation**: Dilithium, Falcon, SPHINCS+
+**Cypheron-Core Implementation**: Dilithium, Falcon, SPHINCS+
 
 ### Hybrid Cryptography
 
 **Purpose**: Combine classical and post-quantum algorithms for gradual migration.
 
 **Benefits**:
+
 - **Security**: If either algorithm is broken, the other provides protection
 - **Migration**: Allows gradual transition without breaking existing systems
 - **Compliance**: Satisfies both current and future cryptographic requirements
 
-**PQ-Core Implementation**: Combines Ed25519/ECDSA with post-quantum signatures
+**Cypheron-Core Implementation**: Combines Ed25519/ECDSA with post-quantum signatures
 
 ## Security Considerations
 
@@ -174,25 +188,29 @@ NIST defines security levels equivalent to classical algorithms:
 **Design Principle**: Build systems that can easily upgrade algorithms.
 
 **Benefits**:
+
 - Rapid response to cryptographic breaks
 - Seamless migration to new standards
 - Support for multiple algorithms simultaneously
 
-**PQ-Core Approach**: API supports multiple algorithms with unified interface
+**Cypheron-Core Approach**: API supports multiple algorithms with unified interface
 
 ## Migration Strategy
 
 ### Phase 1: Hybrid Deployment
+
 - Deploy hybrid algorithms alongside classical ones
 - Maintain compatibility with existing systems
 - Gain operational experience with PQ algorithms
 
 ### Phase 2: Gradual Transition
+
 - Increase reliance on post-quantum algorithms
 - Begin deprecating classical algorithms in new deployments
 - Update legacy systems where feasible
 
 ### Phase 3: Post-Quantum Only
+
 - Complete migration to post-quantum algorithms
 - Deprecate classical algorithms in security-critical applications
 - Maintain hybrid support for legacy compatibility
@@ -200,20 +218,24 @@ NIST defines security levels equivalent to classical algorithms:
 ## Common Misconceptions
 
 ### "Post-quantum crypto is experimental"
+
 **Reality**: NIST has standardized algorithms after years of analysis. While newer than classical crypto, they are ready for production use.
 
 ### "Key sizes are too large for practical use"
+
 **Reality**: While larger than classical keys, modern systems can handle the increased sizes. Network bandwidth and storage costs are manageable.
 
 ### "Performance is too slow"
+
 **Reality**: Modern implementations are optimized and often faster than RSA. Some operations may be slower than ECDSA but are still practical.
 
 ### "We can wait until quantum computers arrive"
+
 **Reality**: "Store now, decrypt later" attacks mean sensitive data encrypted today could be vulnerable when quantum computers emerge.
 
-## Getting Started with PQ-Core
+## Getting Started with Cypheron-Core
 
-Now that you understand the fundamentals, you're ready to start using PQ-Core:
+Now that you understand the fundamentals, you're ready to start using Cypheron-Core:
 
 1. **Next**: [Quick Start Guide](quickstart.md) - Get up and running in 5 minutes
 2. **Or**: [Installation & Setup](installation.md) - Detailed setup instructions
