@@ -1,8 +1,8 @@
-# PQ-Core API Documentation
+# Cypheron-Core API Documentation
 
 Welcome to the comprehensive documentation for PQ-Core, a production-ready post-quantum cryptography API. This documentation is designed to be your complete guide from basic concepts to advanced implementation patterns.
 
-## 📚 Table of Contents
+## Table of Contents
 
 ### Getting Started
 - [Introduction to Post-Quantum Cryptography](getting-started/introduction.md)
