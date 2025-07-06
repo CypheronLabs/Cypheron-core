@@ -1,6 +1,6 @@
 # Cypheron-Core API Documentation
 
-Welcome to the comprehensive documentation for PQ-Core, a production-ready post-quantum cryptography API. This documentation is designed to be your complete guide from basic concepts to advanced implementation patterns.
+Welcome to the comprehensive documentation for Cypheron-Core, a production-ready post-quantum cryptography API. This documentation is designed to be your complete guide from basic concepts to advanced implementation patterns.
 
 ## Table of Contents
 
@@ -49,9 +49,9 @@ Welcome to the comprehensive documentation for PQ-Core, a production-ready post-
 
 **Security Questions?** Read the [Security Documentation](security/)
 
-## What is PQ-Core?
+## What is Cypheron-Core?
 
-PQ-Core is a comprehensive REST API that provides access to standardized post-quantum cryptographic algorithms. It offers:
+Cypheron-Core is a comprehensive REST API that provides access to standardized post-quantum cryptographic algorithms. It offers:
 
 - **Key Encapsulation Mechanisms (KEM)**: Kyber family algorithms
 - **Digital Signatures**: Dilithium, Falcon, and SPHINCS+ families
@@ -63,7 +63,7 @@ PQ-Core is a comprehensive REST API that provides access to standardized post-qu
 
 With the advent of quantum computers, traditional cryptographic algorithms (RSA, ECDSA, ECDH) become vulnerable to attack. Post-quantum cryptography provides algorithms that remain secure even against quantum adversaries.
 
-PQ-Core implements NIST-standardized algorithms that are:
+Cypheron-Core implements NIST-standardized algorithms that are:
 - **Quantum-resistant**: Secure against both classical and quantum attacks
 - **Standardized**: Based on NIST Post-Quantum Cryptography standards
 - **Battle-tested**: Extensively analyzed by the cryptographic community
