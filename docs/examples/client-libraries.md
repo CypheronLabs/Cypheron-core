@@ -1,6 +1,6 @@
 # Language-Specific Client Libraries
 
-This guide provides complete client library implementations for popular programming languages, making it easy to integrate PQ-Core into your applications.
+This guide provides complete client library implementations for popular programming languages, making it easy to integrate Cypheron-Core into your applications.
 
 ## Python Client Library
 
@@ -8,8 +8,8 @@ This guide provides complete client library implementations for popular programm
 
 ```python
 """
-PQ-Core Python Client Library
-A complete client for interacting with the PQ-Core post-quantum cryptography API.
+Cypheron-Core Python Client Library
+A complete client for interacting with the Cypheron-Core post-quantum cryptography API.
 """
 
 import requests
@@ -22,22 +22,22 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class PQCoreError(Exception):
-    """Base exception for PQ-Core client errors"""
+class CypheronCoreError(Exception):
+    """Base exception for Cypheron-Core client errors"""
     pass
 
 
-class AuthenticationError(PQCoreError):
+class AuthenticationError(CypheronCoreError):
     """Raised when API authentication fails"""
     pass
 
 
-class ValidationError(PQCoreError):
+class ValidationError(CypheronCoreError):
     """Raised when input validation fails"""
     pass
 
 
-class RateLimitError(PQCoreError):
+class RateLimitError(CypheronCoreError):
     """Raised when rate limit is exceeded"""
     def __init__(self, message: str, retry_after: int = None):
         super().__init__(message)
@@ -104,9 +104,9 @@ class HybridSignatureResult:
     combined_signature: str
 
 
-class PQCoreClient:
+class CypheronCoreClient:
     """
-    PQ-Core API Client
+    Cypheron-Core API Client
     
     Provides methods for all post-quantum cryptographic operations including
     KEM, digital signatures, and hybrid cryptography.
@@ -114,15 +114,15 @@ class PQCoreClient:
     
     def __init__(self, 
                  api_key: str,
-                 base_url: str = "https://api.pq-core.com",
+                 base_url: str = "https://api.cypheronlabs.com",
                  timeout: int = 30,
                  max_retries: int = 3):
         """
-        Initialize the PQ-Core client
+        Initialize the Cypheron-Core client
         
         Args:
-            api_key: Your PQ-Core API key
-            base_url: Base URL of the PQ-Core API
+            api_key: Your Cypheron-Core API key
+            base_url: Base URL of the Cypheron-Core API
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries for failed requests
         """
@@ -135,7 +135,7 @@ class PQCoreClient:
         self.session.headers.update({
             'X-API-Key': api_key,
             'Content-Type': 'application/json',
-            'User-Agent': 'pq-core-python-client/1.0.0'
+            'User-Agent': 'cypheron-core-python-client/1.0.0'
         })
     
     def _make_request(self, method: str, endpoint: str, data: Dict = None) -> Dict:
@@ -187,9 +187,9 @@ class PQCoreClient:
                 if attempt < self.max_retries:
                     time.sleep(2 ** attempt)
                     continue
-                raise PQCoreError(f"Request failed: {str(e)}")
+                raise CypheronCoreError(f"Request failed: {str(e)}")
         
-        raise PQCoreError("Max retries exceeded")
+        raise CypheronCoreError("Max retries exceeded")
     
     # KEM Operations
     
@@ -509,7 +509,7 @@ class PQCoreClient:
 # Usage Examples
 def example_kem_workflow():
     """Example: Complete KEM workflow"""
-    client = PQCoreClient("your_api_key_here")
+    client = CypheronCoreClient("your_api_key_here")
     
     # Generate Bob's key pair
     bob_keys = client.kem_keygen(Algorithm.KYBER_768)
@@ -534,7 +534,7 @@ def example_kem_workflow():
 
 def example_signature_workflow():
     """Example: Complete signature workflow"""
-    client = PQCoreClient("your_api_key_here")
+    client = CypheronCoreClient("your_api_key_here")
     
     # Generate signing keys
     keys = client.sig_keygen(Algorithm.DILITHIUM_3)
@@ -558,7 +558,7 @@ def example_signature_workflow():
 
 def example_hybrid_workflow():
     """Example: Hybrid cryptography workflow"""
-    client = PQCoreClient("your_api_key_here")
+    client = CypheronCoreClient("your_api_key_here")
     
     message = "Critical document requiring hybrid signatures for migration period."
     
@@ -591,10 +591,10 @@ pip install requests
 ### Usage
 
 ```python
-from pq_core_client import PQCoreClient, Algorithm
+from cypheron_core_client import CypheronCoreClient, Algorithm
 
 # Initialize client
-client = PQCoreClient("your_api_key_here")
+client = CypheronCoreClient("your_api_key_here")
 
 # Generate KEM keys
 keys = client.kem_keygen(Algorithm.KYBER_768)
@@ -613,34 +613,34 @@ signature = client.sign_message(
 
 ```javascript
 /**
- * PQ-Core JavaScript Client Library
- * A complete client for interacting with the PQ-Core post-quantum cryptography API.
+ * Cypheron-Core JavaScript Client Library
+ * A complete client for interacting with the Cypheron-Core post-quantum cryptography API.
  */
 
 const axios = require('axios');
 
-class PQCoreError extends Error {
+class CypheronCoreError extends Error {
     constructor(message) {
         super(message);
-        this.name = 'PQCoreError';
+        this.name = 'CypheronCoreError';
     }
 }
 
-class AuthenticationError extends PQCoreError {
+class AuthenticationError extends CypheronCoreError {
     constructor(message) {
         super(message);
         this.name = 'AuthenticationError';
     }
 }
 
-class ValidationError extends PQCoreError {
+class ValidationError extends CypheronCoreError {
     constructor(message) {
         super(message);
         this.name = 'ValidationError';
     }
 }
 
-class RateLimitError extends PQCoreError {
+class RateLimitError extends CypheronCoreError {
     constructor(message, retryAfter = null) {
         super(message);
         this.name = 'RateLimitError';
@@ -668,16 +668,16 @@ const Algorithm = {
     SPHINCS_HARAKA_256S: 'sphincs_haraka_256s'
 };
 
-class PQCoreClient {
+class CypheronCoreClient {
     /**
-     * Initialize the PQ-Core client
+     * Initialize the Cypheron-Core client
      * 
-     * @param {string} apiKey - Your PQ-Core API key
-     * @param {string} baseUrl - Base URL of the PQ-Core API
+     * @param {string} apiKey - Your Cypheron-Core API key
+     * @param {string} baseUrl - Base URL of the Cypheron-Core API
      * @param {number} timeout - Request timeout in milliseconds
      * @param {number} maxRetries - Maximum number of retries for failed requests
      */
-    constructor(apiKey, baseUrl = 'https://api.pq-core.com', timeout = 30000, maxRetries = 3) {
+    constructor(apiKey, baseUrl = 'https://api.cypheronlabs.com', timeout = 30000, maxRetries = 3) {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl.replace(/\/$/, '');
         this.timeout = timeout;
@@ -689,7 +689,7 @@ class PQCoreClient {
             headers: {
                 'X-API-Key': apiKey,
                 'Content-Type': 'application/json',
-                'User-Agent': 'pq-core-js-client/1.0.0'
+                'User-Agent': 'cypheron-core-js-client/1.0.0'
             }
         });
         
@@ -704,7 +704,7 @@ class PQCoreClient {
                 const { response, config } = error;
                 
                 if (!response) {
-                    throw new PQCoreError(`Network error: ${error.message}`);
+                    throw new CypheronCoreError(`Network error: ${error.message}`);
                 }
                 
                 switch (response.status) {
@@ -1101,7 +1101,7 @@ npm install axios
 ### Usage
 
 ```javascript
-const { PQCoreClient, Algorithm } = require('./pq-core-client');
+const { PQCoreClient, Algorithm } = require('./cypheron-core-client');
 
 // Initialize client
 const client = new PQCoreClient('your_api_key_here');
@@ -1205,7 +1205,7 @@ func (c *Client) makeRequest(method, endpoint string, payload interface{}) ([]by
     
     req.Header.Set("X-API-Key", c.APIKey)
     req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("User-Agent", "pq-core-go-client/1.0.0")
+    req.Header.Set("User-Agent", "cypheron-core-go-client/1.0.0")
     
     resp, err := c.HTTPClient.Do(req)
     if err != nil {
@@ -1359,7 +1359,7 @@ import (
 )
 
 func main() {
-    client := pqcore.NewClient("your_api_key_here", "https://api.pq-core.com")
+    client := pqcore.NewClient("your_api_key_here", "https://api.cypheronlabs.com")
     
     // Generate KEM keys
     keys, err := client.KEMKeygen(pqcore.Kyber768)

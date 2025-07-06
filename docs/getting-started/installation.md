@@ -1,6 +1,6 @@
 # Installation & Setup
 
-This guide covers everything you need to get PQ-Core running in your environment, from local development to production deployment.
+This guide covers everything you need to get Cypheron-Core running in your environment, from local development to production deployment.
 
 ## Server Installation
 
@@ -35,8 +35,8 @@ cargo --version
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/pq-core.git
-cd pq-core
+git clone https://github.com/your-org/cypheron-core.git
+cd cypheron-core
 
 # Install system dependencies (Ubuntu/Debian)
 sudo apt update
@@ -58,7 +58,7 @@ cargo test
 Create a configuration file:
 
 ```toml
-# config/pq-core.toml
+# config/cypheron-core.toml
 [server]
 host = "127.0.0.1"
 port = 3000
@@ -77,7 +77,7 @@ enabled_hybrid = true
 [logging]
 level = "info"
 format = "json"
-file = "/var/log/pq-core/pq-core.log"
+file = "/var/log/cypheron-core/cypheron-core.log"
 ```
 
 ### Start the Server
@@ -87,7 +87,7 @@ file = "/var/log/pq-core/pq-core.log"
 cargo run --bin rest-api
 
 # Production mode
-./target/release/rest-api --config config/pq-core.toml
+./target/release/rest-api --config config/cypheron-core.toml
 ```
 
 ## Docker Installation
@@ -100,16 +100,16 @@ Create a `docker-compose.yml` file:
 version: '3.8'
 
 services:
-  pq-core:
-    image: pq-core/api:latest
+  cypheron-core:
+    image: cypheron-core/api:latest
     ports:
       - "3000:3000"
     environment:
       - RUST_LOG=info
-      - PQ_CORE_CONFIG=/app/config/production.toml
+      - CYPHERON_CORE_CONFIG=/app/config/production.toml
     volumes:
       - ./config:/app/config
-      - ./logs:/var/log/pq-core
+      - ./logs:/var/log/cypheron-core
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -133,13 +133,13 @@ volumes:
 
 ```bash
 # Build the Docker image
-docker build -t pq-core/api:latest .
+docker build -t cypheron-core/api:latest .
 
 # Start services
 docker-compose up -d
 
 # View logs
-docker-compose logs -f pq-core
+docker-compose logs -f cypheron-core
 
 # Check status
 docker-compose ps
@@ -188,7 +188,7 @@ CMD ["./rest-api", "--config", "config/production.toml"]
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: pq-core
+  name: cypheron-core
 ```
 
 **ConfigMap**:
@@ -197,10 +197,10 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: pq-core-config
-  namespace: pq-core
+  name: cypheron-core-config
+  namespace: cypheron-core
 data:
-  pq-core.toml: |
+  cypheron-core.toml: |
     [server]
     host = "0.0.0.0"
     port = 3000
@@ -226,28 +226,28 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pq-core-api
-  namespace: pq-core
+  name: cypheron-core-api
+  namespace: cypheron-core
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: pq-core-api
+      app: cypheron-core-api
   template:
     metadata:
       labels:
-        app: pq-core-api
+        app: cypheron-core-api
     spec:
       containers:
-      - name: pq-core-api
-        image: pq-core/api:v1.0.0
+      - name: cypheron-core-api
+        image: cypheron-core/api:v1.0.0
         ports:
         - containerPort: 3000
         env:
         - name: RUST_LOG
           value: "info"
-        - name: PQ_CORE_CONFIG
-          value: "/app/config/pq-core.toml"
+        - name: CYPHERON_CORE_CONFIG
+          value: "/app/config/cypheron-core.toml"
         volumeMounts:
         - name: config
           mountPath: /app/config
@@ -273,7 +273,7 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: pq-core-config
+          name: cypheron-core-config
 ```
 
 **Service**:
@@ -282,11 +282,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: pq-core-api-service
-  namespace: pq-core
+  name: cypheron-core-api-service
+  namespace: cypheron-core
 spec:
   selector:
-    app: pq-core-api
+    app: cypheron-core-api
   ports:
   - protocol: TCP
     port: 80
@@ -300,8 +300,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: pq-core-ingress
-  namespace: pq-core
+  name: cypheron-core-ingress
+  namespace: cypheron-core
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
@@ -309,17 +309,17 @@ metadata:
 spec:
   tls:
   - hosts:
-    - api.pq-core.com
-    secretName: pq-core-tls
+    - api.cypheronlabs.com
+    secretName: cypheron-core-tls
   rules:
-  - host: api.pq-core.com
+  - host: api.cypheronlabs.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: pq-core-api-service
+            name: cypheron-core-api-service
             port:
               number: 80
 ```
@@ -331,15 +331,15 @@ spec:
 kubectl apply -f k8s/
 
 # Check deployment status
-kubectl get pods -n pq-core
-kubectl get services -n pq-core
-kubectl get ingress -n pq-core
+kubectl get pods -n cypheron-core
+kubectl get services -n cypheron-core
+kubectl get ingress -n cypheron-core
 
 # View logs
-kubectl logs -f deployment/pq-core-api -n pq-core
+kubectl logs -f deployment/cypheron-core-api -n cypheron-core
 
 # Scale deployment
-kubectl scale deployment pq-core-api --replicas=5 -n pq-core
+kubectl scale deployment cypheron-core-api --replicas=5 -n cypheron-core
 ```
 
 ## Cloud Deployments
@@ -349,7 +349,7 @@ kubectl scale deployment pq-core-api --replicas=5 -n pq-core
 **Task Definition**:
 ```json
 {
-  "family": "pq-core-api",
+  "family": "cypheron-core-api",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
@@ -358,8 +358,8 @@ kubectl scale deployment pq-core-api --replicas=5 -n pq-core
   "taskRoleArn": "arn:aws:iam::account:role/ecsTaskRole",
   "containerDefinitions": [
     {
-      "name": "pq-core-api",
-      "image": "your-account.dkr.ecr.region.amazonaws.com/pq-core:latest",
+      "name": "cypheron-core-api",
+      "image": "your-account.dkr.ecr.region.amazonaws.com/cypheron-core:latest",
       "portMappings": [
         {
           "containerPort": 3000,
@@ -375,7 +375,7 @@ kubectl scale deployment pq-core-api --replicas=5 -n pq-core
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/pq-core-api",
+          "awslogs-group": "/ecs/cypheron-core-api",
           "awslogs-region": "us-west-2",
           "awslogs-stream-prefix": "ecs"
         }
@@ -396,12 +396,12 @@ kubectl scale deployment pq-core-api --replicas=5 -n pq-core
 **Deploy to Cloud Run**:
 ```bash
 # Build and push image to Google Container Registry
-docker build -t gcr.io/PROJECT_ID/pq-core:latest .
-docker push gcr.io/PROJECT_ID/pq-core:latest
+docker build -t gcr.io/PROJECT_ID/cypheron-core:latest .
+docker push gcr.io/PROJECT_ID/cypheron-core:latest
 
 # Deploy to Cloud Run
-gcloud run deploy pq-core-api \
-  --image gcr.io/PROJECT_ID/pq-core:latest \
+gcloud run deploy cypheron-core-api \
+  --image gcr.io/PROJECT_ID/cypheron-core:latest \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
@@ -417,16 +417,16 @@ gcloud run deploy pq-core-api \
 **Deploy to ACI**:
 ```bash
 # Create resource group
-az group create --name pq-core-rg --location eastus
+az group create --name cypheron-core-rg --location eastus
 
 # Create container instance
 az container create \
-  --resource-group pq-core-rg \
-  --name pq-core-api \
-  --image your-registry.azurecr.io/pq-core:latest \
+  --resource-group cypheron-core-rg \
+  --name cypheron-core-api \
+  --image your-registry.azurecr.io/cypheron-core:latest \
   --cpu 2 \
   --memory 4 \
-  --dns-name-label pq-core-api \
+  --dns-name-label cypheron-core-api \
   --ports 3000 \
   --environment-variables RUST_LOG=info
 ```
@@ -436,8 +436,8 @@ az container create \
 ### Nginx Configuration
 
 ```nginx
-# /etc/nginx/sites-available/pq-core
-upstream pq-core-backend {
+# /etc/nginx/sites-available/cypheron-core
+upstream cypheron-core-backend {
     least_conn;
     server 127.0.0.1:3000 max_fails=3 fail_timeout=30s;
     server 127.0.0.1:3001 max_fails=3 fail_timeout=30s;
@@ -446,16 +446,16 @@ upstream pq-core-backend {
 
 server {
     listen 80;
-    server_name api.pq-core.com;
+    server_name api.cypheronlabs.com;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name api.pq-core.com;
+    server_name api.cypheronlabs.com;
     
-    ssl_certificate /etc/ssl/certs/pq-core.crt;
-    ssl_certificate_key /etc/ssl/private/pq-core.key;
+    ssl_certificate /etc/ssl/certs/cypheron-core.crt;
+    ssl_certificate_key /etc/ssl/private/cypheron-core.key;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256;
     ssl_prefer_server_ciphers off;
@@ -471,7 +471,7 @@ server {
     limit_req zone=api burst=20 nodelay;
     
     location / {
-        proxy_pass http://pq-core-backend;
+        proxy_pass http://cypheron-core-backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -488,7 +488,7 @@ server {
     
     location /health {
         access_log off;
-        proxy_pass http://pq-core-backend;
+        proxy_pass http://cypheron-core-backend;
         proxy_set_header Host $host;
     }
 }
@@ -510,9 +510,9 @@ defaults
     timeout server 50000ms
     option httplog
     
-frontend pq-core-frontend
+frontend cypheron-core-frontend
     bind *:80
-    bind *:443 ssl crt /etc/ssl/certs/pq-core.pem
+    bind *:443 ssl crt /etc/ssl/certs/cypheron-core.pem
     redirect scheme https if !{ ssl_fc }
     
     # Rate limiting
@@ -520,9 +520,9 @@ frontend pq-core-frontend
     http-request track-sc0 src
     http-request deny if { sc_http_req_rate(0) gt 20 }
     
-    default_backend pq-core-backend
+    default_backend cypheron-core-backend
 
-backend pq-core-backend
+backend cypheron-core-backend
     balance roundrobin
     option httpchk GET /health
     
@@ -541,7 +541,7 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'pq-core-api'
+  - job_name: 'cypheron-core-api'
     static_configs:
       - targets: ['localhost:3000']
     metrics_path: /metrics
@@ -619,13 +619,13 @@ ps aux | grep rest-api
 **View Logs**:
 ```bash
 # Application logs
-tail -f /var/log/pq-core/pq-core.log
+tail -f /var/log/cypheron-core/cypheron-core.log
 
 # System logs
-journalctl -u pq-core-api -f
+journalctl -u cypheron-core-api -f
 
 # Docker logs
-docker logs -f pq-core-api
+docker logs -f cypheron-core-api
 ```
 
 **Log Patterns to Watch**:

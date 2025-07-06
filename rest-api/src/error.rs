@@ -36,7 +36,7 @@ impl IntoResponse for AppError {
             AppError::InvalidPublicKey => (StatusCode::BAD_REQUEST, "Invalid public key".to_string()),
             AppError::InvalidBase64 => (StatusCode::BAD_REQUEST, "Invalid base64 encoding".to_string()),
             AppError::InvalidSignature => (StatusCode::BAD_REQUEST, "Invalid signature".to_string()),
-            AppError::ValidationError(msg) => (StatusCode::BAD_REQUEST, format!("Validation failed: {}", msg)),
+            AppError::ValidationError(ref msg) => (StatusCode::BAD_REQUEST, format!("Validation failed: {}", msg)),
         };
         
         tracing::error!("API Error: {:?}", self);

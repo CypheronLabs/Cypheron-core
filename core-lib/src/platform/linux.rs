@@ -1,6 +1,7 @@
 /// Linux-specific implementations for PQ-Core
 
 use std::io::{Error, ErrorKind};
+use std::fs;
 
 /// Linux secure random number generation using getrandom syscall
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
@@ -15,7 +16,6 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
 
 /// Use getrandom syscall directly
 fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
-    use std::ptr;
     
     unsafe {
         let result = libc::syscall(
@@ -78,9 +78,7 @@ fn has_explicit_bzero() -> bool {
 
 /// Fallback secure zeroing implementation
 unsafe fn secure_zero_fallback(buffer: &mut [u8]) {
-    // Use volatile pointer to prevent compiler optimization
-    let ptr = buffer.as_mut_ptr() as *mut std::os::raw::c_void;
-    std::ptr::write_volatile(ptr, 0);
+    // Use volatile writes to prevent compiler optimization
     for i in 0..buffer.len() {
         std::ptr::write_volatile(buffer.as_mut_ptr().add(i), 0);
     }
@@ -117,7 +115,6 @@ pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
 
 /// Get Linux distribution information
 pub fn get_linux_distro() -> String {
-    use std::fs;
     
     // Try /etc/os-release first
     if let Ok(content) = fs::read_to_string("/etc/os-release") {
@@ -145,7 +142,6 @@ pub fn get_linux_distro() -> String {
 
 /// Get kernel version
 pub fn get_kernel_version() -> String {
-    use std::fs;
     
     if let Ok(version) = fs::read_to_string("/proc/version") {
         if let Some(end) = version.find(' ') {
@@ -158,7 +154,6 @@ pub fn get_kernel_version() -> String {
 
 /// Check if running in a container
 pub fn is_running_in_container() -> bool {
-    use std::fs;
     
     // Check for Docker
     if fs::metadata("/.dockerenv").is_ok() {
@@ -177,7 +172,6 @@ pub fn is_running_in_container() -> bool {
 
 /// Get CPU information from /proc/cpuinfo
 pub fn get_cpu_info() -> CpuInfo {
-    use std::fs;
     use std::collections::HashMap;
     
     let mut info = CpuInfo::default();
@@ -240,7 +234,6 @@ pub fn optimize_for_crypto() -> Result<(), Error> {
 
 /// Set CPU affinity to performance cores
 fn set_cpu_affinity() -> Result<(), Error> {
-    use std::fs;
     
     // Try to identify performance cores
     let cpu_count = num_cpus::get();
@@ -289,7 +282,6 @@ pub struct SecurityFeatures {
 }
 
 fn check_secure_boot() -> bool {
-    use std::fs;
     
     if let Ok(content) = fs::read_to_string("/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c") {
         // Check if secure boot is enabled (very simplified)
@@ -300,7 +292,6 @@ fn check_secure_boot() -> bool {
 }
 
 fn check_tpm() -> bool {
-    use std::fs;
     
     fs::metadata("/dev/tpm0").is_ok() || fs::metadata("/dev/tpmrm0").is_ok()
 }

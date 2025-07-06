@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y \
     cmake \
     libssl-dev \
     pkg-config \
+    libclang-dev \
+    clang \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -17,9 +19,10 @@ COPY Cargo.toml Cargo.lock ./
 COPY rest-api/Cargo.toml ./rest-api/
 COPY core-lib/Cargo.toml ./core-lib/
 
-# Copy source code
+# Copy source code and vendor dependencies
 COPY rest-api/src ./rest-api/src
 COPY core-lib ./core-lib
+COPY vendor ./vendor
 
 # Build the application in release mode
 RUN cargo build --release --bin rest-api

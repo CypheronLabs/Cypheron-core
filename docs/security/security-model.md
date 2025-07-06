@@ -1,12 +1,12 @@
 # Security Model
 
-This document outlines the comprehensive security model implemented by PQ-Core, covering both the theoretical foundations of post-quantum cryptography and the practical security measures protecting the API.
+This document outlines the comprehensive security model implemented by Cypheron-Core, covering both the theoretical foundations of post-quantum cryptography and the practical security measures protecting the API.
 
 ## Cryptographic Security Model
 
 ### Post-Quantum Security Assumptions
 
-PQ-Core's cryptographic security is based on mathematical problems that are believed to be hard for both classical and quantum computers:
+Cypheron-Core's cryptographic security is based on mathematical problems that are believed to be hard for both classical and quantum computers:
 
 #### Lattice-Based Security (Kyber, Dilithium)
 

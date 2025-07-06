@@ -1,10 +1,11 @@
-# PQ-Core API Documentation
+# Cypheron-Core API Documentation
 
-Welcome to the comprehensive documentation for PQ-Core, a production-ready post-quantum cryptography API. This documentation is designed to be your complete guide from basic concepts to advanced implementation patterns.
+Welcome to the comprehensive documentation for Cypheron-Core, a production-ready post-quantum cryptography API. This documentation is designed to be your complete guide from basic concepts to advanced implementation patterns.
 
 ## 📚 Table of Contents
 
 ### Getting Started
+
 - [Introduction to Post-Quantum Cryptography](getting-started/introduction.md)
 - [Quick Start Guide](getting-started/quickstart.md)
 - [Installation & Setup](getting-started/installation.md)
@@ -12,6 +13,7 @@ Welcome to the comprehensive documentation for PQ-Core, a production-ready post-
 - [Your First API Call](getting-started/first-call.md)
 
 ### API Reference
+
 - [Authentication](api-reference/authentication.md)
 - [KEM Operations](api-reference/kem.md)
 - [Digital Signatures](api-reference/signatures.md)
@@ -20,18 +22,21 @@ Welcome to the comprehensive documentation for PQ-Core, a production-ready post-
 - [Error Handling](api-reference/errors.md)
 
 ### Examples & Tutorials
+
 - [Basic Usage Examples](examples/basic-usage.md)
 - [Language-Specific Clients](examples/client-libraries.md)
 - [Integration Patterns](examples/integration-patterns.md)
 - [Migration from Classical Crypto](examples/migration-guide.md)
 
 ### Security
+
 - [Security Model](security/security-model.md)
 - [API Security Features](security/api-security.md)
 - [Best Practices](security/best-practices.md)
 - [Threat Model](security/threat-model.md)
 
 ### Advanced Topics
+
 - [Algorithm Selection Guide](advanced/algorithm-selection.md)
 - [Performance Optimization](advanced/performance.md)
 - [Monitoring & Observability](advanced/monitoring.md)
@@ -49,9 +54,9 @@ Welcome to the comprehensive documentation for PQ-Core, a production-ready post-
 
 **Security Questions?** Read the [Security Documentation](security/)
 
-## What is PQ-Core?
+## What is Cypheron-Core?
 
-PQ-Core is a comprehensive REST API that provides access to standardized post-quantum cryptographic algorithms. It offers:
+Cypheron-Core is a comprehensive REST API that provides access to standardized post-quantum cryptographic algorithms. It offers:
 
 - **Key Encapsulation Mechanisms (KEM)**: Kyber family algorithms
 - **Digital Signatures**: Dilithium, Falcon, and SPHINCS+ families
@@ -63,7 +68,8 @@ PQ-Core is a comprehensive REST API that provides access to standardized post-qu
 
 With the advent of quantum computers, traditional cryptographic algorithms (RSA, ECDSA, ECDH) become vulnerable to attack. Post-quantum cryptography provides algorithms that remain secure even against quantum adversaries.
 
-PQ-Core implements NIST-standardized algorithms that are:
+Cypheron-Core implements NIST-standardized algorithms that are:
+
 - **Quantum-resistant**: Secure against both classical and quantum attacks
 - **Standardized**: Based on NIST Post-Quantum Cryptography standards
 - **Battle-tested**: Extensively analyzed by the cryptographic community
@@ -72,11 +78,13 @@ PQ-Core implements NIST-standardized algorithms that are:
 ## Supported Algorithms
 
 ### Key Encapsulation Mechanisms (KEM)
+
 - **Kyber-512**: NIST security level 1, ~800 bytes public key
 - **Kyber-768**: NIST security level 3, ~1,184 bytes public key  
 - **Kyber-1024**: NIST security level 5, ~1,568 bytes public key
 
 ### Digital Signatures
+
 - **Dilithium-2**: NIST security level 2, ~1,312 bytes public key
 - **Dilithium-3**: NIST security level 3, ~1,952 bytes public key
 - **Dilithium-5**: NIST security level 5, ~2,592 bytes public key
@@ -85,6 +93,7 @@ PQ-Core implements NIST-standardized algorithms that are:
 - **SPHINCS+**: Hash-based signatures in multiple variants
 
 ### Hybrid Algorithms
+
 - **Hybrid Signatures**: Combines classical (Ed25519, ECDSA) with post-quantum signatures
 - **Migration-Friendly**: Gradual transition from classical to post-quantum
 
