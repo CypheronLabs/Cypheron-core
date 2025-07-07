@@ -1,0 +1,60 @@
+[package]
+name = "core-lib-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.core-lib]
+path = "../.."
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "fuzz_ml_kem_512"
+path = "fuzz_targets/fuzz_ml_kem_512.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ml_kem_768"
+path = "fuzz_targets/fuzz_ml_kem_768.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ml_kem_1024"
+path = "fuzz_targets/fuzz_ml_kem_1024.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ml_dsa_44"
+path = "fuzz_targets/fuzz_ml_dsa_44.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ml_dsa_65"
+path = "fuzz_targets/fuzz_ml_dsa_65.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ml_dsa_87"
+path = "fuzz_targets/fuzz_ml_dsa_87.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_hybrid_ecc_dilithium"
+path = "fuzz_targets/fuzz_hybrid_ecc_dilithium.rs"
+test = false
+doc = false
