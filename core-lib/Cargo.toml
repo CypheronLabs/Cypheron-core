@@ -36,6 +36,12 @@ bindgen = "0.71.1"
 
 [dev-dependencies]
 core-lib = { path = "." }
+# Security testing dependencies
+proptest = "1.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+hex = "0.4"
+# Note: dudect requires nightly features, added as optional for timing tests
+# dudect = "0.4"  # Uncomment when using nightly Rust for side-channel testing
 
 [features]
 default = []
