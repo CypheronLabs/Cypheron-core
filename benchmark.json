@@ -1,0 +1,478 @@
+{
+  "benchmark_plan": {
+    "metadata": {
+      "library_name": "Cypheron Core",
+      "version": "v1.0",
+      "language": "Rust",
+      "test_plan_version": "1.0",
+      "created_date": "2025-01-26",
+      "description": "Post-Quantum Cryptography Library Validation"
+    },
+    "objectives": {
+      "primary": [
+        {
+          "name": "Standards Compliance",
+          "description": "Validate 100% conformance with NIST FIPS 203 (ML-KEM) and FIPS 204 (ML-DSA)",
+          "success_criteria": "Pass all NIST Known Answer Tests (KATs)"
+        },
+        {
+          "name": "Performance Competitiveness", 
+          "description": "Achieve performance within 2x of optimized C implementations",
+          "success_criteria": "Performance within 150% of liboqs baseline"
+        },
+        {
+          "name": "Memory Safety Superiority",
+          "description": "Demonstrate zero memory safety vulnerabilities vs C implementations", 
+          "success_criteria": "Zero memory safety issues under fuzzing"
+        },
+        {
+          "name": "Enterprise Readiness",
+          "description": "Validate production-grade reliability and consistency",
+          "success_criteria": "Consistent performance across test runs (CV < 5%)"
+        }
+      ]
+    },
+    "algorithms_under_test": {
+      "ml_kem": [
+        {
+          "name": "ML-KEM-512",
+          "security_level": 1,
+          "equivalent_aes": "AES-128"
+        },
+        {
+          "name": "ML-KEM-768", 
+          "security_level": 3,
+          "equivalent_aes": "AES-192"
+        },
+        {
+          "name": "ML-KEM-1024",
+          "security_level": 5, 
+          "equivalent_aes": "AES-256"
+        }
+      ],
+      "ml_dsa": [
+        {
+          "name": "ML-DSA-44",
+          "security_level": 2,
+          "equivalent_aes": "AES-128"
+        },
+        {
+          "name": "ML-DSA-65",
+          "security_level": 3,
+          "equivalent_aes": "AES-192"  
+        },
+        {
+          "name": "ML-DSA-87",
+          "security_level": 5,
+          "equivalent_aes": "AES-256"
+        }
+      ]
+    },
+    "benchmark_targets": {
+      "tier_1_must_test": [
+        {
+          "name": "pq-crystals/kyber",
+          "type": "C Reference + AVX2",
+          "repo": "https://github.com/pq-crystals/kyber",
+          "rationale": "Official NIST baseline",
+          "implementations": ["ref", "avx2"]
+        },
+        {
+          "name": "pq-crystals/dilithium", 
+          "type": "C Reference + AVX2",
+          "repo": "https://github.com/pq-crystals/dilithium",
+          "rationale": "Official NIST baseline",
+          "implementations": ["ref", "avx2"]
+        },
+        {
+          "name": "liboqs",
+          "type": "C Production",
+          "repo": "https://github.com/open-quantum-safe/liboqs", 
+          "version": "v0.12.0+",
+          "rationale": "Industry standard"
+        },
+        {
+          "name": "wolfSSL",
+          "type": "C Optimized",
+          "rationale": "Enterprise performance target",
+          "license": "Commercial"
+        }
+      ],
+      "tier_2_should_test": [
+        {
+          "name": "fips203/fips204 (IntegrityChain)",
+          "type": "Pure Rust", 
+          "repo": "https://github.com/integritychain/fips203",
+          "rationale": "Direct Rust comparison"
+        },
+        {
+          "name": "ml-kem (RustCrypto)",
+          "type": "Pure Rust",
+          "rationale": "Ecosystem comparison"
+        },
+        {
+          "name": "itzmeanjan/ml-kem",
+          "type": "C++ Header-only",
+          "repo": "https://github.com/itzmeanjan/ml-kem", 
+          "rationale": "Optimization target"
+        }
+      ]
+    },
+    "test_environment": {
+      "hardware_requirements": {
+        "platform": "Developer workstation",
+        "cpu": "Document exact CPU model",
+        "ram": "Document total available RAM", 
+        "storage": "SSD recommended for consistent I/O"
+      },
+      "software_requirements": {
+        "rust_toolchain": {
+          "rustc": "latest stable",
+          "cargo": "latest stable"
+        },
+        "c_toolchain": {
+          "clang": "latest",
+          "gcc": "latest"
+        },
+        "build_tools": ["git", "cmake", "make"],
+        "benchmark_tools": ["criterion", "cargo-fuzz", "cargo-miri"]
+      },
+      "test_data": {
+        "test_vectors": "NIST official KAT files",
+        "random_seeds": "Fixed seeds for reproducible benchmarks",
+        "timing_method": "CPU cycle counts + wall-clock time", 
+        "memory_tracking": "RSS, heap, stack measurements"
+      }
+    },
+    "test_categories": {
+      "correctness_validation": {
+        "description": "Prove 100% NIST standards compliance",
+        "tests": [
+          {
+            "id": "TC-1.1",
+            "name": "NIST Known Answer Tests (KATs)",
+            "objective": "Prove 100% NIST standards compliance",
+            "method": "Execute all official NIST test vectors",
+            "success_criteria": "100% pass rate, bit-perfect output matching",
+            "algorithms": ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024", "ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]
+          },
+          {
+            "id": "TC-1.2", 
+            "name": "Cross-Implementation Validation",
+            "objective": "Validate interoperability with reference implementations",
+            "method": "Generate keys with Cypheron, encrypt with others, verify compatibility",
+            "success_criteria": "100% interoperability with pq-crystals reference"
+          }
+        ]
+      },
+      "performance_benchmarking": {
+        "description": "Measure operations per second and latency",
+        "tests": [
+          {
+            "id": "TC-2.1",
+            "name": "Throughput Analysis", 
+            "objective": "Measure operations per second for all algorithms",
+            "method": "Time-boxed execution (1-second windows)",
+            "metrics": ["ops/sec for keygen", "ops/sec for encap", "ops/sec for decap", "ops/sec for sign", "ops/sec for verify"],
+            "success_criteria": "Within 150% of liboqs performance"
+          },
+          {
+            "id": "TC-2.2",
+            "name": "Latency Analysis",
+            "objective": "Measure single-operation latency", 
+            "method": "Minimum execution time over 1000+ runs",
+            "metrics": ["min_latency_ns", "median_latency_ns", "max_latency_ns", "std_dev_latency_ns"],
+            "success_criteria": "Competitive median latency"
+          },
+          {
+            "id": "TC-2.3",
+            "name": "Memory Performance",
+            "objective": "Measure memory usage patterns",
+            "method": "RSS/heap tracking during operations", 
+            "metrics": ["peak_memory_bytes", "allocation_count", "fragmentation_ratio"],
+            "success_criteria": "Predictable memory usage, no leaks"
+          }
+        ]
+      },
+      "memory_safety_analysis": {
+        "description": "Validate memory safety guarantees",
+        "tests": [
+          {
+            "id": "TC-3.1",
+            "name": "Static Analysis",
+            "objective": "Prove memory safety guarantees",
+            "method": "Rust borrow checker + Miri + Clippy analysis", 
+            "tools": ["cargo check", "cargo clippy", "cargo miri"],
+            "success_criteria": "Zero memory safety warnings"
+          },
+          {
+            "id": "TC-3.2", 
+            "name": "Fuzzing Campaign",
+            "objective": "Discover edge-case vulnerabilities",
+            "method": "24-hour fuzzing with cargo-fuzz",
+            "duration_hours": 24,
+            "success_criteria": "Zero crashes, bounded memory usage"
+          }
+        ]
+      },
+      "scalability_reliability": {
+        "description": "Validate sustained performance and thread safety",
+        "tests": [
+          {
+            "id": "TC-4.1",
+            "name": "Stress Testing", 
+            "objective": "Validate sustained performance under load",
+            "method": "10M+ operations over 1 hour",
+            "operation_count": 10000000,
+            "duration_hours": 1,
+            "metrics": ["performance_degradation_pct", "memory_growth_bytes"],
+            "success_criteria": "<5% performance variance, stable memory"
+          },
+          {
+            "id": "TC-4.2",
+            "name": "Multi-threading Safety",
+            "objective": "Validate thread safety",
+            "method": "Concurrent operations from 8+ threads",
+            "thread_count": 8,
+            "success_criteria": "No data races, consistent results"
+          }
+        ]
+      }
+    },
+    "execution_phases": [
+      {
+        "phase": 1,
+        "name": "Environment Setup",
+        "duration_days": 1,
+        "tasks": [
+          "Clone all reference implementations",
+          "Build reference implementations", 
+          "Setup Cypheron Core benchmark suite",
+          "Validate environment configuration"
+        ],
+        "deliverable": "Environment ready, all deps built"
+      },
+      {
+        "phase": 2,
+        "name": "Correctness Validation", 
+        "duration_days": 1,
+        "tasks": [
+          "Execute all KAT tests",
+          "Cross-implementation validation",
+          "Generate correctness report"
+        ],
+        "deliverable": "Correctness validation report"
+      },
+      {
+        "phase": 3,
+        "name": "Performance Benchmarking",
+        "duration_days": 2,
+        "tasks": [
+          "Warm-up runs",
+          "Full benchmark suite execution", 
+          "Generate performance comparison report"
+        ],
+        "deliverable": "Performance benchmark report"
+      },
+      {
+        "phase": 4, 
+        "name": "Security Analysis",
+        "duration_days": 2,
+        "tasks": [
+          "Static analysis execution",
+          "24-hour fuzzing campaign",
+          "Security report generation" 
+        ],
+        "deliverable": "Security analysis report"
+      },
+      {
+        "phase": 5,
+        "name": "Reporting",
+        "duration_days": 1, 
+        "tasks": [
+          "Compile all results",
+          "Generate executive summary",
+          "Create final presentation"
+        ],
+        "deliverable": "Executive summary & final report"
+      }
+    ],
+    "success_metrics": {
+      "correctness": {
+        "kat_pass_rate": {
+          "target": 100,
+          "unit": "percent", 
+          "required": true
+        },
+        "interoperability_rate": {
+          "target": 100,
+          "unit": "percent",
+          "required": true
+        },
+        "standards_compliance": {
+          "target": "Full FIPS 203/204",
+          "required": true
+        }
+      },
+      "performance": {
+        "ml_kem_512_keygen": {
+          "target": 67,
+          "unit": "percent_of_liboqs",
+          "description": "≥ 67% (within 150%)"
+        },
+        "ml_kem_768_keygen": {
+          "target": 67, 
+          "unit": "percent_of_liboqs",
+          "description": "≥ 67% (within 150%)"
+        },
+        "ml_kem_1024_keygen": {
+          "target": 67,
+          "unit": "percent_of_liboqs", 
+          "description": "≥ 67% (within 150%)"
+        },
+        "ml_dsa_44_sign": {
+          "target": 67,
+          "unit": "percent_of_liboqs",
+          "description": "≥ 67% (within 150%)"
+        },
+        "ml_dsa_65_sign": {
+          "target": 67,
+          "unit": "percent_of_liboqs",
+          "description": "≥ 67% (within 150%)"
+        },
+        "ml_dsa_87_sign": {
+          "target": 67,
+          "unit": "percent_of_liboqs", 
+          "description": "≥ 67% (within 150%)"
+        }
+      },
+      "memory_safety": {
+        "miri_violations": {
+          "target": 0,
+          "unit": "count",
+          "required": true
+        },
+        "fuzz_crashes": {
+          "target": 0, 
+          "unit": "count",
+          "required": true
+        },
+        "memory_leaks": {
+          "target": 0,
+          "unit": "count",
+          "required": true
+        },
+        "buffer_overflows": {
+          "target": 0,
+          "unit": "count",
+          "required": true
+        }
+      },
+      "reliability": {
+        "performance_coefficient_variation": {
+          "target": 5,
+          "unit": "percent",
+          "description": "< 5%"
+        },
+        "memory_growth_rate": {
+          "target": 0,
+          "unit": "percent", 
+          "description": "0% over 1-hour stress test"
+        },
+        "thread_safety": {
+          "target": 100,
+          "unit": "percent",
+          "description": "100% consistent results"
+        }
+      }
+    },
+    "deliverables": {
+      "reports": [
+        {
+          "name": "Correctness Validation Report",
+          "contents": [
+            "KAT test results with detailed pass/fail analysis",
+            "Interoperability test results", 
+            "Standards compliance verification"
+          ]
+        },
+        {
+          "name": "Performance Benchmark Report",
+          "contents": [
+            "Detailed performance comparison tables",
+            "Performance regression analysis",
+            "Resource utilization analysis"
+          ]
+        },
+        {
+          "name": "Security Analysis Report", 
+          "contents": [
+            "Memory safety validation results",
+            "Fuzzing campaign findings",
+            "Vulnerability comparison vs C implementations"
+          ]
+        },
+        {
+          "name": "Executive Summary",
+          "contents": [
+            "High-level results and recommendations",
+            "Competitive positioning analysis", 
+            "Production readiness assessment"
+          ]
+        }
+      ],
+      "automation": {
+        "scripts": [
+          "run_all_tests.sh",
+          "generate_reports.py", 
+          "compare_implementations.py"
+        ],
+        "config_files": [
+          "benchmark_config.toml",
+          "test_vectors/"
+        ],
+        "result_directories": [
+          "results/correctness/",
+          "results/performance/",
+          "results/security/"
+        ]
+      }
+    },
+    "risk_mitigation": {
+      "technical_risks": [
+        {
+          "risk": "Build failures",
+          "mitigation": "Pre-validate all dependencies and toolchains"
+        },
+        {
+          "risk": "Performance variance", 
+          "mitigation": "Use fixed CPU frequency, isolated test environment"
+        },
+        {
+          "risk": "Test data corruption",
+          "mitigation": "Checksums for all NIST test vectors"
+        }
+      ],
+      "timeline_risks": [
+        {
+          "risk": "Extended fuzzing",
+          "mitigation": "Parallel execution on multiple cores"
+        },
+        {
+          "risk": "Report generation delays",
+          "mitigation": "Automated report templates ready"
+        }
+      ]
+    },
+    "timeline": {
+      "total_duration_days": 7,
+      "phases": [
+        {"phase": 1, "days": 1},
+        {"phase": 2, "days": 1}, 
+        {"phase": 3, "days": 2},
+        {"phase": 4, "days": 2},
+        {"phase": 5, "days": 1}
+      ]
+    }
+  }
+}
