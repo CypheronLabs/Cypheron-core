@@ -34,7 +34,15 @@ pub enum KyberError {
 pub struct Kyber1024;
 
 impl Kyber1024 {
+    /// Returns the NIST FIPS 203 compliant variant (ML-KEM-1024)
     pub fn variant() -> KemVariant {
+        KemVariant::MlKem1024
+    }
+    
+    /// Returns the deprecated variant for backward compatibility
+    #[deprecated(since = "0.2.0", note = "Use variant() instead for NIST FIPS 203 compliance")]
+    pub fn legacy_variant() -> KemVariant {
+        #[allow(deprecated)]
         KemVariant::Kyber1024
     }
 

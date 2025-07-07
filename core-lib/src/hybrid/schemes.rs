@@ -46,8 +46,8 @@ impl HybridEngine for EccDilithium {
     type Error = HybridError;
 
     fn keypair() -> Result<(Self::CompositePublicKey, Self::CompositeSecretKey), Self::Error> {
-        // Generate ECDSA keypair with domain separation for hybrid schemes
-        let domain_separator = "CYPHERON_HYBRID_DILITHIUM2".to_string();
+        // Generate ECDSA keypair with NIST FIPS 204 compliant domain separation
+        let domain_separator = "CYPHERON_HYBRID_ML_DSA_44".to_string();
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
         
         // Generate Dilithium2 keypair
