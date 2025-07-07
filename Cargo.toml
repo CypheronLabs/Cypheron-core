@@ -2,7 +2,8 @@
 resolver = "2"
 members = [
     "core-lib",
-    "cli",
+    "cli", 
     "grpc-api",
-    "rest-api"
+    "rest-api",
+    "benchmarks"
 ]
