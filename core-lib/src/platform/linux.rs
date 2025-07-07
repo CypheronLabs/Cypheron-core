@@ -53,7 +53,7 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     Ok(())
 }
 
-/// Linux secure memory zeroing using explicit_bzero
+/// Linux secure memory zeroing using explicit_bzero or zeroize fallback
 pub fn secure_zero(buffer: &mut [u8]) {
     unsafe {
         // explicit_bzero is available on glibc 2.25+
@@ -63,7 +63,7 @@ pub fn secure_zero(buffer: &mut [u8]) {
                 buffer.len(),
             );
         } else {
-            // Fallback: manual zeroing with memory barrier
+            // Safe fallback using zeroize crate (no longer unsafe)
             secure_zero_fallback(buffer);
         }
     }
@@ -76,14 +76,11 @@ fn has_explicit_bzero() -> bool {
     true
 }
 
-/// Fallback secure zeroing implementation
-unsafe fn secure_zero_fallback(buffer: &mut [u8]) {
-    // Use volatile writes to prevent compiler optimization
-    for i in 0..buffer.len() {
-        std::ptr::write_volatile(buffer.as_mut_ptr().add(i), 0);
-    }
-    // Memory barrier to ensure completion
-    std::sync::atomic::compiler_fence(std::sync::atomic::Ordering::SeqCst);
+/// Secure zeroing implementation using zeroize crate
+fn secure_zero_fallback(buffer: &mut [u8]) {
+    // Use zeroize crate for safe, compiler-resistant memory clearing
+    use zeroize::Zeroize;
+    buffer.zeroize();
 }
 
 /// Linux memory protection using mprotect

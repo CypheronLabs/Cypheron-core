@@ -110,6 +110,11 @@ pub fn sign_combined_create(message: &[u8], sk: &SecretKey) -> Result<Vec<u8>, S
          return Err(SphincsError::InvalidSecretKeyLength { expected: secret_key_bytes(), actual: sk.as_bytes().len() });
     }
 
+    // Validate message length to prevent integer overflow
+    if message.len() > u64::MAX as usize {
+        return Err(SphincsError::MessageTooLarge);
+    }
+
     let mut signed_msg_buf = vec![0u8; message.len() + signature_bytes()];
     let mut signed_msg_len_written: u64 = 0;
 
@@ -124,7 +129,12 @@ pub fn sign_combined_create(message: &[u8], sk: &SecretKey) -> Result<Vec<u8>, S
     };
 
     if ret_code == 0 {
-        signed_msg_buf.truncate(signed_msg_len_written as usize);
+        // Safely convert u64 back to usize, checking for overflow
+        let written_len = signed_msg_len_written as usize;
+        if signed_msg_len_written > usize::MAX as u64 {
+            return Err(SphincsError::IntegerOverflow);
+        }
+        signed_msg_buf.truncate(written_len);
         Ok(signed_msg_buf)
     } else {
         Err(SphincsError::SigningFailed(ret_code))
@@ -137,6 +147,11 @@ pub fn open_combined_verify(
 ) -> Result<Vec<u8>, SphincsError> {
     if pk.as_bytes().len() != public_key_bytes() {
         return Err(SphincsError::InvalidPublicKeyLength { expected: public_key_bytes(), actual: pk.as_bytes().len() });
+    }
+    
+    // Validate signed message length to prevent integer overflow
+    if signed_message.len() > u64::MAX as usize {
+        return Err(SphincsError::MessageTooLarge);
     }
     
     let mut original_msg_buf = vec![0u8; signed_message.len()];
@@ -153,6 +168,10 @@ pub fn open_combined_verify(
     };
 
     if ret_code == 0 {
+        // Safely convert u64 back to usize, checking for overflow
+        if original_msg_len_written > usize::MAX as u64 {
+            return Err(SphincsError::IntegerOverflow);
+        }
         original_msg_buf.truncate(original_msg_len_written as usize);
         Ok(original_msg_buf)
     } else {

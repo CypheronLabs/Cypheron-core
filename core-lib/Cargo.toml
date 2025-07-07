@@ -11,6 +11,9 @@ zeroize = { version = "1.8.1", features = ["derive"] }
 rand = "0.9.1"
 once_cell = "1.18.0"
 num_cpus = "1.16"
+p256 = { version = "0.13", features = ["ecdsa", "sha256"] }
+sha2 = "0.10"
+serde = { version = "1.0", features = ["derive"] }
 
 # Platform-specific dependencies
 [target.'cfg(target_os = "windows")'.dependencies]
