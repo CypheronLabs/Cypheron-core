@@ -17,19 +17,19 @@ impl SignatureEngine for Dilithium3Engine {
     type Error = DilithiumError;
 
     fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
-        let mut pk = MaybeUninit::<[u8; DILITHIUM3_PUBLIC]>::uninit();
-        let mut sk = MaybeUninit::<[u8; DILITHIUM3_SECRET]>::uninit();
+        // Initialize buffers to zero before passing to C functions for safety
+        let mut pk = [0u8; DILITHIUM3_PUBLIC];
+        let mut sk = [0u8; DILITHIUM3_SECRET];
 
         let result = unsafe {
             pqcrystals_dilithium3_ref_keypair(
-                pk.as_mut_ptr() as *mut u8,
-                sk.as_mut_ptr() as *mut u8,
+                pk.as_mut_ptr(),
+                sk.as_mut_ptr(),
             )
         };
         match result {
             0 => {
-                let pk = unsafe { pk.assume_init() };
-                let sk = unsafe { sk.assume_init() };
+                // C function succeeded, buffers are now properly initialized
                 Ok(
                     (
                         PublicKey(pk),
@@ -37,7 +37,8 @@ impl SignatureEngine for Dilithium3Engine {
                     ),
                 )
             },
-            i32::MIN..=-1_i32 | 1_i32..=i32::MAX => {
+            _ => {
+                // C function failed - return error
                 Err(DilithiumError::KeyGenerationInternalError)
             }
         }

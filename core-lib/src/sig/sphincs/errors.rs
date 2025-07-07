@@ -23,4 +23,8 @@ pub enum SphincsError {
     OutputBufferTooSmall,
     #[error("FFI returned unexpected signature length: expected {expected}, got {actual}.")]
     UnexpectedSignatureLength { expected: usize, actual: usize },
+    #[error("Message too large for cryptographic operation")]
+    MessageTooLarge,
+    #[error("Integer overflow detected in size conversion")]
+    IntegerOverflow,
 }

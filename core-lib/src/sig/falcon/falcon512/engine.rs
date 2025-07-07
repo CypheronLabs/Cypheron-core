@@ -110,16 +110,9 @@ impl SignatureEngine for Falcon512Engine {
         let sig_bytes = &sig.0;
         let pk_bytes = &pk.0;
         
-        // Find actual signature length by looking for the first non-zero trailing byte
-        let mut actual_sig_len = sig_bytes.len();
-        while actual_sig_len > 0 && sig_bytes[actual_sig_len - 1] == 0 {
-            actual_sig_len -= 1;
-        }
-        
-        // Falcon signatures should have a minimum length
-        if actual_sig_len < 40 {
-            actual_sig_len = sig_bytes.len(); // fallback to full length
-        }
+        // Use fixed signature length to prevent timing attacks
+        // Variable-time signature length detection removed for security
+        let actual_sig_len = sig_bytes.len();
         
         let mut tmp = vec![0u8; FALCON_TMPSIZE_VERIFY];
 

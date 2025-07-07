@@ -16,8 +16,9 @@ fn falcon512_test_keypair_generation_lengths() {
     assert!(result.is_ok(), "Falcon-512: Keypair generation failed: {:?}", result.err());
     let (pk, sk) = result.unwrap();
 
-    println!("Falcon-512 Public Key (len={}): {:02x?}", pk.0.len(), &pk.0[..16]);
-    println!("Falcon-512 Secret Key (len={}): {:02x?}", sk.0.expose_secret().len(), &sk.0.expose_secret()[..16]);
+    // Safe debug output - no secret material exposed
+    println!("Falcon-512 Public Key generated successfully (len={})", pk.0.len());
+    println!("Falcon-512 Secret Key generated successfully (len={})", sk.0.expose_secret().len());
 
     assert_eq!(pk.0.len(), FALCON_PUBLIC, "Falcon-512: Public key length mismatch");
     assert_eq!(sk.0.expose_secret().len(), FALCON_SECRET, "Falcon-512: Secret key length mismatch");

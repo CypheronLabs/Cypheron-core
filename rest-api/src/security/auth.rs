@@ -12,6 +12,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 use chrono::{DateTime, Utc, Duration};
 use sha2::{Sha256, Digest};
+use subtle::ConstantTimeEq;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiKey {
@@ -69,40 +70,70 @@ impl ApiKeyStore {
         let key_hash = format!("{:x}", Sha256::digest(key.as_bytes()));
         let mut keys = self.keys.write().await;
         
-        if let Some(api_key) = keys.get_mut(&key_hash) {
-            // Check if key is active and not expired
-            if !api_key.is_active {
-                tracing::warn!("Attempt to use inactive API key: {}", api_key.id);
-                return None;
-            }
+        // Constant-time key validation to prevent timing attacks
+        let mut found_key: Option<ApiKey> = None;
+        let mut is_valid = false;
+        
+        // Iterate through all keys to maintain constant time
+        for (stored_hash, api_key) in keys.iter_mut() {
+            // Constant-time comparison of hash
+            let hash_matches = stored_hash.as_bytes().ct_eq(key_hash.as_bytes()).into();
             
-            if let Some(expires_at) = api_key.expires_at {
-                if Utc::now() > expires_at {
-                    tracing::warn!("Attempt to use expired API key: {}", api_key.id);
-                    return None;
+            if hash_matches {
+                // Perform all checks without early returns
+                let is_active = api_key.is_active;
+                let not_expired = api_key.expires_at
+                    .map(|expires_at| Utc::now() <= expires_at)
+                    .unwrap_or(true);
+                
+                is_valid = is_active && not_expired;
+                
+                if is_valid {
+                    api_key.last_used = Some(Utc::now());
+                    api_key.usage_count = api_key.usage_count.saturating_add(1);
+                    found_key = Some(api_key.clone());
+                } else {
+                    // Log after the constant-time operation
+                    if !is_active {
+                        tracing::warn!("Attempt to use inactive API key: {}", api_key.id);
+                    } else {
+                        tracing::warn!("Attempt to use expired API key: {}", api_key.id);
+                    }
                 }
             }
-            
-            api_key.last_used = Some(Utc::now());
-            api_key.usage_count = api_key.usage_count.saturating_add(1);
-            
-            Some(api_key.clone())
-        } else {
-            tracing::warn!("Attempt to use unknown API key hash: {}", &key_hash[..8]);
-            None
         }
+        
+        if !is_valid && found_key.is_none() {
+            tracing::warn!("Attempt to use unknown API key hash: {}", &key_hash[..8]);
+        }
+        
+        found_key
     }
     
     pub async fn check_permission(&self, key: &str, resource: &str) -> bool {
         if let Some(api_key) = self.validate_key(key).await {
+            // Constant-time permission checking
+            let mut has_permission = false;
+            
             for permission in &api_key.permissions {
-                if permission == "*" || permission == resource || 
-                   (permission.ends_with(":*") && resource.starts_with(&permission[..permission.len()-1])) {
-                    return true;
-                }
+                // Use constant-time string comparison
+                let exact_match = permission.as_bytes().ct_eq(b"*").into() ||
+                                 permission.as_bytes().ct_eq(resource.as_bytes()).into();
+                
+                let wildcard_match = if permission.ends_with(":*") {
+                    let prefix = &permission[..permission.len()-1];
+                    resource.starts_with(prefix)
+                } else {
+                    false
+                };
+                
+                has_permission |= exact_match || wildcard_match;
             }
+            
+            has_permission
+        } else {
+            false
         }
-        false
     }
 }
 

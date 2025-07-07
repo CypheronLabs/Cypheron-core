@@ -10,11 +10,11 @@ fn test_variant_and_expose() {
     let (ct, ss1) = Kyber768::encapsulate(&pk);
     let ss2 = Kyber768::decapsulate(&ct, &sk);
 
-    println!("Public Key (len={}): {:02x?}", pk.0.len(), &pk.0[..16]);
-    println!("Secret Key (len={}): {:02x?}", sk.0.len(), &sk.0[..16]);
-    println!("Ciphertext (len={}): {:02x?}", ct.len(), &ct[..16]);
-    println!("Shared Secret 1: {:02x?}", ss1.expose_secret());
-    println!("Shared Secret 2: {:02x?}", ss2.expose_secret());
+    // Safe debug output - no secret material exposed
+    println!("Public Key generated successfully (len={})", pk.0.len());
+    println!("Secret Key generated successfully (len={})", sk.0.len());
+    println!("Ciphertext generated successfully (len={})", ct.len());
+    println!("Shared secrets match: {}", Kyber768::expose_shared(&ss1) == Kyber768::expose_shared(&ss2));
 
     assert_eq!(Kyber768::expose_shared(&ss1), Kyber768::expose_shared(&ss2));
 }

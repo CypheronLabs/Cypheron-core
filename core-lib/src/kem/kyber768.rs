@@ -2,6 +2,8 @@ use crate::kem::sizes;
 use crate::kem::{Kem, KemVariant};
 
 use secrecy::{ExposeSecret, SecretBox};
+use thiserror::Error;
+use zeroize::Zeroize;
 
 #[cfg(not(rust_analyzer))]
 #[allow(non_camel_case_types)]
@@ -16,6 +18,18 @@ pub struct KyberSecretKey(pub [u8; sizes::KYBER768_SECRET]);
 
 #[derive(Clone)]
 pub struct KyberPublicKey(pub [u8; sizes::KYBER768_PUBLIC]);
+
+#[derive(Error, Debug)]
+pub enum KyberError {
+    #[error("Key generation failed")]
+    KeyGenerationFailed,
+    #[error("Encapsulation failed")]
+    EncapsulationFailed,
+    #[error("Decapsulation failed")]
+    DecapsulationFailed,
+    #[error("Invalid ciphertext length: expected {expected}, got {actual}")]
+    InvalidCiphertextLength { expected: usize, actual: usize },
+}
 
 pub struct Kyber768;
 
@@ -38,26 +52,62 @@ impl Kem for Kyber768 {
     fn keypair() -> (Self::PublicKey, Self::SecretKey) {
         let mut pk = [0u8; sizes::KYBER768_PUBLIC];
         let mut sk = [0u8; sizes::KYBER768_SECRET];
-        unsafe {
-            pqcrystals_kyber768_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr());
+        
+        let result = unsafe {
+            pqcrystals_kyber768_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr())
+        };
+        
+        if result != 0 {
+            pk.zeroize();
+            sk.zeroize();
+            panic!("Kyber768 key generation failed with code: {}", result);
         }
+        
         (KyberPublicKey(pk), KyberSecretKey(sk))
     }
 
     fn encapsulate(pk: &Self::PublicKey) -> (Self::Ciphertext, Self::SharedSecret) {
+        if pk.0.len() != sizes::KYBER768_PUBLIC {
+            panic!("Invalid public key length: expected {}, got {}", 
+                   sizes::KYBER768_PUBLIC, pk.0.len());
+        }
+        
         let mut ct = vec![0u8; sizes::KYBER768_CIPHERTEXT];
         let mut ss = [0u8; sizes::KYBER768_SHARED];
-        unsafe {
-            pqcrystals_kyber768_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr());
+        
+        let result = unsafe {
+            pqcrystals_kyber768_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr())
+        };
+        
+        if result != 0 {
+            ss.zeroize();
+            panic!("Kyber768 encapsulation failed with code: {}", result);
         }
+        
         (ct, SecretBox::new(ss.into()))
     }
 
     fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Self::SharedSecret {
-        let mut ss = [0u8; sizes::KYBER768_SHARED];
-        unsafe {
-            pqcrystals_kyber768_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.as_ptr());
+        if ct.len() != sizes::KYBER768_CIPHERTEXT {
+            panic!("Invalid ciphertext length: expected {}, got {}", 
+                   sizes::KYBER768_CIPHERTEXT, ct.len());
         }
+        if sk.0.len() != sizes::KYBER768_SECRET {
+            panic!("Invalid secret key length: expected {}, got {}", 
+                   sizes::KYBER768_SECRET, sk.0.len());
+        }
+        
+        let mut ss = [0u8; sizes::KYBER768_SHARED];
+        
+        let result = unsafe {
+            pqcrystals_kyber768_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.as_ptr())
+        };
+        
+        if result != 0 {
+            ss.zeroize();
+            panic!("Kyber768 decapsulation failed with code: {}", result);
+        }
+        
         SecretBox::new(ss.into())
     }
 }
