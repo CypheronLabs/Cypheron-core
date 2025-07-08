@@ -10,6 +10,7 @@ mod error;
 mod utils;
 mod security;
 mod validation;
+mod monitoring;
 
 #[tokio::main]
 async fn main() {
@@ -33,13 +34,44 @@ async fn main() {
     };
 
     let rate_limiter = security::RateLimiter::new(60); 
-    let audit_logger = security::AuditLogger::new(10000); 
+    let audit_logger = security::AuditLogger::new(10000);
+
+    // Initialize monitoring and alerting system
+    use std::sync::Arc;
+    use chrono::Duration;
+    
+    let metrics_collector = Arc::new(monitoring::MetricsCollector::new(10000));
+    let security_monitor = Arc::new(monitoring::SecurityEventMonitor::new(5000));
+    let alert_manager = Arc::new(monitoring::AlertManager::new(metrics_collector.clone(), 1000));
+    let health_checker = Arc::new(monitoring::HealthChecker::new("0.2.0".to_string()));
+    let compliance_checker = Arc::new(monitoring::ComplianceChecker::new(
+        monitoring::ComplianceFramework::NistFips203,
+        Duration::days(30)
+    ));
+
+    // Start background monitoring tasks
+    let alert_manager_bg = alert_manager.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            alert_manager_bg.check_alert_conditions().await;
+        }
+    });
+
+    tracing::info!("Security monitoring and alerting system initialized"); 
 
     let api_routes = Router::new()
         .merge(api::kem::routes())
         .merge(api::sig::routes())
         .merge(api::hybrid::routes())
         .merge(api::nist::routes())
+        .merge(api::monitoring::routes())
+        .with_state(metrics_collector.clone())
+        .with_state(alert_manager.clone())
+        .with_state(health_checker.clone())
+        .with_state(security_monitor.clone())
+        .with_state(compliance_checker.clone())
         .layer(middleware::from_fn_with_state(
             api_key_store.clone(),
             security::auth_middleware,
@@ -99,6 +131,9 @@ async fn main() {
     
     tracing::info!("Admin endpoints: /admin/api-keys, /admin/audit-logs");
     tracing::info!("NIST compliance endpoints: /nist/compliance, /nist/deprecation");
+    tracing::info!("Monitoring endpoints: /monitoring/*, /health/*");
+    tracing::info!("Security monitoring: Real-time threat detection enabled");
+    tracing::info!("Compliance monitoring: NIST FIPS 203/204/205 compliance tracking active");
 
     serve(listener, app)
         .await
