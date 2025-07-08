@@ -16,10 +16,15 @@ services:
       - PQ_MAX_REQUEST_SIZE=10485760
       - PQ_ENABLE_SOC2=true
       - PQ_ENABLE_GDPR=true
+      - DATABASE_URL=postgresql://api_service:api_service_secure_2024@postgres:5432/cypheron_crypto
+      - PQ_ENCRYPTION_PASSWORD=cypheron_secure_encryption_key_2024_v1
     volumes:
       - ./logs:/app/logs
       - ./config:/app/config:ro
     restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
@@ -49,5 +54,20 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
 
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=cypheron_crypto
+      - POSTGRES_USER=cypheron_user
+      - POSTGRES_PASSWORD=cypheron_secure_pass_2024
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
+
 volumes:
   redis_data:
+  postgres_data:

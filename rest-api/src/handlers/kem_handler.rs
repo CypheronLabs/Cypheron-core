@@ -55,9 +55,9 @@ pub async fn variant_info(Path(variant): Path<String>) -> Result<Json<serde_json
     let info = json!({
         "variant": variant,
         "algorithm": match variant_enum {
-            KemVariant::Kyber512 => "Kyber-512",
-            KemVariant::Kyber768 => "Kyber-768", 
-            KemVariant::Kyber1024 => "Kyber-1024",
+            KemVariant::Kyber512 => "ML-KEM-512 (NIST FIPS 203)",
+            KemVariant::Kyber768 => "ML-KEM-768 (NIST FIPS 203)", 
+            KemVariant::Kyber1024 => "ML-KEM-1024 (NIST FIPS 203)",
         },
         "security_level": match variant_enum {
             KemVariant::Kyber512 => 1,
@@ -74,6 +74,22 @@ pub async fn variant_info(Path(variant): Path<String>) -> Result<Json<serde_json
             format!("/kem/{}/keygen", variant),
             format!("/kem/{}/encapsulate", variant),
             format!("/kem/{}/decapsulate", variant),
+        ],
+        "nist_compliant_endpoints": [
+            "/kem/ml-kem-512/keygen",
+            "/kem/ml-kem-768/keygen", 
+            "/kem/ml-kem-1024/keygen",
+            "/kem/ml-kem-512/encapsulate",
+            "/kem/ml-kem-768/encapsulate",
+            "/kem/ml-kem-1024/encapsulate",
+            "/kem/ml-kem-512/decapsulate",
+            "/kem/ml-kem-768/decapsulate",
+            "/kem/ml-kem-1024/decapsulate"
+        ],
+        "deprecated_endpoints": [
+            "/kem/kyber512/* (use ml-kem-512 instead)",
+            "/kem/kyber768/* (use ml-kem-768 instead)",
+            "/kem/kyber1024/* (use ml-kem-1024 instead)"
         ]
     });
     
@@ -89,9 +105,25 @@ pub async fn variant_info(Path(variant): Path<String>) -> Result<Json<serde_json
 
 fn parse_variant(s: &str) -> Result<KemVariant, AppError> {
     match s {
-        "kyber512" => Ok(KemVariant::Kyber512),
-        "kyber768" => Ok(KemVariant::Kyber768),
-        "kyber1024" => Ok(KemVariant::Kyber1024),
+        // NIST FIPS 203 compliant names (ML-KEM)
+        "ml-kem-512" | "ml_kem_512" => Ok(KemVariant::Kyber512),
+        "ml-kem-768" | "ml_kem_768" => Ok(KemVariant::Kyber768),
+        "ml-kem-1024" | "ml_kem_1024" => Ok(KemVariant::Kyber1024),
+        
+        // Backward compatibility (deprecated)
+        "kyber512" => {
+            tracing::warn!("Using deprecated 'kyber512', please use 'ml-kem-512' for NIST FIPS 203 compliance");
+            Ok(KemVariant::Kyber512)
+        },
+        "kyber768" => {
+            tracing::warn!("Using deprecated 'kyber768', please use 'ml-kem-768' for NIST FIPS 203 compliance");
+            Ok(KemVariant::Kyber768)
+        },
+        "kyber1024" => {
+            tracing::warn!("Using deprecated 'kyber1024', please use 'ml-kem-1024' for NIST FIPS 203 compliance");
+            Ok(KemVariant::Kyber1024)
+        },
+        
         _ => Err(AppError::InvalidVariant),
     }
 }

@@ -15,7 +15,23 @@ mod validation;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let api_key_store = security::ApiKeyStore::new();
+    // Initialize API key store with database support
+    let api_key_store = if let Ok(database_url) = std::env::var("DATABASE_URL") {
+        match security::ApiKeyStore::new(&database_url).await {
+            Ok(store) => {
+                tracing::info!("API key store connected to PostgreSQL database");
+                store
+            },
+            Err(e) => {
+                tracing::warn!("Failed to connect to database: {}, falling back to in-memory storage", e.message);
+                security::ApiKeyStore::new_in_memory()
+            }
+        }
+    } else {
+        tracing::info!("No DATABASE_URL configured, using in-memory API key storage");
+        security::ApiKeyStore::new_in_memory()
+    };
+
     let rate_limiter = security::RateLimiter::new(60); 
     let audit_logger = security::AuditLogger::new(10000); 
 
@@ -23,6 +39,7 @@ async fn main() {
         .merge(api::kem::routes())
         .merge(api::sig::routes())
         .merge(api::hybrid::routes())
+        .merge(api::nist::routes())
         .layer(middleware::from_fn_with_state(
             api_key_store.clone(),
             security::auth_middleware,
@@ -54,11 +71,13 @@ async fn main() {
 
     tracing::info!("PQ-Core API Server listening on http://127.0.0.1:3000");
     tracing::info!("API Security Features Enabled:");
-    tracing::info!("  - API Key Authentication");
+    tracing::info!("  - API Key Authentication (with encrypted persistent storage)");
     tracing::info!("  - Rate Limiting (60 req/min default)");
     tracing::info!("  - Request Validation");
     tracing::info!("  - Security Headers");
     tracing::info!("  - Audit Logging");
+    tracing::info!("  - Post-Quantum ML-KEM-768 + ChaCha20-Poly1305 Encryption at Rest");
+    tracing::info!("  - Constant-time Authentication");
     
     if std::env::var("PQ_TEST_API_KEY").is_ok() {
         tracing::info!("Test API Key loaded from PQ_TEST_API_KEY environment variable");
@@ -66,7 +85,20 @@ async fn main() {
         tracing::info!("No test API key configured. Use PQ_TEST_API_KEY environment variable for testing.");
     }
     
+    if std::env::var("DATABASE_URL").is_ok() {
+        tracing::info!("Database storage: PostgreSQL with encrypted API keys");
+    } else {
+        tracing::info!("Database storage: In-memory fallback mode");
+    }
+    
+    if std::env::var("PQ_ENCRYPTION_PASSWORD").is_ok() {
+        tracing::info!("Encryption: Post-Quantum ML-KEM-768 + ChaCha20-Poly1305 with Argon2 key derivation");
+    } else {
+        tracing::warn!("Encryption: Generated post-quantum key (data will not persist across restarts)");
+    }
+    
     tracing::info!("Admin endpoints: /admin/api-keys, /admin/audit-logs");
+    tracing::info!("NIST compliance endpoints: /nist/compliance, /nist/deprecation");
 
     serve(listener, app)
         .await
