@@ -8,6 +8,8 @@ use crate::services::sig_service::AnySignature;
 
 fn encode_signature(sig: AnySignature) -> String {
     match sig {
+        // The AnySignature enum uses the underlying implementation types,
+        // so we still match on the same patterns regardless of NIST naming
         AnySignature::Dilithium2(s) => encode_base64(&s.0),
         AnySignature::Dilithium3(s) => encode_base64(&s.0),
         AnySignature::Dilithium5(s) => encode_base64(&s.0),
