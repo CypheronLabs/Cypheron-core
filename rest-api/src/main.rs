@@ -59,19 +59,26 @@ async fn main() {
         }
     });
 
-    tracing::info!("Security monitoring and alerting system initialized"); 
+    tracing::info!("Security monitoring and alerting system initialized");
+
+    // Create the combined monitoring state
+    let monitoring_state = monitoring::MonitoringState::new(
+        metrics_collector.clone(),
+        alert_manager.clone(),
+        compliance_checker.clone(),
+        security_monitor.clone(),
+        health_checker.clone(),
+    );
+
+    let monitoring_routes = api::monitoring::routes()
+        .with_state(monitoring_state);
 
     let api_routes = Router::new()
         .merge(api::kem::routes())
         .merge(api::sig::routes())
         .merge(api::hybrid::routes())
         .merge(api::nist::routes())
-        .merge(api::monitoring::routes())
-        .with_state(metrics_collector.clone())
-        .with_state(alert_manager.clone())
-        .with_state(health_checker.clone())
-        .with_state(security_monitor.clone())
-        .with_state(compliance_checker.clone())
+        .merge(monitoring_routes)
         .layer(middleware::from_fn_with_state(
             api_key_store.clone(),
             security::auth_middleware,

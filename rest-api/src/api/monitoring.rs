@@ -1,7 +1,8 @@
 use axum::{Router, routing::{get, post, put, delete}};
 use crate::handlers::monitoring_handler;
+use crate::monitoring::MonitoringState;
 
-pub fn routes() -> Router {
+pub fn routes() -> Router<MonitoringState> {
     Router::new()
         // General monitoring status
         .route("/monitoring", get(monitoring_handler::get_monitoring_status))

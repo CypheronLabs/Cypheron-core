@@ -122,7 +122,7 @@ pub async fn create_api_key(
     };
     
     // Store the API key
-    let mut keys = api_store.keys.write().await;
+    let mut keys = api_store.fallback_keys.write().await;
     keys.insert(api_key_hash, api_key);
     
     tracing::info!("Created new API key: {} ({})", key_info.name, key_info.id);
@@ -136,7 +136,7 @@ pub async fn create_api_key(
 pub async fn list_api_keys(
     State(api_store): State<ApiKeyStore>,
 ) -> Json<ApiKeyListResponse> {
-    let keys = api_store.keys.read().await;
+    let keys = api_store.fallback_keys.read().await;
     
     let key_infos: Vec<ApiKeyInfo> = keys
         .values()

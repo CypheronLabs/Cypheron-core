@@ -1,4 +1,4 @@
-use core_lib::kem::{self, Kem, KemVariant, Kyber512, Kyber768, Kyber1024};
+use core_lib::kem::{self, Kem, KemVariant, MlKem512, MlKem768, MlKem1024};
 use secrecy::ExposeSecret;
 use base64::{engine::general_purpose, Engine as _};
 use crate::{error::AppError, validation};
@@ -26,28 +26,53 @@ impl KemService {
     }
     pub fn generate_keypair(variant: KemVariant) -> Result<(String, String), AppError> {
         match variant {
-            KemVariant::Kyber512 => {
-                let(pk, sk) = Kyber512::keypair();
-                Ok((
-                    general_purpose::STANDARD.encode(&pk.0),
-                    general_purpose::STANDARD.encode(&sk.0),
-                    ))
-            }
-            KemVariant::Kyber768 => {
-                let (pk, sk) = Kyber768::keypair();
+            // NIST FIPS 203 compliant variants (primary implementations)
+            KemVariant::MlKem512 => {
+                let(pk, sk) = MlKem512::keypair();
                 Ok((
                     general_purpose::STANDARD.encode(&pk.0),
                     general_purpose::STANDARD.encode(&sk.0),
                 ))
             }
-            KemVariant::Kyber1024 => {
-                let(pk, sk) = Kyber1024::keypair();
+            KemVariant::MlKem768 => {
+                let (pk, sk) = MlKem768::keypair();
                 Ok((
                     general_purpose::STANDARD.encode(&pk.0),
                     general_purpose::STANDARD.encode(&sk.0),
-                    ))
+                ))
             }
-
+            KemVariant::MlKem1024 => {
+                let(pk, sk) = MlKem1024::keypair();
+                Ok((
+                    general_purpose::STANDARD.encode(&pk.0),
+                    general_purpose::STANDARD.encode(&sk.0),
+                ))
+            }
+            // Backward compatibility for deprecated variants
+            #[allow(deprecated)]
+            KemVariant::Kyber512 => {
+                let(pk, sk) = MlKem512::keypair(); // Forward to NIST implementation
+                Ok((
+                    general_purpose::STANDARD.encode(&pk.0),
+                    general_purpose::STANDARD.encode(&sk.0),
+                ))
+            }
+            #[allow(deprecated)]
+            KemVariant::Kyber768 => {
+                let (pk, sk) = MlKem768::keypair(); // Forward to NIST implementation
+                Ok((
+                    general_purpose::STANDARD.encode(&pk.0),
+                    general_purpose::STANDARD.encode(&sk.0),
+                ))
+            }
+            #[allow(deprecated)]
+            KemVariant::Kyber1024 => {
+                let(pk, sk) = MlKem1024::keypair(); // Forward to NIST implementation
+                Ok((
+                    general_purpose::STANDARD.encode(&pk.0),
+                    general_purpose::STANDARD.encode(&sk.0),
+                ))
+            }
         }
     }
     pub fn encapsulate(variant: KemVariant, pk_64: &str) -> Result<(String, String), AppError> {
@@ -56,8 +81,16 @@ impl KemService {
         let pk_bytes = general_purpose::STANDARD.decode(pk_64)?;
         
         let expected_pk_size = match variant {
+            // NIST FIPS 203 compliant variants (primary)
+            KemVariant::MlKem512 => 800,
+            KemVariant::MlKem768 => 1184,
+            KemVariant::MlKem1024 => 1568,
+            // Backward compatibility for deprecated variants
+            #[allow(deprecated)]
             KemVariant::Kyber512 => 800,
+            #[allow(deprecated)]
             KemVariant::Kyber768 => 1184,
+            #[allow(deprecated)]
             KemVariant::Kyber1024 => 1568,
         };
         
@@ -68,25 +101,54 @@ impl KemService {
             ));
         }
         match variant {
-            KemVariant::Kyber512 => {
-                let pk = kem::kyber512::KyberPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
-                let (ct, ss) = Kyber512::encapsulate(&pk);
-                Ok((
-                    general_purpose::STANDARD.encode(&ct),
-                    general_purpose::STANDARD.encode(&ss.expose_secret()),
-                    ))
-            }
-            KemVariant::Kyber768 => {
-                let pk = kem::kyber768::KyberPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
-                let (ct, ss) = Kyber768::encapsulate(&pk);
+            // NIST FIPS 203 compliant variants (primary implementations)
+            KemVariant::MlKem512 => {
+                let pk = kem::ml_kem_512::MlKemPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
+                let (ct, ss) = MlKem512::encapsulate(&pk);
                 Ok((
                     general_purpose::STANDARD.encode(&ct),
                     general_purpose::STANDARD.encode(&ss.expose_secret()),
                 ))
             }
+            KemVariant::MlKem768 => {
+                let pk = kem::ml_kem_768::MlKemPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
+                let (ct, ss) = MlKem768::encapsulate(&pk);
+                Ok((
+                    general_purpose::STANDARD.encode(&ct),
+                    general_purpose::STANDARD.encode(&ss.expose_secret()),
+                ))
+            }
+            KemVariant::MlKem1024 => {
+                let pk = kem::ml_kem_1024::MlKemPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
+                let (ct, ss) = MlKem1024::encapsulate(&pk);
+                Ok((
+                    general_purpose::STANDARD.encode(&ct),
+                    general_purpose::STANDARD.encode(&ss.expose_secret()),
+                ))
+            }
+            // Backward compatibility for deprecated variants
+            #[allow(deprecated)]
+            KemVariant::Kyber512 => {
+                let pk = kem::ml_kem_512::MlKemPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
+                let (ct, ss) = MlKem512::encapsulate(&pk); // Forward to NIST implementation
+                Ok((
+                    general_purpose::STANDARD.encode(&ct),
+                    general_purpose::STANDARD.encode(&ss.expose_secret()),
+                ))
+            }
+            #[allow(deprecated)]
+            KemVariant::Kyber768 => {
+                let pk = kem::ml_kem_768::MlKemPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
+                let (ct, ss) = MlKem768::encapsulate(&pk); // Forward to NIST implementation
+                Ok((
+                    general_purpose::STANDARD.encode(&ct),
+                    general_purpose::STANDARD.encode(&ss.expose_secret()),
+                ))
+            }
+            #[allow(deprecated)]
             KemVariant::Kyber1024 => {
-                let pk = kem::kyber1024::KyberPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
-                let (ct, ss) = Kyber1024::encapsulate(&pk);
+                let pk = kem::ml_kem_1024::MlKemPublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidLength)?);
+                let (ct, ss) = MlKem1024::encapsulate(&pk); // Forward to NIST implementation
                 Ok((
                     general_purpose::STANDARD.encode(&ct),
                     general_purpose::STANDARD.encode(&ss.expose_secret()),
@@ -102,8 +164,16 @@ impl KemService {
         let sk = general_purpose::STANDARD.decode(sk_b64)?;
         
         let (expected_ct_size, expected_sk_size) = match variant {
+            // NIST FIPS 203 compliant variants (primary)
+            KemVariant::MlKem512 => (768, 1632),
+            KemVariant::MlKem768 => (1088, 2400),
+            KemVariant::MlKem1024 => (1568, 3168),
+            // Backward compatibility for deprecated variants
+            #[allow(deprecated)]
             KemVariant::Kyber512 => (768, 1632),
+            #[allow(deprecated)]
             KemVariant::Kyber768 => (1088, 2400),
+            #[allow(deprecated)]
             KemVariant::Kyber1024 => (1568, 3168),
         };
         
@@ -122,19 +192,39 @@ impl KemService {
         }
 
         match variant {
+            // NIST FIPS 203 compliant variants (primary implementations)
+            KemVariant::MlKem512 => {
+                let sk = core_lib::kem::ml_kem_512::MlKemSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
+                let ss = MlKem512::decapsulate(&ct, &sk);
+                Ok(general_purpose::STANDARD.encode(ss.expose_secret()))
+            }
+            KemVariant::MlKem768 => {
+                let sk = core_lib::kem::ml_kem_768::MlKemSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
+                let ss = MlKem768::decapsulate(&ct, &sk);
+                Ok(general_purpose::STANDARD.encode(ss.expose_secret()))
+            }
+            KemVariant::MlKem1024 => {
+                let sk = core_lib::kem::ml_kem_1024::MlKemSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
+                let ss = MlKem1024::decapsulate(&ct, &sk);
+                Ok(general_purpose::STANDARD.encode(ss.expose_secret()))
+            }
+            // Backward compatibility for deprecated variants
+            #[allow(deprecated)]
             KemVariant::Kyber512 => {
-                let sk = core_lib::kem::kyber512::KyberSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
-                let ss = Kyber512::decapsulate(&ct, &sk);
+                let sk = core_lib::kem::ml_kem_512::MlKemSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
+                let ss = MlKem512::decapsulate(&ct, &sk); // Forward to NIST implementation
                 Ok(general_purpose::STANDARD.encode(ss.expose_secret()))
             }
+            #[allow(deprecated)]
             KemVariant::Kyber768 => {
-                let sk = core_lib::kem::kyber768::KyberSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
-                let ss = Kyber768::decapsulate(&ct, &sk);
+                let sk = core_lib::kem::ml_kem_768::MlKemSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
+                let ss = MlKem768::decapsulate(&ct, &sk); // Forward to NIST implementation
                 Ok(general_purpose::STANDARD.encode(ss.expose_secret()))
             }
+            #[allow(deprecated)]
             KemVariant::Kyber1024 => {
-                let sk = core_lib::kem::kyber1024::KyberSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
-                let ss = Kyber1024::decapsulate(&ct, &sk);
+                let sk = core_lib::kem::ml_kem_1024::MlKemSecretKey(sk.try_into().map_err(|_| AppError::InvalidLength)?);
+                let ss = MlKem1024::decapsulate(&ct, &sk); // Forward to NIST implementation
                 Ok(general_purpose::STANDARD.encode(ss.expose_secret()))
             }
         }

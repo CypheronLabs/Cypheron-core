@@ -8,6 +8,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use secrecy::ExposeSecret;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 use chrono::{DateTime, Utc, Duration};
@@ -19,7 +20,7 @@ use chacha20poly1305::aead::{Aead, OsRng};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 use rand::RngCore;
-use core_lib::kem::{MlKem768, KemVariant, SharedSecret};
+use core_lib::kem::{MlKem768, Kem};
 use core_lib::platform::secure_random_bytes;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,18 +71,10 @@ impl PostQuantumEncryption {
     /// Encrypts data using post-quantum KEM + ChaCha20-Poly1305 hybrid encryption
     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, AuthError> {
         // Generate ML-KEM-768 keypair for this encryption operation
-        let (public_key, secret_key) = MlKem768::keypair().map_err(|_| AuthError {
-            error: "kem_error".to_string(),
-            message: "Failed to generate KEM keypair".to_string(),
-            code: 500,
-        })?;
+        let (public_key, secret_key) = MlKem768::keypair();
         
         // Encapsulate to get shared secret and ciphertext
-        let (kem_ciphertext, shared_secret) = MlKem768::encapsulate(&public_key).map_err(|_| AuthError {
-            error: "kem_error".to_string(),
-            message: "Failed to encapsulate shared secret".to_string(),
-            code: 500,
-        })?;
+        let (kem_ciphertext, shared_secret) = MlKem768::encapsulate(&public_key);
         
         // Derive encryption key from shared secret and master key using HKDF-like approach
         let mut hasher = Sha256::new();
@@ -113,14 +106,14 @@ impl PostQuantumEncryption {
         // Format: [4 bytes pub_key_len][pub_key][4 bytes kem_ct_len][kem_ciphertext][12 bytes nonce][ciphertext]
         let mut result = Vec::with_capacity(
             4 + public_key_bytes.len() + 
-            4 + kem_ciphertext.0.len() + 
+            4 + kem_ciphertext.len() + 
             12 + ciphertext.len()
         );
         
         result.extend_from_slice(&(public_key_bytes.len() as u32).to_le_bytes());
         result.extend_from_slice(&public_key_bytes);
-        result.extend_from_slice(&(kem_ciphertext.0.len() as u32).to_le_bytes());
-        result.extend_from_slice(&kem_ciphertext.0);
+        result.extend_from_slice(&(kem_ciphertext.len() as u32).to_le_bytes());
+        result.extend_from_slice(&kem_ciphertext);
         result.extend_from_slice(&nonce_bytes);
         result.extend_from_slice(&ciphertext);
         
@@ -199,8 +192,12 @@ impl PostQuantumEncryption {
         let ciphertext = &encrypted_data[offset..];
         
         // Reconstruct KEM objects
-        let public_key = core_lib::kem::kyber768::PublicKey(public_key_bytes.to_vec());
-        let kem_ciphertext = core_lib::kem::kyber768::Ciphertext(kem_ciphertext_bytes.to_vec());
+        let _public_key = core_lib::kem::ml_kem_768::MlKemPublicKey(public_key_bytes.try_into().map_err(|_| AuthError {
+            error: "invalid_key_size".to_string(),
+            message: "Invalid public key size".to_string(),
+            code: 400,
+        })?);
+        let _kem_ciphertext = kem_ciphertext_bytes;
         
         // For decryption, we need to re-derive the shared secret
         // In a real implementation, we would store the secret key securely

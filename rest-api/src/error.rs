@@ -23,6 +23,8 @@ pub enum AppError {
     InvalidSignature,
     #[error("Validation error: {0}")]
     ValidationError(String),
+    #[error("Resource not found")]
+    NotFound,
 }
 
 impl IntoResponse for AppError {
@@ -37,6 +39,7 @@ impl IntoResponse for AppError {
             AppError::InvalidBase64 => (StatusCode::BAD_REQUEST, "Invalid base64 encoding".to_string()),
             AppError::InvalidSignature => (StatusCode::BAD_REQUEST, "Invalid signature".to_string()),
             AppError::ValidationError(ref msg) => (StatusCode::BAD_REQUEST, format!("Validation failed: {}", msg)),
+            AppError::NotFound => (StatusCode::NOT_FOUND, "Resource not found".to_string()),
         };
         
         tracing::error!("API Error: {:?}", self);

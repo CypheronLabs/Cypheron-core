@@ -55,19 +55,19 @@ pub async fn variant_info(Path(variant): Path<String>) -> Result<Json<serde_json
     let info = json!({
         "variant": variant,
         "algorithm": match variant_enum {
-            KemVariant::Kyber512 => "ML-KEM-512 (NIST FIPS 203)",
-            KemVariant::Kyber768 => "ML-KEM-768 (NIST FIPS 203)", 
-            KemVariant::Kyber1024 => "ML-KEM-1024 (NIST FIPS 203)",
+            KemVariant::Kyber512 | KemVariant::MlKem512 => "ML-KEM-512 (NIST FIPS 203)",
+            KemVariant::Kyber768 | KemVariant::MlKem768 => "ML-KEM-768 (NIST FIPS 203)", 
+            KemVariant::Kyber1024 | KemVariant::MlKem1024 => "ML-KEM-1024 (NIST FIPS 203)",
         },
         "security_level": match variant_enum {
-            KemVariant::Kyber512 => 1,
-            KemVariant::Kyber768 => 3,
-            KemVariant::Kyber1024 => 5,
+            KemVariant::Kyber512 | KemVariant::MlKem512 => 1,
+            KemVariant::Kyber768 | KemVariant::MlKem768 => 3,
+            KemVariant::Kyber1024 | KemVariant::MlKem1024 => 5,
         },
         "key_sizes": match variant_enum {
-            KemVariant::Kyber512 => json!({"public_key": 800, "secret_key": 1632, "ciphertext": 768, "shared_secret": 32}),
-            KemVariant::Kyber768 => json!({"public_key": 1184, "secret_key": 2400, "ciphertext": 1088, "shared_secret": 32}),
-            KemVariant::Kyber1024 => json!({"public_key": 1568, "secret_key": 3168, "ciphertext": 1568, "shared_secret": 32}),
+            KemVariant::Kyber512 | KemVariant::MlKem512 => json!({"public_key": 800, "secret_key": 1632, "ciphertext": 768, "shared_secret": 32}),
+            KemVariant::Kyber768 | KemVariant::MlKem768 => json!({"public_key": 1184, "secret_key": 2400, "ciphertext": 1088, "shared_secret": 32}),
+            KemVariant::Kyber1024 | KemVariant::MlKem1024 => json!({"public_key": 1568, "secret_key": 3168, "ciphertext": 1568, "shared_secret": 32}),
         },
         "supported_formats": ["base64", "hex", "base64url"],
         "endpoints": [

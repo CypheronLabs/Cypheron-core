@@ -1,21 +1,21 @@
 // NIST FIPS 203 Compliant ML-KEM modules
-pub mod kyber1024; // TODO: Rename to ml_kem_1024 in future version
-pub mod kyber512;  // TODO: Rename to ml_kem_512 in future version  
-pub mod kyber768;  // TODO: Rename to ml_kem_768 in future version
+pub mod ml_kem_512;
+pub mod ml_kem_768;
+pub mod ml_kem_1024;
 pub mod sizes;
 
 // NIST FIPS 203 Compliant exports - ML-KEM (Module Lattice Key Encapsulation Mechanism)
-pub use kyber1024::Kyber1024 as MlKem1024;
-pub use kyber512::Kyber512 as MlKem512; 
-pub use kyber768::Kyber768 as MlKem768;
+pub use ml_kem_512::MlKem512;
+pub use ml_kem_768::MlKem768;
+pub use ml_kem_1024::MlKem1024;
 
 // Deprecated aliases for backward compatibility - will be removed in future versions
 #[deprecated(since = "0.2.0", note = "Use MlKem512 instead for NIST FIPS 203 compliance")]
-pub use kyber512::Kyber512;
+pub use ml_kem_512::MlKem512 as Kyber512;
 #[deprecated(since = "0.2.0", note = "Use MlKem768 instead for NIST FIPS 203 compliance")]
-pub use kyber768::Kyber768;
+pub use ml_kem_768::MlKem768 as Kyber768;
 #[deprecated(since = "0.2.0", note = "Use MlKem1024 instead for NIST FIPS 203 compliance")]
-pub use kyber1024::Kyber1024;
+pub use ml_kem_1024::MlKem1024 as Kyber1024;
 
 /// NIST FIPS 203 Compliant KEM Algorithm Variants
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -35,6 +35,8 @@ pub enum KemVariant {
     #[deprecated(since = "0.2.0", note = "Use MlKem1024 instead for NIST FIPS 203 compliance")]
     Kyber1024,
 }
+
+/// NIST FIPS 203 Compliant KEM Trait
 pub trait Kem {
     type PublicKey: Clone;
     type SecretKey;

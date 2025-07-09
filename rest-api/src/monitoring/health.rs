@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc, Duration};
 use std::collections::HashMap;
 use uuid::Uuid;
+use secrecy::ExposeSecret;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthStatus {
@@ -116,30 +117,25 @@ impl HealthChecker {
 
     async fn test_crypto_operations(&self) -> Result<(), String> {
         // Test ML-KEM-512 operation
-        use core_lib::kem::MlKem512;
+        use core_lib::kem::{MlKem512, Kem};
         
-        let (pk, sk) = MlKem512::keypair()
-            .map_err(|e| format!("ML-KEM-512 keypair generation failed: {:?}", e))?;
+        let (pk, sk) = MlKem512::keypair();
         
-        let (ct, ss1) = MlKem512::encapsulate(&pk)
-            .map_err(|e| format!("ML-KEM-512 encapsulation failed: {:?}", e))?;
+        let (ct, ss1) = MlKem512::encapsulate(&pk);
         
-        let ss2 = MlKem512::decapsulate(&ct, &sk)
-            .map_err(|e| format!("ML-KEM-512 decapsulation failed: {:?}", e))?;
-        
+        let ss2 = MlKem512::decapsulate(&ct, &sk);
         if ss1.expose_secret() != ss2.expose_secret() {
             return Err("ML-KEM-512 shared secret mismatch".to_string());
         }
 
         // Test ML-DSA-44 operation (simplified)
         use core_lib::sig::dilithium::dilithium2::Dilithium2;
+        use core_lib::sig::traits::SignatureEngine;
         
-        let (pk, sk) = Dilithium2::keypair()
-            .map_err(|e| format!("ML-DSA-44 keypair generation failed: {:?}", e))?;
+        let (pk, sk) = Dilithium2::keypair().map_err(|e| format!("ML-DSA-44 keypair generation failed: {:?}", e))?;
         
         let message = b"health check message";
-        let signature = Dilithium2::sign(message, &sk)
-            .map_err(|e| format!("ML-DSA-44 signing failed: {:?}", e))?;
+        let signature = Dilithium2::sign(message, &sk).map_err(|e| format!("ML-DSA-44 signing failed: {:?}", e))?;
         
         let is_valid = Dilithium2::verify(message, &signature, &pk);
         if !is_valid {

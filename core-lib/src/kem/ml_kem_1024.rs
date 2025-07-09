@@ -14,13 +14,21 @@ mod bindings {
 }
 use bindings::*;
 
-pub struct KyberSecretKey(pub [u8; sizes::KYBER1024_SECRET]);
+pub struct MlKemSecretKey(pub [u8; sizes::ML_KEM_1024_SECRET]);
+
+// Deprecated alias for backward compatibility
+#[deprecated(since = "0.2.0", note = "Use MlKemSecretKey instead for NIST FIPS 203 compliance")]
+pub type KyberSecretKey = MlKemSecretKey;
 
 #[derive(Clone)]
-pub struct KyberPublicKey(pub [u8; sizes::KYBER1024_PUBLIC]);
+pub struct MlKemPublicKey(pub [u8; sizes::ML_KEM_1024_PUBLIC]);
+
+// Deprecated alias for backward compatibility
+#[deprecated(since = "0.2.0", note = "Use MlKemPublicKey instead for NIST FIPS 203 compliance")]
+pub type KyberPublicKey = MlKemPublicKey;
 
 #[derive(Error, Debug)]
-pub enum KyberError {
+pub enum MlKemError {
     #[error("Key generation failed")]
     KeyGenerationFailed,
     #[error("Encapsulation failed")]
@@ -31,9 +39,17 @@ pub enum KyberError {
     InvalidCiphertextLength { expected: usize, actual: usize },
 }
 
-pub struct Kyber1024;
+// Deprecated alias for backward compatibility
+#[deprecated(since = "0.2.0", note = "Use MlKemError instead for NIST FIPS 203 compliance")]
+pub type KyberError = MlKemError;
 
-impl Kyber1024 {
+pub struct MlKem1024;
+
+// Deprecated alias for backward compatibility
+#[deprecated(since = "0.2.0", note = "Use MlKem1024 instead for NIST FIPS 203 compliance")]
+pub type Kyber1024 = MlKem1024;
+
+impl MlKem1024 {
     /// Returns the NIST FIPS 203 compliant variant (ML-KEM-1024)
     pub fn variant() -> KemVariant {
         KemVariant::MlKem1024
@@ -46,20 +62,20 @@ impl Kyber1024 {
         KemVariant::Kyber1024
     }
 
-    pub fn expose_shared(secret: &SecretBox<[u8; sizes::KYBER1024_SHARED]>) -> &[u8] {
+    pub fn expose_shared(secret: &SecretBox<[u8; sizes::ML_KEM_1024_SHARED]>) -> &[u8] {
         secret.expose_secret()
     }
 }
 
-impl Kem for Kyber1024 {
-    type PublicKey = KyberPublicKey;
-    type SecretKey = KyberSecretKey;
+impl Kem for MlKem1024 {
+    type PublicKey = MlKemPublicKey;
+    type SecretKey = MlKemSecretKey;
     type Ciphertext = Vec<u8>;
-    type SharedSecret = SecretBox<[u8; sizes::KYBER1024_SHARED]>;
+    type SharedSecret = SecretBox<[u8; sizes::ML_KEM_1024_SHARED]>;
 
     fn keypair() -> (Self::PublicKey, Self::SecretKey) {
-        let mut pk = [0u8; sizes::KYBER1024_PUBLIC];
-        let mut sk = [0u8; sizes::KYBER1024_SECRET];
+        let mut pk = [0u8; sizes::ML_KEM_1024_PUBLIC];
+        let mut sk = [0u8; sizes::ML_KEM_1024_SECRET];
         
         let result = unsafe {
             pqcrystals_kyber1024_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr())
@@ -70,21 +86,21 @@ impl Kem for Kyber1024 {
             // Zero out buffers on failure for security
             pk.zeroize();
             sk.zeroize();
-            panic!("Kyber1024 key generation failed with code: {}", result);
+            panic!("ML-KEM-1024 key generation failed with code: {}", result);
         }
         
-        (KyberPublicKey(pk), KyberSecretKey(sk))
+        (MlKemPublicKey(pk), MlKemSecretKey(sk))
     }
 
     fn encapsulate(pk: &Self::PublicKey) -> (Self::Ciphertext, Self::SharedSecret) {
         // Validate input: ensure public key has correct size
-        if pk.0.len() != sizes::KYBER1024_PUBLIC {
+        if pk.0.len() != sizes::ML_KEM_1024_PUBLIC {
             panic!("Invalid public key length: expected {}, got {}", 
-                   sizes::KYBER1024_PUBLIC, pk.0.len());
+                   sizes::ML_KEM_1024_PUBLIC, pk.0.len());
         }
         
-        let mut ct = vec![0u8; sizes::KYBER1024_CIPHERTEXT];
-        let mut ss = [0u8; sizes::KYBER1024_SHARED];
+        let mut ct = vec![0u8; sizes::ML_KEM_1024_CIPHERTEXT];
+        let mut ss = [0u8; sizes::ML_KEM_1024_SHARED];
         
         let result = unsafe {
             pqcrystals_kyber1024_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr())
@@ -93,7 +109,7 @@ impl Kem for Kyber1024 {
         if result != 0 {
             // Zero out sensitive data on failure
             ss.zeroize();
-            panic!("Kyber1024 encapsulation failed with code: {}", result);
+            panic!("ML-KEM-1024 encapsulation failed with code: {}", result);
         }
         
         (ct, SecretBox::new(ss.into()))
@@ -101,16 +117,16 @@ impl Kem for Kyber1024 {
 
     fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Self::SharedSecret {
         // Validate inputs
-        if ct.len() != sizes::KYBER1024_CIPHERTEXT {
+        if ct.len() != sizes::ML_KEM_1024_CIPHERTEXT {
             panic!("Invalid ciphertext length: expected {}, got {}", 
-                   sizes::KYBER1024_CIPHERTEXT, ct.len());
+                   sizes::ML_KEM_1024_CIPHERTEXT, ct.len());
         }
-        if sk.0.len() != sizes::KYBER1024_SECRET {
+        if sk.0.len() != sizes::ML_KEM_1024_SECRET {
             panic!("Invalid secret key length: expected {}, got {}", 
-                   sizes::KYBER1024_SECRET, sk.0.len());
+                   sizes::ML_KEM_1024_SECRET, sk.0.len());
         }
         
-        let mut ss = [0u8; sizes::KYBER1024_SHARED];
+        let mut ss = [0u8; sizes::ML_KEM_1024_SHARED];
         
         let result = unsafe {
             pqcrystals_kyber1024_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.as_ptr())
@@ -119,9 +135,11 @@ impl Kem for Kyber1024 {
         if result != 0 {
             // Zero out potentially corrupted shared secret
             ss.zeroize();
-            panic!("Kyber1024 decapsulation failed with code: {}", result);
+            panic!("ML-KEM-1024 decapsulation failed with code: {}", result);
         }
         
         SecretBox::new(ss.into())
     }
 }
+
+// Note: Kyber1024 is a type alias for MlKem1024, so it automatically inherits the Kem implementation
