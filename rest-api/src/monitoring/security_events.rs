@@ -171,7 +171,8 @@ impl SecurityEventMonitor {
         
         // Keep only the most recent events
         if events.len() > self.max_events {
-            events.drain(0..events.len() - self.max_events);
+            let len = events.len();
+            events.drain(0..len - self.max_events);
         }
         
         // Log the event
@@ -347,7 +348,7 @@ impl SecurityEventMonitor {
         
         events.iter()
             .filter(|e| e.timestamp >= since)
-            .filter(|e| e.client_ip.as_ref() == Some(ip))
+            .filter(|e| e.client_ip.as_ref() == Some(&ip.to_string()))
             .filter(|e| std::mem::discriminant(&e.event_type) == std::mem::discriminant(&event_type))
             .count() as u64
     }

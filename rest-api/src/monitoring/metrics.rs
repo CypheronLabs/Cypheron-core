@@ -123,14 +123,8 @@ impl MetricsCollector {
         };
 
         let mut metrics = self.crypto_metrics.write().await;
-        metrics.push(metric);
-
-        // Keep only the most recent metrics
-        if metrics.len() > self.max_metrics {
-            metrics.drain(0..metrics.len() - self.max_metrics);
-        }
-
-        // Log important metrics
+        
+        // Log important metrics before moving
         tracing::info!(
             "Crypto operation recorded: {} {} in {}ms (success: {})",
             metric.algorithm,
@@ -138,6 +132,14 @@ impl MetricsCollector {
             metric.duration_ms,
             metric.success
         );
+        
+        metrics.push(metric);
+
+        // Keep only the most recent metrics
+        if metrics.len() > self.max_metrics {
+            let len = metrics.len();
+            metrics.drain(0..len - self.max_metrics);
+        }
     }
 
     pub async fn record_security_event(
@@ -165,7 +167,8 @@ impl MetricsCollector {
 
         // Keep only the most recent metrics
         if metrics.len() > self.max_metrics {
-            metrics.drain(0..metrics.len() - self.max_metrics);
+            let len = metrics.len();
+            metrics.drain(0..len - self.max_metrics);
         }
 
         // Log security events with appropriate level
@@ -211,7 +214,8 @@ impl MetricsCollector {
 
         // Keep only the most recent metrics
         if metrics.len() > self.max_metrics {
-            metrics.drain(0..metrics.len() - self.max_metrics);
+            let len = metrics.len();
+            metrics.drain(0..len - self.max_metrics);
         }
     }
 

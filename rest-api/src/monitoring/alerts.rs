@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc, Duration};
 use uuid::Uuid;
 use std::collections::HashMap;
 
-use super::metrics::{SecurityEventType, SecuritySeverity, MetricsCollector};
+use super::metrics::{MetricsCollector, SecurityEventType, SecuritySeverity};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Alert {
@@ -264,12 +264,20 @@ impl AlertManager {
             actions_taken: Vec::new(),
         };
 
+        let metrics_severity = match alert.severity {
+            AlertSeverity::Critical => super::metrics::SecuritySeverity::Critical,
+            AlertSeverity::High => super::metrics::SecuritySeverity::High,
+            AlertSeverity::Medium => super::metrics::SecuritySeverity::Medium,
+            AlertSeverity::Low => super::metrics::SecuritySeverity::Low,
+        };
+
         let mut alerts = self.alerts.write().await;
         alerts.push(alert.clone());
 
         // Keep only the most recent alerts
         if alerts.len() > self.max_alerts {
-            alerts.drain(0..alerts.len() - self.max_alerts);
+            let len = alerts.len();
+            alerts.drain(0..len - self.max_alerts);
         }
 
         // Log the alert
@@ -291,12 +299,7 @@ impl AlertManager {
         // Record as security event
         self.metrics_collector.record_security_event(
             SecurityEventType::SystemAlert,
-            match alert.severity {
-                AlertSeverity::Critical => super::metrics::SecuritySeverity::Critical,
-                AlertSeverity::High => super::metrics::SecuritySeverity::High,
-                AlertSeverity::Medium => super::metrics::SecuritySeverity::Medium,
-                AlertSeverity::Low => super::metrics::SecuritySeverity::Low,
-            },
+            metrics_severity, 
             format!("Alert triggered: {}", alert.title),
             None,
             None,
