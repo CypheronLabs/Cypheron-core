@@ -18,23 +18,23 @@ fn benchmark_ml_kem_operations(c: &mut Criterion) {
     // ML-KEM-512 Benchmarks
     group.bench_function("ML-KEM-512 Keypair Generation", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem512::keypair();
+            let (pk, sk) = MlKem512::keypair().expect("Failed to generate keypair");
             black_box((pk, sk))
         })
     });
     
-    let (pk_512, sk_512) = MlKem512::keypair();
+    let (pk_512, sk_512) = MlKem512::keypair().expect("Failed to generate keypair");
     group.bench_function("ML-KEM-512 Encapsulation", |b| {
         b.iter(|| {
-            let (ct, ss) = MlKem512::encapsulate(black_box(&pk_512));
+            let (ct, ss) = MlKem512::encapsulate(black_box(&pk_512)).expect("Failed to encapsulate");
             black_box((ct, ss))
         })
     });
     
-    let (ct_512, _ss_512) = MlKem512::encapsulate(&pk_512);
+    let (ct_512, _ss_512) = MlKem512::encapsulate(&pk_512).expect("Failed to encapsulate");
     group.bench_function("ML-KEM-512 Decapsulation", |b| {
         b.iter(|| {
-            let ss = MlKem512::decapsulate(black_box(&ct_512), black_box(&sk_512));
+            let ss = MlKem512::decapsulate(black_box(&ct_512), black_box(&sk_512)).expect("Failed to decapsulate");
             black_box(ss)
         })
     });
@@ -42,23 +42,23 @@ fn benchmark_ml_kem_operations(c: &mut Criterion) {
     // ML-KEM-768 Benchmarks
     group.bench_function("ML-KEM-768 Keypair Generation", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem768::keypair();
+            let (pk, sk) = MlKem768::keypair().expect("Failed to generate keypair");
             black_box((pk, sk))
         })
     });
     
-    let (pk_768, sk_768) = MlKem768::keypair();
+    let (pk_768, sk_768) = MlKem768::keypair().expect("Failed to generate keypair");
     group.bench_function("ML-KEM-768 Encapsulation", |b| {
         b.iter(|| {
-            let (ct, ss) = MlKem768::encapsulate(black_box(&pk_768));
+            let (ct, ss) = MlKem768::encapsulate(black_box(&pk_768)).expect("Failed to encapsulate");
             black_box((ct, ss))
         })
     });
     
-    let (ct_768, _ss_768) = MlKem768::encapsulate(&pk_768);
+    let (ct_768, _ss_768) = MlKem768::encapsulate(&pk_768).expect("Failed to encapsulate");
     group.bench_function("ML-KEM-768 Decapsulation", |b| {
         b.iter(|| {
-            let ss = MlKem768::decapsulate(black_box(&ct_768), black_box(&sk_768));
+            let ss = MlKem768::decapsulate(black_box(&ct_768), black_box(&sk_768)).expect("Failed to decapsulate");
             black_box(ss)
         })
     });
@@ -66,23 +66,23 @@ fn benchmark_ml_kem_operations(c: &mut Criterion) {
     // ML-KEM-1024 Benchmarks
     group.bench_function("ML-KEM-1024 Keypair Generation", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem1024::keypair();
+            let (pk, sk) = MlKem1024::keypair().expect("Failed to generate keypair");
             black_box((pk, sk))
         })
     });
     
-    let (pk_1024, sk_1024) = MlKem1024::keypair();
+    let (pk_1024, sk_1024) = MlKem1024::keypair().expect("Failed to generate keypair");
     group.bench_function("ML-KEM-1024 Encapsulation", |b| {
         b.iter(|| {
-            let (ct, ss) = MlKem1024::encapsulate(black_box(&pk_1024));
+            let (ct, ss) = MlKem1024::encapsulate(black_box(&pk_1024)).expect("Failed to encapsulate");
             black_box((ct, ss))
         })
     });
     
-    let (ct_1024, _ss_1024) = MlKem1024::encapsulate(&pk_1024);
+    let (ct_1024, _ss_1024) = MlKem1024::encapsulate(&pk_1024).expect("Failed to encapsulate");
     group.bench_function("ML-KEM-1024 Decapsulation", |b| {
         b.iter(|| {
-            let ss = MlKem1024::decapsulate(black_box(&ct_1024), black_box(&sk_1024));
+            let ss = MlKem1024::decapsulate(black_box(&ct_1024), black_box(&sk_1024)).expect("Failed to decapsulate");
             black_box(ss)
         })
     });
@@ -318,27 +318,27 @@ fn benchmark_security_levels(c: &mut Criterion) {
     // KEM Security Levels
     group.bench_function("ML-KEM-512 (Security Level 1)", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem512::keypair();
-            let (ct, _ss1) = MlKem512::encapsulate(&pk);
-            let _ss2 = MlKem512::decapsulate(&ct, &sk);
+            let (pk, sk) = MlKem512::keypair().expect("Failed to generate keypair");
+            let (ct, _ss1) = MlKem512::encapsulate(&pk).expect("Failed to encapsulate");
+            let _ss2 = MlKem512::decapsulate(&ct, &sk).expect("Failed to decapsulate");
             black_box(())
         })
     });
     
     group.bench_function("ML-KEM-768 (Security Level 3)", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem768::keypair();
-            let (ct, _ss1) = MlKem768::encapsulate(&pk);
-            let _ss2 = MlKem768::decapsulate(&ct, &sk);
+            let (pk, sk) = MlKem768::keypair().expect("Failed to generate keypair");
+            let (ct, _ss1) = MlKem768::encapsulate(&pk).expect("Failed to encapsulate");
+            let _ss2 = MlKem768::decapsulate(&ct, &sk).expect("Failed to decapsulate");
             black_box(())
         })
     });
     
     group.bench_function("ML-KEM-1024 (Security Level 5)", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem1024::keypair();
-            let (ct, _ss1) = MlKem1024::encapsulate(&pk);
-            let _ss2 = MlKem1024::decapsulate(&ct, &sk);
+            let (pk, sk) = MlKem1024::keypair().expect("Failed to generate keypair");
+            let (ct, _ss1) = MlKem1024::encapsulate(&pk).expect("Failed to encapsulate");
+            let _ss2 = MlKem1024::decapsulate(&ct, &sk).expect("Failed to decapsulate");
             black_box(())
         })
     });
@@ -381,9 +381,9 @@ fn benchmark_regression_detection(c: &mut Criterion) {
     // Baseline performance tests that should be consistent
     group.bench_function("Baseline ML-KEM-512 Full Operation", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem512::keypair();
-            let (ct, ss1) = MlKem512::encapsulate(&pk);
-            let ss2 = MlKem512::decapsulate(&ct, &sk);
+            let (pk, sk) = MlKem512::keypair().expect("Failed to generate keypair");
+            let (ct, ss1) = MlKem512::encapsulate(&pk).expect("Failed to encapsulate");
+            let ss2 = MlKem512::decapsulate(&ct, &sk).expect("Failed to decapsulate");
             assert_eq!(
                 MlKem512::expose_shared(&ss1),
                 MlKem512::expose_shared(&ss2)

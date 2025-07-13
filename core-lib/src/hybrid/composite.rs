@@ -1,21 +1,20 @@
 use zeroize::{Zeroize, ZeroizeOnDrop};
 use secrecy::SecretBox;
 
-/// Composite signature containing both classical and post-quantum signatures
 #[derive(Debug, Clone)]
 pub struct CompositeSignature<C, P> {
     pub classical: C,
     pub post_quantum: P,
+    pub timestamp: u64,
+    pub nonce:[u8; 32],
 }
 
-/// Composite public key containing both classical and post-quantum public keys
 #[derive(Debug, Clone)]  
 pub struct CompositePublicKey<C, P> {
     pub classical: C,
     pub post_quantum: P,
 }
 
-/// Composite secret key containing both classical and post-quantum secret keys
 #[derive(Debug)]
 pub struct CompositeSecretKey<C, P> 
 where 
@@ -31,9 +30,7 @@ where
     C: Zeroize,
     P: Zeroize,
 {
-    fn zeroize(&mut self) {
-        // SecretBox handles zeroization automatically
-    }
+    fn zeroize(&mut self) {}
 }
 
 impl<C, P> ZeroizeOnDrop for CompositeSecretKey<C, P>

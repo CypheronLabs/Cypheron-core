@@ -25,6 +25,10 @@ pub enum AppError {
     ValidationError(String),
     #[error("Resource not found")]
     NotFound,
+    #[error("Encapsulation failed")]
+    EncapsulationFailed,
+    #[error("Decapsulation failed")]
+    DecapsulationFailed,
 }
 
 impl IntoResponse for AppError {
@@ -40,6 +44,8 @@ impl IntoResponse for AppError {
             AppError::InvalidSignature => (StatusCode::BAD_REQUEST, "Invalid signature".to_string()),
             AppError::ValidationError(ref msg) => (StatusCode::BAD_REQUEST, format!("Validation failed: {}", msg)),
             AppError::NotFound => (StatusCode::NOT_FOUND, "Resource not found".to_string()),
+            AppError::EncapsulationFailed => (StatusCode::INTERNAL_SERVER_ERROR, "Encapsulation operation failed".to_string()),
+            AppError::DecapsulationFailed => (StatusCode::INTERNAL_SERVER_ERROR, "Decapsulation operation failed".to_string()),
         };
         
         tracing::error!("API Error: {:?}", self);

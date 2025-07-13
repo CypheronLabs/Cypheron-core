@@ -1,8 +1,9 @@
-use axum::{serve, Router, middleware};
+use axum::{serve, Router, middleware, routing::get};
 use tokio::net::TcpListener;
 use tracing_subscriber;
 
 mod api;
+mod config;
 mod handlers;
 mod models;
 mod services;
@@ -71,8 +72,17 @@ async fn main() {
     );
 
     let monitoring_routes = api::monitoring::routes()
+        .with_state(monitoring_state.clone());
+
+    // Health check routes (no auth required)
+    let public_routes = Router::new()
+        .route("/health", get(handlers::monitoring_handler::get_health_status))
+        .route("/health/detailed", get(handlers::monitoring_handler::get_detailed_health_report))
+        .route("/health/ready", get(handlers::monitoring_handler::get_readiness_check))
+        .route("/health/live", get(handlers::monitoring_handler::get_liveness_check))
         .with_state(monitoring_state);
 
+    // Authenticated API routes
     let api_routes = Router::new()
         .merge(api::kem::routes())
         .merge(api::sig::routes())
@@ -99,16 +109,20 @@ async fn main() {
 
     // Combine all routes with CORS middleware
     let app = Router::new()
+        .merge(public_routes)
         .merge(api_routes)
         .merge(admin_api_routes)
         .merge(admin_audit_routes)
         .layer(security::create_cors_middleware());
 
-    let listener = TcpListener::bind("127.0.0.1:3000")
+    let config = config::AppConfig::from_env();
+    let bind_addr = format!("{}:{}", config.server.host, config.server.port);
+    
+    let listener = TcpListener::bind(&bind_addr)
         .await
         .expect("Failed to bind port");
 
-    tracing::info!("PQ-Core API Server listening on http://127.0.0.1:3000");
+    tracing::info!("PQ-Core API Server listening on http://{}", bind_addr);
     tracing::info!("API Security Features Enabled:");
     tracing::info!("  - API Key Authentication (with encrypted persistent storage)");
     tracing::info!("  - Rate Limiting (60 req/min default)");

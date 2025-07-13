@@ -16,14 +16,12 @@ use bindings::*;
 
 pub struct MlKemSecretKey(pub [u8; sizes::ML_KEM_512_SECRET]);
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemSecretKey instead for NIST FIPS 203 compliance")]
 pub type KyberSecretKey = MlKemSecretKey;
 
 #[derive(Clone)]
 pub struct MlKemPublicKey(pub [u8; sizes::ML_KEM_512_PUBLIC]);
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemPublicKey instead for NIST FIPS 203 compliance")]
 pub type KyberPublicKey = MlKemPublicKey;
 
@@ -37,26 +35,26 @@ pub enum MlKemError {
     DecapsulationFailed,
     #[error("Invalid ciphertext length: expected {expected}, got {actual}")]
     InvalidCiphertextLength { expected: usize, actual: usize },
+    #[error("Invalid public key length: expected {expected}, got {actual}")]
+    InvalidPublicKeyLength { expected: usize, actual: usize },
+    #[error("Invalid secret key length: expected {expected}, got {actual}")]
+    InvalidSecretKeyLength { expected: usize, actual: usize },
 }
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemError instead for NIST FIPS 203 compliance")]
 pub type KyberError = MlKemError;
 
 
 pub struct MlKem512;
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKem512 instead for NIST FIPS 203 compliance")]
 pub type Kyber512 = MlKem512;
 
 impl MlKem512 {
-    /// Returns the NIST FIPS 203 compliant variant (ML-KEM-512)
     pub fn variant() -> KemVariant {
         KemVariant::MlKem512
     }
     
-    /// Returns the deprecated variant for backward compatibility
     #[deprecated(since = "0.2.0", note = "Use variant() instead for NIST FIPS 203 compliance")]
     pub fn legacy_variant() -> KemVariant {
         #[allow(deprecated)]
@@ -73,8 +71,9 @@ impl Kem for MlKem512 {
     type SecretKey = MlKemSecretKey;
     type Ciphertext = Vec<u8>;
     type SharedSecret = SecretBox<[u8; sizes::ML_KEM_512_SHARED]>;
+    type Error = MlKemError;
 
-    fn keypair() -> (Self::PublicKey, Self::SecretKey) {
+    fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
         let mut pk = [0u8; sizes::ML_KEM_512_PUBLIC];
         let mut sk = [0u8; sizes::ML_KEM_512_SECRET];
         
@@ -85,16 +84,18 @@ impl Kem for MlKem512 {
         if result != 0 {
             pk.zeroize();
             sk.zeroize();
-            panic!("ML-KEM-512 key generation failed with code: {}", result);
+            return Err(MlKemError::KeyGenerationFailed);
         }
         
-        (MlKemPublicKey(pk), MlKemSecretKey(sk))
+        Ok((MlKemPublicKey(pk), MlKemSecretKey(sk)))
     }
 
-    fn encapsulate(pk: &Self::PublicKey) -> (Self::Ciphertext, Self::SharedSecret) {
+    fn encapsulate(pk: &Self::PublicKey) -> Result<(Self::Ciphertext, Self::SharedSecret), Self::Error> {
         if pk.0.len() != sizes::ML_KEM_512_PUBLIC {
-            panic!("Invalid public key length: expected {}, got {}", 
-                   sizes::ML_KEM_512_PUBLIC, pk.0.len());
+            return Err(MlKemError::InvalidPublicKeyLength {
+                expected: sizes::ML_KEM_512_PUBLIC,
+                actual: pk.0.len(),
+            });
         }
         
         let mut ct = vec![0u8; sizes::ML_KEM_512_CIPHERTEXT];
@@ -106,35 +107,39 @@ impl Kem for MlKem512 {
         
         if result != 0 {
             ss.zeroize();
-            panic!("ML-KEM-512 encapsulation failed with code: {}", result);
+            return Err(MlKemError::EncapsulationFailed);
         }
         
-        (ct, SecretBox::new(ss.into()))
+        Ok((ct, SecretBox::new(ss.into())))
     }
 
-    fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Self::SharedSecret {
+    fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Result<Self::SharedSecret, Self::Error> {
         if ct.len() != sizes::ML_KEM_512_CIPHERTEXT {
-            panic!("Invalid ciphertext length: expected {}, got {}", 
-                   sizes::ML_KEM_512_CIPHERTEXT, ct.len());
+            return Err(MlKemError::InvalidCiphertextLength {  
+                expected: sizes::ML_KEM_512_CIPHERTEXT,
+                actual: ct.len(),
+            });
         }
         if sk.0.len() != sizes::ML_KEM_512_SECRET {
-            panic!("Invalid secret key length: expected {}, got {}", 
-                   sizes::ML_KEM_512_SECRET, sk.0.len());
+            return Err(MlKemError::InvalidSecretKeyLength { 
+                expected: sizes::ML_KEM_512_SECRET,
+                actual: sk.0.len(),
+            });
         }
-        
+
         let mut ss = [0u8; sizes::ML_KEM_512_SHARED];
-        
+
         let result = unsafe {
             pqcrystals_kyber512_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.as_ptr())
         };
-        
+
         if result != 0 {
             ss.zeroize();
-            panic!("ML-KEM-512 decapsulation failed with code: {}", result);
+            return Err(MlKemError::DecapsulationFailed);  
         }
-        
-        SecretBox::new(ss.into())
+
+        Ok(SecretBox::new(ss.into()))  // WRAP IN Ok()
     }
+
 }
 
-// Note: Kyber512 is a type alias for MlKem512, so it automatically inherits the Kem implementation

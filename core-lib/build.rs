@@ -1,7 +1,6 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
-// Cross-platform build configuration
 #[cfg(target_os = "windows")]
 const OS_SUFFIX: &str = "windows";
 #[cfg(target_os = "macos")]
@@ -477,7 +476,6 @@ impl<'a> PQBuilder<'a> {
             println!("cargo:rustc-link-lib=pthread");
         }
 
-        // Common Unix configuration
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         {
             build.flag_if_supported("-fPIC");
@@ -485,7 +483,6 @@ impl<'a> PQBuilder<'a> {
         }
     }
 
-    // Platform-specific optimization flags
     fn add_optimization_flags(&self, build: &mut cc::Build) {
         #[cfg(target_os = "windows")]
         {
@@ -500,7 +497,6 @@ impl<'a> PQBuilder<'a> {
             build.flag_if_supported("-fomit-frame-pointer");
             build.flag_if_supported("-march=native");
             
-            // Add AVX2 support if available
             if std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default().contains("avx2") {
                 build.flag_if_supported("-mavx2");
             }

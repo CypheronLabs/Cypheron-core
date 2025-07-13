@@ -17,14 +17,10 @@ pub use ml_kem_768::MlKem768 as Kyber768;
 #[deprecated(since = "0.2.0", note = "Use MlKem1024 instead for NIST FIPS 203 compliance")]
 pub use ml_kem_1024::MlKem1024 as Kyber1024;
 
-/// NIST FIPS 203 Compliant KEM Algorithm Variants
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KemVariant {
-    /// ML-KEM-512: NIST FIPS 203 approved algorithm (formerly Kyber-512)
     MlKem512,
-    /// ML-KEM-768: NIST FIPS 203 approved algorithm (formerly Kyber-768)  
     MlKem768,
-    /// ML-KEM-1024: NIST FIPS 203 approved algorithm (formerly Kyber-1024)
     MlKem1024,
     
     // Deprecated variants for backward compatibility
@@ -36,14 +32,14 @@ pub enum KemVariant {
     Kyber1024,
 }
 
-/// NIST FIPS 203 Compliant KEM Trait
 pub trait Kem {
     type PublicKey: Clone;
     type SecretKey;
     type Ciphertext;
     type SharedSecret;
+    type Error;
 
-    fn keypair() -> (Self::PublicKey, Self::SecretKey);
-    fn encapsulate(pk: &Self::PublicKey) -> (Self::Ciphertext, Self::SharedSecret);
-    fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Self::SharedSecret;
+    fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error>;
+    fn encapsulate(pk: &Self::PublicKey) -> Result<(Self::Ciphertext, Self::SharedSecret), Self::Error>;
+    fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Result<Self::SharedSecret, Self::Error>;
 }

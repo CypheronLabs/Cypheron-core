@@ -7,6 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/core-lib/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/grpc-api/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/rest-api/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/core-lib/benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

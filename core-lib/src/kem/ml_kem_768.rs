@@ -37,6 +37,10 @@ pub enum MlKemError {
     DecapsulationFailed,
     #[error("Invalid ciphertext length: expected {expected}, got {actual}")]
     InvalidCiphertextLength { expected: usize, actual: usize },
+    #[error("Invalid public key length: expected {expected}, got {actual}")]
+    InvalidPublicKeyLength { expected: usize, actual: usize },
+    #[error("Invalid secret key length: expected {expected}, got {actual}")]
+    InvalidSecretKeyLength { expected: usize, actual: usize },
 }
 
 // Deprecated alias for backward compatibility
@@ -72,8 +76,9 @@ impl Kem for MlKem768 {
     type SecretKey = MlKemSecretKey;
     type Ciphertext = Vec<u8>;
     type SharedSecret = SecretBox<[u8; sizes::ML_KEM_768_SHARED]>;
+    type Error = MlKemError;
 
-    fn keypair() -> (Self::PublicKey, Self::SecretKey) {
+    fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
         let mut pk = [0u8; sizes::ML_KEM_768_PUBLIC];
         let mut sk = [0u8; sizes::ML_KEM_768_SECRET];
         
@@ -84,16 +89,18 @@ impl Kem for MlKem768 {
         if result != 0 {
             pk.zeroize();
             sk.zeroize();
-            panic!("ML-KEM-768 key generation failed with code: {}", result);
+            return Err(MlKemError::KeyGenerationFailed);
         }
         
-        (MlKemPublicKey(pk), MlKemSecretKey(sk))
+        Ok((MlKemPublicKey(pk), MlKemSecretKey(sk)))
     }
 
-    fn encapsulate(pk: &Self::PublicKey) -> (Self::Ciphertext, Self::SharedSecret) {
+    fn encapsulate(pk: &Self::PublicKey) -> Result<(Self::Ciphertext, Self::SharedSecret), Self::Error> {
         if pk.0.len() != sizes::ML_KEM_768_PUBLIC {
-            panic!("Invalid public key length: expected {}, got {}", 
-                   sizes::ML_KEM_768_PUBLIC, pk.0.len());
+            return Err(MlKemError::InvalidPublicKeyLength {
+                expected: sizes::ML_KEM_768_PUBLIC,
+                actual: pk.0.len(),
+            });
         }
         
         let mut ct = vec![0u8; sizes::ML_KEM_768_CIPHERTEXT];
@@ -105,20 +112,24 @@ impl Kem for MlKem768 {
         
         if result != 0 {
             ss.zeroize();
-            panic!("ML-KEM-768 encapsulation failed with code: {}", result);
+            return Err(MlKemError::EncapsulationFailed);
         }
         
-        (ct, SecretBox::new(ss.into()))
+        Ok((ct, SecretBox::new(ss.into())))
     }
 
-    fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Self::SharedSecret {
+    fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Result<Self::SharedSecret, Self::Error> {
         if ct.len() != sizes::ML_KEM_768_CIPHERTEXT {
-            panic!("Invalid ciphertext length: expected {}, got {}", 
-                   sizes::ML_KEM_768_CIPHERTEXT, ct.len());
+            return Err(MlKemError::InvalidCiphertextLength {
+                expected: sizes::ML_KEM_768_CIPHERTEXT,
+                actual: ct.len(),
+            });
         }
         if sk.0.len() != sizes::ML_KEM_768_SECRET {
-            panic!("Invalid secret key length: expected {}, got {}", 
-                   sizes::ML_KEM_768_SECRET, sk.0.len());
+            return Err(MlKemError::InvalidSecretKeyLength {
+                expected: sizes::ML_KEM_768_SECRET,
+                actual: sk.0.len(),
+            });
         }
         
         let mut ss = [0u8; sizes::ML_KEM_768_SHARED];
@@ -129,10 +140,10 @@ impl Kem for MlKem768 {
         
         if result != 0 {
             ss.zeroize();
-            panic!("ML-KEM-768 decapsulation failed with code: {}", result);
+            return Err(MlKemError::DecapsulationFailed);
         }
         
-        SecretBox::new(ss.into())
+        Ok(SecretBox::new(ss.into()))
     }
 }
 
