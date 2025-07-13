@@ -37,9 +37,8 @@ impl SignatureEngine for Dilithium2Engine {
                     ),
                 )
             },
-            _ => {
-                // C function failed - return error
-                Err(DilithiumError::KeyGenerationInternalError)
+            code => {
+                Err(DilithiumError::from_c_code(code, "keypair"))
             }
         }
     }
@@ -66,9 +65,8 @@ impl SignatureEngine for Dilithium2Engine {
 
                 Ok(Signature(sig))
             }
-            _ => {
-                // TODO: Map specific C error codes if available/needed
-                Err(DilithiumError::SigningInternalError)
+            code => {
+                Err(DilithiumError::from_c_code(code, "sign"))
             }
         }
     }

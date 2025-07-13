@@ -71,10 +71,18 @@ impl PostQuantumEncryption {
     /// Encrypts data using post-quantum KEM + ChaCha20-Poly1305 hybrid encryption
     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, AuthError> {
         // Generate ML-KEM-768 keypair for this encryption operation
-        let (public_key, secret_key) = MlKem768::keypair();
+        let (public_key, secret_key) = MlKem768::keypair().map_err(|_| AuthError {
+            error: "keypair_error".to_string(),
+            message: "Failed to generate ML-KEM-768 keypair".to_string(),
+            code: 500,
+        })?;
         
         // Encapsulate to get shared secret and ciphertext
-        let (kem_ciphertext, shared_secret) = MlKem768::encapsulate(&public_key);
+        let (kem_ciphertext, shared_secret) = MlKem768::encapsulate(&public_key).map_err(|_| AuthError {
+            error: "encapsulation_error".to_string(),
+            message: "Failed to encapsulate with ML-KEM-768".to_string(),
+            code: 500,
+        })?;
         
         // Derive encryption key from shared secret and master key using HKDF-like approach
         let mut hasher = Sha256::new();
@@ -261,6 +269,9 @@ impl ApiKeyStore {
                     "kem:*".to_string(),
                     "sig:*".to_string(),
                     "hybrid:*".to_string(),
+                    "monitoring:*".to_string(),
+                    "admin:*".to_string(),
+                    "nist:*".to_string(),
                 ],
                 rate_limit: 100, 
                 created_at: Utc::now(),
@@ -303,6 +314,9 @@ impl ApiKeyStore {
                     "kem:*".to_string(),
                     "sig:*".to_string(),
                     "hybrid:*".to_string(),
+                    "monitoring:*".to_string(),
+                    "admin:*".to_string(),
+                    "nist:*".to_string(),
                 ],
                 rate_limit: 100, 
                 created_at: Utc::now(),
@@ -669,6 +683,9 @@ fn extract_resource_from_path(path: &str) -> String {
         "kem" => format!("kem:{}", segments.get(2).unwrap_or(&"*")),
         "sig" => format!("sig:{}", segments.get(2).unwrap_or(&"*")),
         "hybrid" => "hybrid:sign".to_string(),
+        "monitoring" => "monitoring:read".to_string(),
+        "admin" => "admin:manage".to_string(),
+        "nist" => "nist:read".to_string(),
         _ => "unknown".to_string(),
     }
 }

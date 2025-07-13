@@ -3,7 +3,6 @@
 use std::io::{Error, ErrorKind};
 use std::fs;
 
-/// Linux secure random number generation using getrandom syscall
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     // Try getrandom syscall first (Linux 3.17+)
     if try_getrandom(buffer).is_ok() {
@@ -14,7 +13,6 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     secure_random_bytes_dev_urandom(buffer)
 }
 
-/// Use getrandom syscall directly
 fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
     
     unsafe {
@@ -43,7 +41,6 @@ fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
     Ok(())
 }
 
-/// Fallback to /dev/urandom
 pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     use std::fs::File;
     use std::io::Read;
@@ -53,37 +50,28 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     Ok(())
 }
 
-/// Linux secure memory zeroing using explicit_bzero or zeroize fallback
 pub fn secure_zero(buffer: &mut [u8]) {
     unsafe {
-        // explicit_bzero is available on glibc 2.25+
         if has_explicit_bzero() {
             libc::explicit_bzero(
                 buffer.as_mut_ptr() as *mut libc::c_void,
                 buffer.len(),
             );
         } else {
-            // Safe fallback using zeroize crate (no longer unsafe)
             secure_zero_fallback(buffer);
         }
     }
 }
 
-/// Check if explicit_bzero is available
 fn has_explicit_bzero() -> bool {
-    // Check glibc version or use feature detection
-    // For simplicity, assume it's available on modern Linux
     true
 }
 
-/// Secure zeroing implementation using zeroize crate
 fn secure_zero_fallback(buffer: &mut [u8]) {
-    // Use zeroize crate for safe, compiler-resistant memory clearing
     use zeroize::Zeroize;
     buffer.zeroize();
 }
 
-/// Linux memory protection using mprotect
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use libc::{mprotect, PROT_NONE, PROT_READ, PROT_WRITE};
     
@@ -109,11 +97,7 @@ pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     
     Ok(())
 }
-
-/// Get Linux distribution information
 pub fn get_linux_distro() -> String {
-    
-    // Try /etc/os-release first
     if let Ok(content) = fs::read_to_string("/etc/os-release") {
         for line in content.lines() {
             if line.starts_with("PRETTY_NAME=") {
@@ -123,7 +107,6 @@ pub fn get_linux_distro() -> String {
         }
     }
     
-    // Fallback to /etc/lsb-release
     if let Ok(content) = fs::read_to_string("/etc/lsb-release") {
         for line in content.lines() {
             if line.starts_with("DISTRIB_DESCRIPTION=") {
@@ -133,11 +116,9 @@ pub fn get_linux_distro() -> String {
         }
     }
     
-    // Final fallback
     "Linux (distribution unknown)".to_string()
 }
 
-/// Get kernel version
 pub fn get_kernel_version() -> String {
     
     if let Ok(version) = fs::read_to_string("/proc/version") {
@@ -149,15 +130,11 @@ pub fn get_kernel_version() -> String {
     "Unknown kernel".to_string()
 }
 
-/// Check if running in a container
 pub fn is_running_in_container() -> bool {
-    
-    // Check for Docker
     if fs::metadata("/.dockerenv").is_ok() {
         return true;
     }
     
-    // Check for LXC/LXD
     if let Ok(content) = fs::read_to_string("/proc/1/cgroup") {
         if content.contains("lxc") || content.contains("docker") {
             return true;
@@ -166,8 +143,6 @@ pub fn is_running_in_container() -> bool {
     
     false
 }
-
-/// Get CPU information from /proc/cpuinfo
 pub fn get_cpu_info() -> CpuInfo {
     use std::collections::HashMap;
     
@@ -212,31 +187,20 @@ pub struct CpuInfo {
     pub has_rdrand: bool,
     pub has_rdseed: bool,
 }
-
-/// Linux-specific performance optimizations
 pub fn optimize_for_crypto() -> Result<(), Error> {
-    // Set CPU affinity for crypto operations
     set_cpu_affinity()?;
     
-    // Set process priority
     unsafe {
         if libc::setpriority(libc::PRIO_PROCESS, 0, -5) != 0 {
-            // Non-fatal error, continue
             eprintln!("Warning: Could not set process priority");
         }
     }
     
     Ok(())
 }
-
-/// Set CPU affinity to performance cores
 fn set_cpu_affinity() -> Result<(), Error> {
-    
-    // Try to identify performance cores
     let cpu_count = num_cpus::get();
     
-    // For simplicity, use all available CPUs
-    // In a real implementation, you might want to detect P-cores vs E-cores
     unsafe {
         let mut cpu_set: libc::cpu_set_t = std::mem::zeroed();
         libc::CPU_ZERO(&mut cpu_set);
@@ -256,7 +220,6 @@ fn set_cpu_affinity() -> Result<(), Error> {
     Ok(())
 }
 
-/// Check for hardware security features
 pub fn check_security_features() -> SecurityFeatures {
     let cpu_info = get_cpu_info();
     
@@ -281,7 +244,6 @@ pub struct SecurityFeatures {
 fn check_secure_boot() -> bool {
     
     if let Ok(content) = fs::read_to_string("/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c") {
-        // Check if secure boot is enabled (very simplified)
         content.len() > 4 && content.as_bytes()[4] == 1
     } else {
         false

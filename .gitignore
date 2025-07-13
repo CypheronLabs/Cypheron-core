@@ -28,3 +28,10 @@ SETUP_NIST_IMPLEMENTATIONS.md
 PROJECT_STATUS.md
 OWASP_API_COMPLIANCE.md
 instructions.json
+
+# Cloud Run incompatible files
+docker-compose.yml
+init.sql
+nginx/
+logs/
+config/

@@ -119,11 +119,11 @@ impl HealthChecker {
         // Test ML-KEM-512 operation
         use core_lib::kem::{MlKem512, Kem};
         
-        let (pk, sk) = MlKem512::keypair();
+        let (pk, sk) = MlKem512::keypair().map_err(|e| format!("ML-KEM-512 keypair generation failed: {:?}", e))?;
         
-        let (ct, ss1) = MlKem512::encapsulate(&pk);
+        let (ct, ss1) = MlKem512::encapsulate(&pk).map_err(|e| format!("ML-KEM-512 encapsulation failed: {:?}", e))?;
         
-        let ss2 = MlKem512::decapsulate(&ct, &sk);
+        let ss2 = MlKem512::decapsulate(&ct, &sk).map_err(|e| format!("ML-KEM-512 decapsulation failed: {:?}", e))?;
         if ss1.expose_secret() != ss2.expose_secret() {
             return Err("ML-KEM-512 shared secret mismatch".to_string());
         }

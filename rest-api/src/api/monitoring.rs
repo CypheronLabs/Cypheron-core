@@ -17,20 +17,16 @@ pub fn routes() -> Router<MonitoringState> {
         // Alert management
         .route("/monitoring/alerts", get(monitoring_handler::get_alerts))
         .route("/monitoring/alerts/check", post(monitoring_handler::trigger_manual_alert_check))
-        .route("/monitoring/alerts/:alert_id/acknowledge", post(monitoring_handler::acknowledge_alert))
-        .route("/monitoring/alerts/:alert_id/resolve", post(monitoring_handler::resolve_alert))
+        .route("/monitoring/alerts/{alert_id}/acknowledge", post(monitoring_handler::acknowledge_alert))
+        .route("/monitoring/alerts/{alert_id}/resolve", post(monitoring_handler::resolve_alert))
         
         // Alert rules management
         .route("/monitoring/alert-rules", get(monitoring_handler::get_alert_rules))
         .route("/monitoring/alert-rules", post(monitoring_handler::add_alert_rule))
-        .route("/monitoring/alert-rules/:rule_id", put(monitoring_handler::update_alert_rule))
-        .route("/monitoring/alert-rules/:rule_id", delete(monitoring_handler::delete_alert_rule))
+        .route("/monitoring/alert-rules/{rule_id}", put(monitoring_handler::update_alert_rule))
+        .route("/monitoring/alert-rules/{rule_id}", delete(monitoring_handler::delete_alert_rule))
         
-        // Health checks
-        .route("/health", get(monitoring_handler::get_health_status))
-        .route("/health/detailed", get(monitoring_handler::get_detailed_health_report))
-        .route("/health/ready", get(monitoring_handler::get_readiness_check))
-        .route("/health/live", get(monitoring_handler::get_liveness_check))
+        // Health checks are now handled in public routes in main.rs
         
         // Security monitoring
         .route("/monitoring/security/events", get(monitoring_handler::get_security_events))

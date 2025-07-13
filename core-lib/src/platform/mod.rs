@@ -1,9 +1,4 @@
-/// Cross-platform utilities for PQ-Core
-/// 
-/// This module provides platform-specific implementations for:
-/// - Secure random number generation
-/// - Memory protection
-/// - Performance optimizations
+
 
 #[cfg(target_os = "windows")]
 pub mod windows;
@@ -16,7 +11,6 @@ pub mod linux;
 
 use std::io::Error;
 
-/// Cross-platform secure random number generation
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     #[cfg(target_os = "windows")]
     return windows::secure_random_bytes(buffer);
@@ -37,7 +31,6 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     }
 }
 
-/// Secure memory zeroing (prevents compiler optimization)
 pub fn secure_zero(buffer: &mut [u8]) {
     #[cfg(target_os = "windows")]
     windows::secure_zero(buffer);
@@ -56,7 +49,6 @@ pub fn secure_zero(buffer: &mut [u8]) {
     }
 }
 
-/// Get platform-specific performance information
 pub fn get_platform_info() -> PlatformInfo {
     PlatformInfo {
         os: get_os_name(),
@@ -114,9 +106,33 @@ fn get_cpu_features() -> Vec<String> {
     #[cfg(target_arch = "aarch64")]
     {
         features.push("ARM64".to_string());
-        // Add Apple Silicon specific features
+        
         #[cfg(target_os = "macos")]
-        features.push("Apple Silicon".to_string());
+        {
+            features.push("Apple Silicon".to_string());
+            if std::arch::is_aarch64_feature_detected!("aes") {
+                features.push("ARM64-AES".to_string());
+            }
+            if std::arch::is_aarch64_feature_detected!("sha2") {
+                features.push("ARM64-SHA2".to_string());
+            }
+            if std::arch::is_aarch64_feature_detected!("sha3") {
+                features.push("ARM64-SHA3".to_string());
+            }
+        }
+        
+        #[cfg(not(target_os = "macos"))]
+        {
+            if std::arch::is_aarch64_feature_detected!("aes") {
+                features.push("ARM64-AES".to_string());
+            }
+            if std::arch::is_aarch64_feature_detected!("sha2") {
+                features.push("ARM64-SHA2".to_string());
+            }
+            if std::arch::is_aarch64_feature_detected!("neon") {
+                features.push("ARM64-NEON".to_string());
+            }
+        }
     }
     
     features
@@ -127,7 +143,7 @@ fn has_hardware_rng() -> bool {
     return is_x86_feature_detected!("rdrand") || is_x86_feature_detected!("rdseed");
     
     #[cfg(target_arch = "aarch64")]
-    return true; // ARM64 typically has hardware RNG
+    return std::arch::is_aarch64_feature_detected!("rand");
     
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     return false;
@@ -138,7 +154,7 @@ fn has_aes_ni() -> bool {
     return is_x86_feature_detected!("aes");
     
     #[cfg(target_arch = "aarch64")]
-    return true; // ARM64 has AES instructions
+    return std::arch::is_aarch64_feature_detected!("aes");
     
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     return false;

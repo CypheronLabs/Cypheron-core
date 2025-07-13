@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "core-lib",
-    "cli",
-    "grpc-api",
+    # "cli",  # Not needed for Cloud Run deployment
+    # "grpc-api",  # Not needed if using REST API
     "rest-api"
 ]

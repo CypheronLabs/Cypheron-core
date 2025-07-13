@@ -37,8 +37,8 @@ impl SignatureEngine for Dilithium5Engine {
                     ),
                 )
             },
-            i32::MIN..=-1_i32 | 1_i32..=i32::MAX => { 
-                Err(DilithiumError::KeyGenerationInternalError)
+            code => {
+                Err(DilithiumError::from_c_code(code, "keypair"))
             }
         }
     }
@@ -65,9 +65,8 @@ impl SignatureEngine for Dilithium5Engine {
                 
                 Ok(Signature(sig))
             }
-            _ => { 
-                // TODO: Map specific C error codes if available/needed
-                Err(DilithiumError::SigningInternalError)
+            code => {
+                Err(DilithiumError::from_c_code(code, "sign"))
             }
         }
     }
