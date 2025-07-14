@@ -81,7 +81,7 @@ impl HybridEngine for EccDilithium {
         
         let mut nonce = [0u8; 32];
         use rand::RngCore;
-        rand::thread_rng().fill_bytes(&mut nonce);
+        rand::rng().fill_bytes(&mut nonce);
         
         let mut message_with_timestamp = Vec::new();
         message_with_timestamp.extend_from_slice(&timestamp.to_be_bytes());
@@ -185,7 +185,7 @@ impl HybridEngine for EccFalcon {
 
         let mut nonce = [0u8; 32];
         use rand::RngCore;
-        rand::thread_rng().fill_bytes(&mut nonce);
+        rand::rng().fill_bytes(&mut nonce);
 
         let mut message_with_timestamp = Vec::new();
         message_with_timestamp.extend_from_slice(&timestamp.to_be_bytes());
@@ -284,7 +284,7 @@ impl HybridEngine for EccSphincs {
 
         let mut nonce = [0u8; 32];
         use rand::RngCore;
-        rand::thread_rng().fill_bytes(&mut nonce);
+        rand::rng().fill_bytes(&mut nonce);
 
         let mut message_with_timestamp = Vec::new();
         message_with_timestamp.extend_from_slice(&timestamp.to_be_bytes());

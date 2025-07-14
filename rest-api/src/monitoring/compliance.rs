@@ -198,8 +198,8 @@ impl ComplianceChecker {
 
     pub async fn assess_nist_fips_203_compliance(&self) -> ComplianceReport {
         let mut controls = Vec::new();
-        let mut findings = Vec::new();
-        let mut recommendations = Vec::new();
+        let findings = Vec::new();
+        let recommendations = Vec::new();
 
         // FIPS 203 ML-KEM Implementation Controls
         controls.push(ControlAssessment {
@@ -287,8 +287,8 @@ impl ComplianceChecker {
 
     pub async fn assess_nist_fips_204_compliance(&self) -> ComplianceReport {
         let mut controls = Vec::new();
-        let mut findings = Vec::new();
-        let mut recommendations = Vec::new();
+        let findings = Vec::new();
+        let recommendations = Vec::new();
 
         // FIPS 204 ML-DSA Implementation Controls
         controls.push(ControlAssessment {
@@ -354,8 +354,8 @@ impl ComplianceChecker {
 
     pub async fn assess_soc2_compliance(&self) -> ComplianceReport {
         let mut controls = Vec::new();
-        let mut findings = Vec::new();
-        let mut recommendations = Vec::new();
+        let findings = Vec::new();
+        let recommendations = Vec::new();
 
         // SOC 2 Trust Service Criteria Controls
         controls.push(ControlAssessment {
