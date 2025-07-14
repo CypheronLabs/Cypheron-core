@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  pq-core-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    ports:
+      - "3000:3000"
+    environment:
+      - RUST_LOG=info
+      - PQ_ENVIRONMENT=production
+      - PQ_HOST=0.0.0.0
+      - PQ_PORT=3000
+      - PQ_RATE_LIMIT=100
+      - PQ_MAX_REQUEST_SIZE=10485760
+      - PQ_ENABLE_SOC2=true
+      - PQ_ENABLE_GDPR=true
+    env_file:
+      - .env.production
+    volumes:
+      - logs:/app/logs:rw
+      - config:/app/config:ro
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=10m
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - logs:/var/log/nginx
+    depends_on:
+      - pq-core-api
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    # NO external ports exposed - internal only
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    # NO external ports exposed - internal only
+    environment:
+      - POSTGRES_DB_FILE=/run/secrets/db_name
+      - POSTGRES_USER_FILE=/run/secrets/db_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+    secrets:
+      - db_name
+      - db_user
+      - db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/db_user) -d $$(cat /run/secrets/db_name)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# Use Docker secrets for sensitive data
+secrets:
+  db_name:
+    external: true
+    name: pq_core_db_name
+  db_user:
+    external: true  
+    name: pq_core_db_user
+  db_password:
+    external: true
+    name: pq_core_db_password
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  logs:
+    driver: local
+  config:
+    driver: local
+
+# Isolated network
+networks:
+  app-network:
+    driver: bridge
+    internal: false

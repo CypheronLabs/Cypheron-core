@@ -1,14 +1,16 @@
 # Multi-stage build for production deployment
-FROM rust:1.86 as builder
+FROM rust:1.86-slim as builder
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install only essential build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     libssl-dev \
     pkg-config \
     libclang-dev \
     clang \
+    git \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -24,44 +26,27 @@ COPY rest-api/src ./rest-api/src
 COPY core-lib ./core-lib
 COPY vendor ./vendor
 
-# Build the application in release mode
+# Build with security optimizations
+ENV RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-s"
 RUN cargo build --release --bin rest-api
 
-# Runtime stage
-FROM debian:bookworm-slim
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    curl \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/* \
-    && update-ca-certificates
-
-# Create non-root user
-RUN groupadd -r pqcore && useradd -r -g pqcore pqcore
+# Runtime stage - using distroless for minimal attack surface
+FROM gcr.io/distroless/cc-debian12
 
 # Set working directory
 WORKDIR /app
 
-# Copy the binary from builder stage
-COPY --from=builder /app/target/release/rest-api /app/pq-core-api
+# Copy the binary with proper ownership
+COPY --from=builder --chown=65534:65534 /app/target/release/rest-api /app/pq-core-api
 
-# Copy configuration files (if any)
-COPY --chown=pqcore:pqcore config/ ./config/
+# Copy configuration files (create empty config if none exist)
+COPY --chown=65534:65534 config* ./config/
 
-# Create logs directory
-RUN mkdir -p /app/logs && chown pqcore:pqcore /app/logs
-
-# Switch to non-root user
-USER pqcore
+# Use non-root user (distroless default nonroot user)
+USER 65534:65534
 
 # Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
-
 # Run the application
-CMD ["./pq-core-api"]
+ENTRYPOINT ["/app/pq-core-api"]

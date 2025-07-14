@@ -2,11 +2,11 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "windows")]
-const OS_SUFFIX: &str = "windows";
+const _OS_SUFFIX: &str = "windows";
 #[cfg(target_os = "macos")]
-const OS_SUFFIX: &str = "macos";
+const _OS_SUFFIX: &str = "macos";
 #[cfg(target_os = "linux")]
-const OS_SUFFIX: &str = "linux";
+const _OS_SUFFIX: &str = "linux";
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());

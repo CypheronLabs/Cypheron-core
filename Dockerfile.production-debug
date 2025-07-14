@@ -1,0 +1,71 @@
+# Multi-stage build for production deployment (with debugging tools)
+FROM rust:1.86-slim as builder
+
+# Install only essential build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    libssl-dev \
+    pkg-config \
+    libclang-dev \
+    clang \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency manifests
+COPY Cargo.toml Cargo.lock ./
+COPY rest-api/Cargo.toml ./rest-api/
+COPY core-lib/Cargo.toml ./core-lib/
+
+# Copy source code and vendor dependencies
+COPY rest-api/src ./rest-api/src
+COPY core-lib ./core-lib
+COPY vendor ./vendor
+
+# Build with security optimizations
+ENV RUSTFLAGS="-C target-feature=+crt-static"
+RUN cargo build --release --bin rest-api
+
+# Runtime stage - Debian slim with minimal tools
+FROM debian:bookworm-slim
+
+# Install minimal runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates \
+    && groupadd -r pqcore \
+    && useradd -r -g pqcore -s /bin/false -M pqcore
+
+# Set working directory
+WORKDIR /app
+
+# Copy the binary with proper ownership and permissions
+COPY --from=builder --chown=pqcore:pqcore /app/target/release/rest-api /app/pq-core-api
+RUN chmod 755 /app/pq-core-api
+
+# Copy configuration files (create empty config if none exist)
+COPY --chown=pqcore:pqcore config* ./config/
+
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && \
+    chown pqcore:pqcore /app/logs && \
+    chmod 755 /app/logs
+
+# Use non-root user
+USER pqcore:pqcore
+
+# Expose port
+EXPOSE 3000
+
+# Simple health check without external dependencies
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD /app/pq-core-api --version > /dev/null || exit 1
+
+# Run the application
+CMD ["./pq-core-api"]

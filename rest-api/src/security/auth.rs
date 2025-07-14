@@ -16,12 +16,12 @@ use sha2::{Sha256, Digest};
 use subtle::ConstantTimeEq;
 use sqlx::{PgPool, Row};
 use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, KeyInit};
-use chacha20poly1305::aead::{Aead, OsRng};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use chacha20poly1305::aead::{Aead};
+use zeroize::{ZeroizeOnDrop};
 use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
-use rand::RngCore;
 use core_lib::kem::{MlKem768, Kem};
 use core_lib::platform::secure_random_bytes;
+use base64::{Engine as _, engine::general_purpose};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiKey {
@@ -71,7 +71,7 @@ impl PostQuantumEncryption {
     /// Encrypts data using post-quantum KEM + ChaCha20-Poly1305 hybrid encryption
     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, AuthError> {
         // Generate ML-KEM-768 keypair for this encryption operation
-        let (public_key, secret_key) = MlKem768::keypair().map_err(|_| AuthError {
+        let (public_key, _secret_key) = MlKem768::keypair().map_err(|_| AuthError {
             error: "keypair_error".to_string(),
             message: "Failed to generate ML-KEM-768 keypair".to_string(),
             code: 500,
@@ -553,7 +553,7 @@ async fn store_api_key_in_db(
     raw_key: &str,
 ) -> Result<(), AuthError> {
     let encrypted_key = encryption.encrypt(raw_key.as_bytes())?;
-    let encrypted_key_b64 = base64::encode(&encrypted_key);
+    let encrypted_key_b64 = general_purpose::STANDARD.encode(&encrypted_key);
     
     let query = r#"
         INSERT INTO api_mgmt.api_keys (id, name, key_hash, encrypted_key, permissions, rate_limit, created_at, expires_at, is_active, last_used, usage_count)
