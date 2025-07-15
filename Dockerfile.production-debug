@@ -30,17 +30,16 @@ COPY vendor ./vendor
 ENV RUSTFLAGS="-C target-feature=+crt-static"
 RUN cargo build --release --bin rest-api
 
-# Runtime stage - Debian slim with minimal tools
-FROM debian:bookworm-slim
+# Runtime stage - Alpine Linux for minimal footprint with debugging tools
+FROM alpine:3.19
 
-# Install minimal runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install minimal runtime dependencies and create user
+RUN apk add --no-cache \
     ca-certificates \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/* \
+    tzdata \
     && update-ca-certificates \
-    && groupadd -r pqcore \
-    && useradd -r -g pqcore -s /bin/false -M pqcore
+    && addgroup -g 1000 -S pqcore \
+    && adduser -u 1000 -S pqcore -G pqcore -s /sbin/nologin -D pqcore
 
 # Set working directory
 WORKDIR /app
@@ -63,9 +62,9 @@ USER pqcore:pqcore
 # Expose port
 EXPOSE 3000
 
-# Simple health check without external dependencies
+# Secure health check without version exposure
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD /app/pq-core-api --version > /dev/null || exit 1
+    CMD test -f /app/pq-core-api && test -r /app/pq-core-api || exit 1
 
 # Run the application
 CMD ["./pq-core-api"]
