@@ -2,6 +2,6 @@
 #[allow(non_snake_case)]
 #[allow(non_upper_case_globals)]
 pub mod bindings {
-    include!(concat!(env!("OUT_DIR"), "/dilithium_3_bindings.rs"));
+    include!(concat!(env!("OUT_DIR"), "/ml_dsa_3_bindings.rs"));
 }
 pub use bindings::*;
