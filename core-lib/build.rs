@@ -10,7 +10,7 @@ const _OS_SUFFIX: &str = "linux";
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-    let sphincs_dir = manifest_dir.join("..").join("vendor/sphincsplus");
+    let sphincs_dir = manifest_dir.join("src/sig/sphincs/vendor/sphincsplus");
 
     build_kyber_all(&manifest_dir);
     build_dilithium_all(&manifest_dir);
@@ -21,7 +21,7 @@ fn main() {
 }
 
 fn build_kyber_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir.join("..").join("vendor/kyber/ref");
+    let ref_dir = manifest_dir.join("src/kem/vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
 assert!(
@@ -55,7 +55,7 @@ assert!(
 }
 
 fn build_dilithium_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir.join("..").join("vendor/dilithium/ref");
+    let ref_dir = manifest_dir.join("src/sig/dilithium/vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
     for level in &["2", "3", "5"] {
@@ -84,7 +84,7 @@ fn build_dilithium_all(manifest_dir: &Path) {
 }
 
 fn build_falcon_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir.join("..").join("vendor/falcon");
+    let ref_dir = manifest_dir.join("src/sig/falcon/vendor/falcon");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
     PQBuilder::new("falcon".into(), &ref_dir)
@@ -105,20 +105,10 @@ fn build_falcon_all(manifest_dir: &Path) {
         .allowlist(vec![
             "falcon_keygen_make".into(),
             "falcon_sign_dyn".into(),
-            "falcon_sign_tree".into(),
-            "falcon_sign_dyn_finish".into(),
-            "falcon_sign_tree_finish".into(),
-            "falcon_expand_privkey".into(),
             "falcon_verify".into(),
-            "falcon_verify_start".into(),
-            "falcon_verify_finish".into(),
             "FALCON_TMPSIZE_KEYGEN".into(),
             "FALCON_TMPSIZE_SIGNDYN".into(),
             "FALCON_TMPSIZE_VERIFY".into(),
-            // "shake256_init".into(),
-            // "shake256_inject".into(),
-            // "shake256_flip".into(),
-            // "shake256_extract".into(),
             "shake256_init_prng_from_seed".into(),
             "shake256_init_prng_from_system".into(),
             "FALCON_SIG_COMPRESSED".into(),

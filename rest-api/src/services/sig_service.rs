@@ -20,21 +20,21 @@ impl SigService {
     pub fn generate_keypair(variant: SigVariant) -> Result<KeypairResponse, AppError> {
         match variant {
             // NIST FIPS 204 compliant variants (ML-DSA)
-            SigVariant::MlDsa44 | SigVariant::Dilithium2 => {
+            SigVariant::MlDsa44 => {
                 let (pk, sk) = Dilithium2::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok(KeypairResponse {
                     pk: general_purpose::STANDARD.encode(&pk.0),
                     sk: general_purpose::STANDARD.encode(&sk.0.expose_secret()),
                 })
             }
-            SigVariant::MlDsa65 | SigVariant::Dilithium3 => {
+            SigVariant::MlDsa65 => {
                 let (pk, sk) = Dilithium3::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok(KeypairResponse {
                     pk: general_purpose::STANDARD.encode(&pk.0),
                     sk: general_purpose::STANDARD.encode(&sk.0.expose_secret()),
                 })
             }
-            SigVariant::MlDsa87 | SigVariant::Dilithium5 => {
+            SigVariant::MlDsa87 => {
                 let (pk, sk) = Dilithium5::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok(KeypairResponse {
                     pk: general_purpose::STANDARD.encode(&pk.0),
@@ -55,21 +55,70 @@ impl SigService {
                     sk: general_purpose::STANDARD.encode(&sk.0.expose_secret()),
                 })
             }
-            SigVariant::SlhDsaHaraka192f | SigVariant::Haraka192f => {
+            SigVariant::SlhDsaHaraka192f => {
                 let (pk, sk) = haraka_192f::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok(KeypairResponse {
                     pk: general_purpose::STANDARD.encode(pk.as_bytes()),
                     sk: general_purpose::STANDARD.encode(sk.as_bytes()),
                 })
             }
-            SigVariant::SlhDsaSha2256s | SigVariant::Sha2_256s => {
+            SigVariant::SlhDsaSha2256s => {
                 let (pk, sk) = sha2_256s::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok(KeypairResponse {
                     pk: general_purpose::STANDARD.encode(pk.as_bytes()),
                     sk: general_purpose::STANDARD.encode(sk.as_bytes()),
                 })
             }
-            SigVariant::SlhDsaShake128f | SigVariant::Shake128f => {
+            SigVariant::SlhDsaShake128f => {
+                let (pk, sk) = shake_128f::keypair().map_err(|_| AppError::KeyGenFailed)?;
+                Ok(KeypairResponse {
+                    pk: general_purpose::STANDARD.encode(pk.as_bytes()),
+                    sk: general_purpose::STANDARD.encode(sk.as_bytes()),
+                })
+            }
+            // Handle deprecated variants by forwarding to new implementations
+            #[allow(deprecated)]
+            SigVariant::Dilithium2 => {
+                let (pk, sk) = Dilithium2::keypair().map_err(|_| AppError::KeyGenFailed)?;
+                Ok(KeypairResponse {
+                    pk: general_purpose::STANDARD.encode(&pk.0),
+                    sk: general_purpose::STANDARD.encode(&sk.0.expose_secret()),
+                })
+            }
+            #[allow(deprecated)]
+            SigVariant::Dilithium3 => {
+                let (pk, sk) = Dilithium3::keypair().map_err(|_| AppError::KeyGenFailed)?;
+                Ok(KeypairResponse {
+                    pk: general_purpose::STANDARD.encode(&pk.0),
+                    sk: general_purpose::STANDARD.encode(&sk.0.expose_secret()),
+                })
+            }
+            #[allow(deprecated)]
+            SigVariant::Dilithium5 => {
+                let (pk, sk) = Dilithium5::keypair().map_err(|_| AppError::KeyGenFailed)?;
+                Ok(KeypairResponse {
+                    pk: general_purpose::STANDARD.encode(&pk.0),
+                    sk: general_purpose::STANDARD.encode(&sk.0.expose_secret()),
+                })
+            }
+            #[allow(deprecated)]
+            SigVariant::Haraka192f => {
+                let (pk, sk) = haraka_192f::keypair().map_err(|_| AppError::KeyGenFailed)?;
+                Ok(KeypairResponse {
+                    pk: general_purpose::STANDARD.encode(pk.as_bytes()),
+                    sk: general_purpose::STANDARD.encode(sk.as_bytes()),
+                })
+            }
+            #[allow(deprecated)]
+            SigVariant::Sha2_256s => {
+                let (pk, sk) = sha2_256s::keypair().map_err(|_| AppError::KeyGenFailed)?;
+                Ok(KeypairResponse {
+                    pk: general_purpose::STANDARD.encode(pk.as_bytes()),
+                    sk: general_purpose::STANDARD.encode(sk.as_bytes()),
+                })
+            }
+            #[allow(deprecated)]
+            SigVariant::Shake128f => {
                 let (pk, sk) = shake_128f::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok(KeypairResponse {
                     pk: general_purpose::STANDARD.encode(pk.as_bytes()),
@@ -89,11 +138,17 @@ impl SigService {
         let message_bytes = message.as_bytes();
         
         let algorithm_name = match variant {
-            SigVariant::MlDsa44 | SigVariant::Dilithium2 => "dilithium2",
-            SigVariant::MlDsa65 | SigVariant::Dilithium3 => "dilithium3",
-            SigVariant::MlDsa87 | SigVariant::Dilithium5 => "dilithium5",
+            SigVariant::MlDsa44 => "dilithium2",
+            SigVariant::MlDsa65 => "dilithium3",
+            SigVariant::MlDsa87 => "dilithium5",
             SigVariant::Falcon512 => "falcon512",
             SigVariant::Falcon1024 => "falcon1024",
+            #[allow(deprecated)]
+            SigVariant::Dilithium2 => "dilithium2",
+            #[allow(deprecated)]
+            SigVariant::Dilithium3 => "dilithium3",
+            #[allow(deprecated)]
+            SigVariant::Dilithium5 => "dilithium5",
             _ => "", 
         };
         
@@ -101,30 +156,30 @@ impl SigService {
             validation::validate_decoded_key_size(algorithm_name, &sk_bytes, false)?;
         }
         match variant {
-            SigVariant::MlDsa44 | SigVariant::Dilithium2 => {
+            SigVariant::MlDsa44 => {
                 use secrecy::SecretBox;
                 use core_lib::sig::dilithium::dilithium2::types::SecretKey;
-                let arr: [u8; DILITHIUM2_SECRET] = sk_bytes
+                let arr: [u8; ML_DSA_44_SECRET] = sk_bytes
                     .try_into()
                     .map_err(|_| AppError::InvalidSecretKey)?;
                 let sk = SecretKey(SecretBox::new(Box::new(arr)));
                 let sig = Dilithium2::sign(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
                 Ok(AnySignature::Dilithium2(sig))
             }
-            SigVariant::MlDsa65 | SigVariant::Dilithium3 => {
+            SigVariant::MlDsa65 => {
                 use secrecy::SecretBox;
                 use core_lib::sig::dilithium::dilithium3::types::SecretKey;
-                let arr: [u8; DILITHIUM3_SECRET] = sk_bytes
+                let arr: [u8; ML_DSA_65_SECRET] = sk_bytes
                     .try_into()
                     .map_err(|_| AppError::InvalidSecretKey)?;
                 let sk = SecretKey(SecretBox::new(Box::new(arr)));
                 let sig = Dilithium3::sign(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
                 Ok(AnySignature::Dilithium3(sig))
             }
-            SigVariant::MlDsa87 | SigVariant::Dilithium5 => {
+            SigVariant::MlDsa87 => {
                 use secrecy::SecretBox;
                 use core_lib::sig::dilithium::dilithium5::types::SecretKey;
-                let arr: [u8; DILITHIUM5_SECRET] = sk_bytes
+                let arr: [u8; ML_DSA_87_SECRET] = sk_bytes
                     .try_into()
                     .map_err(|_| AppError::InvalidSecretKey)?;
                 let sk = SecretKey(SecretBox::new(Box::new(arr)));
@@ -151,17 +206,69 @@ impl SigService {
                 let sig = Falcon1024::sign(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
                 Ok(AnySignature::Falcon1024(sig))
             }
-            SigVariant::SlhDsaHaraka192f | SigVariant::Haraka192f => {
+            SigVariant::SlhDsaHaraka192f => {
                 let sk = Haraka192fSecretKey::from_bytes(&sk_bytes).map_err(|_| AppError::InvalidSecretKey)?;
                 let sig = haraka_192f::sign_detached(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
                 Ok(AnySignature::Haraka192f(sig))
             }
-            SigVariant::SlhDsaSha2256s | SigVariant::Sha2_256s => {
+            SigVariant::SlhDsaSha2256s => {
                 let sk = Sha2_256sSecretKey::from_bytes(&sk_bytes).map_err(|_| AppError::InvalidSecretKey)?;
                 let sig = sha2_256s::sign_detached(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
                 Ok(AnySignature::Sha2_256s(sig))
             }
-            SigVariant::SlhDsaShake128f | SigVariant::Shake128f => {
+            SigVariant::SlhDsaShake128f => {
+                let sk = Shake128fSecretKey::from_bytes(&sk_bytes).map_err(|_| AppError::InvalidSecretKey)?;
+                let sig = shake_128f::sign_detached(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
+                Ok(AnySignature::Shake128f(sig))
+            }
+            // Handle deprecated variants by forwarding to new implementations
+            #[allow(deprecated)]
+            SigVariant::Dilithium2 => {
+                use secrecy::SecretBox;
+                use core_lib::sig::dilithium::dilithium2::types::SecretKey;
+                let arr: [u8; ML_DSA_44_SECRET] = sk_bytes
+                    .try_into()
+                    .map_err(|_| AppError::InvalidSecretKey)?;
+                let sk = SecretKey(SecretBox::new(Box::new(arr)));
+                let sig = Dilithium2::sign(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
+                Ok(AnySignature::Dilithium2(sig))
+            }
+            #[allow(deprecated)]
+            SigVariant::Dilithium3 => {
+                use secrecy::SecretBox;
+                use core_lib::sig::dilithium::dilithium3::types::SecretKey;
+                let arr: [u8; ML_DSA_65_SECRET] = sk_bytes
+                    .try_into()
+                    .map_err(|_| AppError::InvalidSecretKey)?;
+                let sk = SecretKey(SecretBox::new(Box::new(arr)));
+                let sig = Dilithium3::sign(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
+                Ok(AnySignature::Dilithium3(sig))
+            }
+            #[allow(deprecated)]
+            SigVariant::Dilithium5 => {
+                use secrecy::SecretBox;
+                use core_lib::sig::dilithium::dilithium5::types::SecretKey;
+                let arr: [u8; ML_DSA_87_SECRET] = sk_bytes
+                    .try_into()
+                    .map_err(|_| AppError::InvalidSecretKey)?;
+                let sk = SecretKey(SecretBox::new(Box::new(arr)));
+                let sig = Dilithium5::sign(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
+                Ok(AnySignature::Dilithium5(sig))
+            }
+            #[allow(deprecated)]
+            SigVariant::Haraka192f => {
+                let sk = Haraka192fSecretKey::from_bytes(&sk_bytes).map_err(|_| AppError::InvalidSecretKey)?;
+                let sig = haraka_192f::sign_detached(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
+                Ok(AnySignature::Haraka192f(sig))
+            }
+            #[allow(deprecated)]
+            SigVariant::Sha2_256s => {
+                let sk = Sha2_256sSecretKey::from_bytes(&sk_bytes).map_err(|_| AppError::InvalidSecretKey)?;
+                let sig = sha2_256s::sign_detached(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
+                Ok(AnySignature::Sha2_256s(sig))
+            }
+            #[allow(deprecated)]
+            SigVariant::Shake128f => {
                 let sk = Shake128fSecretKey::from_bytes(&sk_bytes).map_err(|_| AppError::InvalidSecretKey)?;
                 let sig = shake_128f::sign_detached(message_bytes, &sk).map_err(|_| AppError::SigningFailed)?;
                 Ok(AnySignature::Shake128f(sig))
@@ -179,11 +286,17 @@ impl SigService {
         let msg_bytes = msg.as_bytes();
         
         let algorithm_name = match variant {
-            SigVariant::MlDsa44 | SigVariant::Dilithium2 => "dilithium2",
-            SigVariant::MlDsa65 | SigVariant::Dilithium3 => "dilithium3",
-            SigVariant::MlDsa87 | SigVariant::Dilithium5 => "dilithium5",
+            SigVariant::MlDsa44 => "dilithium2",
+            SigVariant::MlDsa65 => "dilithium3",
+            SigVariant::MlDsa87 => "dilithium5",
             SigVariant::Falcon512 => "falcon512",
             SigVariant::Falcon1024 => "falcon1024",
+            #[allow(deprecated)]
+            SigVariant::Dilithium2 => "dilithium2",
+            #[allow(deprecated)]
+            SigVariant::Dilithium3 => "dilithium3",
+            #[allow(deprecated)]
+            SigVariant::Dilithium5 => "dilithium5",
             _ => "", 
         };
         
@@ -191,17 +304,17 @@ impl SigService {
             validation::validate_decoded_key_size(algorithm_name, &pk_bytes, true)?;
         }
         match variant {
-            SigVariant::MlDsa44 | SigVariant::Dilithium2 => {
+            SigVariant::MlDsa44 => {
                 let pk = core_lib::sig::dilithium::dilithium2::types::PublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidPublicKey)?);
                 let sig = core_lib::sig::dilithium::dilithium2::types::Signature(sig_bytes.try_into().map_err(|_| AppError::InvalidSignature)?);
                 Ok(Dilithium2::verify(msg_bytes, &sig, &pk))
             }
-            SigVariant::MlDsa65 | SigVariant::Dilithium3 => {
+            SigVariant::MlDsa65 => {
                 let pk = core_lib::sig::dilithium::dilithium3::types::PublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidPublicKey)?);
                 let sig = core_lib::sig::dilithium::dilithium3::types::Signature(sig_bytes.try_into().map_err(|_| AppError::InvalidSignature)?);
                 Ok(Dilithium3::verify(msg_bytes, &sig, &pk))
             }
-            SigVariant::MlDsa87 | SigVariant::Dilithium5 => {
+            SigVariant::MlDsa87 => {
                 let pk = core_lib::sig::dilithium::dilithium5::types::PublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidPublicKey)?);
                 let sig = core_lib::sig::dilithium::dilithium5::types::Signature(sig_bytes.try_into().map_err(|_| AppError::InvalidSignature)?);
                 Ok(Dilithium5::verify(msg_bytes, &sig, &pk))
@@ -219,17 +332,54 @@ impl SigService {
                 let sig = Falcon1024Signature(sig_bytes.try_into().map_err(|_| AppError::InvalidSignature)?);
                 Ok(Falcon1024::verify(msg_bytes, &sig, &pk))
             }
-            SigVariant::SlhDsaHaraka192f | SigVariant::Haraka192f => {
+            SigVariant::SlhDsaHaraka192f => {
                 let pk = Haraka192fPublicKey::from_bytes(&pk_bytes).map_err(|_| AppError::InvalidPublicKey)?;
                 let sig = Haraka192fSignature::from_bytes(&sig_bytes).map_err(|_| AppError::InvalidSignature)?;
                 Ok(haraka_192f::verify_detached(&sig, msg_bytes, &pk).is_ok())
             }
-            SigVariant::SlhDsaSha2256s | SigVariant::Sha2_256s => {
+            SigVariant::SlhDsaSha2256s => {
                 let pk = Sha2_256sPublicKey::from_bytes(&pk_bytes).map_err(|_| AppError::InvalidPublicKey)?;
                 let sig = Sha2_256sSignature::from_bytes(&sig_bytes).map_err(|_| AppError::InvalidSignature)?;
                 Ok(sha2_256s::verify_detached(&sig, msg_bytes, &pk).is_ok())
             }
-            SigVariant::SlhDsaShake128f | SigVariant::Shake128f => {
+            SigVariant::SlhDsaShake128f => {
+                let pk = Shake128fPublicKey::from_bytes(&pk_bytes).map_err(|_| AppError::InvalidPublicKey)?;
+                let sig = Shake128fSignature::from_bytes(&sig_bytes).map_err(|_| AppError::InvalidSignature)?;
+                Ok(shake_128f::verify_detached(&sig, msg_bytes, &pk).is_ok())
+            }
+            // Handle deprecated variants by forwarding to new implementations
+            #[allow(deprecated)]
+            SigVariant::Dilithium2 => {
+                let pk = core_lib::sig::dilithium::dilithium2::types::PublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidPublicKey)?);
+                let sig = core_lib::sig::dilithium::dilithium2::types::Signature(sig_bytes.try_into().map_err(|_| AppError::InvalidSignature)?);
+                Ok(Dilithium2::verify(msg_bytes, &sig, &pk))
+            }
+            #[allow(deprecated)]
+            SigVariant::Dilithium3 => {
+                let pk = core_lib::sig::dilithium::dilithium3::types::PublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidPublicKey)?);
+                let sig = core_lib::sig::dilithium::dilithium3::types::Signature(sig_bytes.try_into().map_err(|_| AppError::InvalidSignature)?);
+                Ok(Dilithium3::verify(msg_bytes, &sig, &pk))
+            }
+            #[allow(deprecated)]
+            SigVariant::Dilithium5 => {
+                let pk = core_lib::sig::dilithium::dilithium5::types::PublicKey(pk_bytes.try_into().map_err(|_| AppError::InvalidPublicKey)?);
+                let sig = core_lib::sig::dilithium::dilithium5::types::Signature(sig_bytes.try_into().map_err(|_| AppError::InvalidSignature)?);
+                Ok(Dilithium5::verify(msg_bytes, &sig, &pk))
+            }
+            #[allow(deprecated)]
+            SigVariant::Haraka192f => {
+                let pk = Haraka192fPublicKey::from_bytes(&pk_bytes).map_err(|_| AppError::InvalidPublicKey)?;
+                let sig = Haraka192fSignature::from_bytes(&sig_bytes).map_err(|_| AppError::InvalidSignature)?;
+                Ok(haraka_192f::verify_detached(&sig, msg_bytes, &pk).is_ok())
+            }
+            #[allow(deprecated)]
+            SigVariant::Sha2_256s => {
+                let pk = Sha2_256sPublicKey::from_bytes(&pk_bytes).map_err(|_| AppError::InvalidPublicKey)?;
+                let sig = Sha2_256sSignature::from_bytes(&sig_bytes).map_err(|_| AppError::InvalidSignature)?;
+                Ok(sha2_256s::verify_detached(&sig, msg_bytes, &pk).is_ok())
+            }
+            #[allow(deprecated)]
+            SigVariant::Shake128f => {
                 let pk = Shake128fPublicKey::from_bytes(&pk_bytes).map_err(|_| AppError::InvalidPublicKey)?;
                 let sig = Shake128fSignature::from_bytes(&sig_bytes).map_err(|_| AppError::InvalidSignature)?;
                 Ok(shake_128f::verify_detached(&sig, msg_bytes, &pk).is_ok())
