@@ -1,4 +1,4 @@
-// NIST FIPS 203 Compliant ML-KEM modules
+
 pub mod ml_kem_512;
 pub mod ml_kem_768;
 pub mod ml_kem_1024;

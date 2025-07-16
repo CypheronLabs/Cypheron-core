@@ -5,7 +5,7 @@ use crate::error::AppError;
 use serde_json::json;
 use core_lib::sig::dilithium::dilithium2::{types::SecretKey as Dilithium2SecretKey, Dilithium2};
 use core_lib::sig::traits::SignatureEngine;
-use core_lib::sig::dilithium::common::DILITHIUM2_SECRET;
+use core_lib::sig::dilithium::common::ML_DSA_44_SECRET;
 use p256::{ecdsa::{SigningKey, signature::Signer, Signature}};
 use secrecy::SecretBox;
 
@@ -33,7 +33,7 @@ pub async fn sign_hybrid_jwt(Json(payload): Json<HybridSignRequest>) -> Result<i
     let es256_signature_base64 = encode_base64_url(&es256_signature.to_der().as_bytes());
 
     let dilithium2_sk_bytes = decode_base64_url(&payload.dilithium2_sk)?;
-    let arr: [u8; DILITHIUM2_SECRET] = dilithium2_sk_bytes
+    let arr: [u8; ML_DSA_44_SECRET] = dilithium2_sk_bytes
         .try_into()
         .map_err(|_| AppError::InvalidSecretKey)?;
     let dilithium2_sk = Dilithium2SecretKey(SecretBox::new(Box::new(arr)));

@@ -2,13 +2,10 @@ use axum::{extract::{Query, Path, State}, Json};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc, Duration};
 use uuid::Uuid;
-use std::collections::HashMap;
-use std::sync::Arc;
 
 use crate::error::AppError;
 use crate::monitoring::{
-    MonitoringState, MetricsCollector, AlertManager, HealthChecker, ComplianceChecker,
-    SecurityEventMonitor, Alert, AlertRule, SecurityEvent, ComplianceFramework
+    MonitoringState, Alert, AlertRule, SecurityEvent
 };
 
 #[derive(Debug, Deserialize)]

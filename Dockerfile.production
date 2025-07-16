@@ -1,5 +1,5 @@
 # Multi-stage build for production deployment
-FROM rust:1.86-slim as builder
+FROM rust:1.86 as builder
 
 # Install only essential build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,7 +27,7 @@ COPY core-lib ./core-lib
 COPY vendor ./vendor
 
 # Build with security optimizations
-ENV RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-s"
+# ENV RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-s"
 RUN cargo build --release --bin rest-api
 
 # Runtime stage - using distroless for minimal attack surface

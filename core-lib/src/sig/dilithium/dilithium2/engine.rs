@@ -17,9 +17,8 @@ impl SignatureEngine for Dilithium2Engine {
     type Error = DilithiumError;
 
     fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
-        // Initialize buffers to zero before passing to C functions for safety
-        let mut pk = [0u8; DILITHIUM2_PUBLIC];
-        let mut sk = [0u8; DILITHIUM2_SECRET];
+        let mut pk = [0u8; ML_DSA_44_PUBLIC];
+        let mut sk = [0u8; ML_DSA_44_SECRET];
 
         let result = unsafe {
             pqcrystals_dilithium2_ref_keypair(
@@ -44,7 +43,7 @@ impl SignatureEngine for Dilithium2Engine {
     }
 
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error> {
-        let mut sig = MaybeUninit::<[u8; DILITHIUM2_SIGNATURE]>::uninit();
+        let mut sig = MaybeUninit::<[u8; ML_DSA_44_SIGNATURE]>::uninit();
         let mut siglen = 0usize;
         let sk_bytes = sk.0.expose_secret();
 

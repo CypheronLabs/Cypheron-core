@@ -92,27 +92,27 @@ pub fn parse_sig_variant(s: &str) -> Result<SigVariant, AppError> {
         // Backward compatibility (deprecated)
         "dilithium2" => {
             tracing::warn!("Using deprecated 'dilithium2', please use 'ml-dsa-44' for NIST FIPS 204 compliance");
-            Ok(SigVariant::Dilithium2)
+            Ok(SigVariant::MlDsa44)
         },
         "dilithium3" => {
             tracing::warn!("Using deprecated 'dilithium3', please use 'ml-dsa-65' for NIST FIPS 204 compliance");
-            Ok(SigVariant::Dilithium3)
+            Ok(SigVariant::MlDsa65)
         },
         "dilithium5" => {
             tracing::warn!("Using deprecated 'dilithium5', please use 'ml-dsa-87' for NIST FIPS 204 compliance");
-            Ok(SigVariant::Dilithium5)
+            Ok(SigVariant::MlDsa87)
         },
         "haraka_192f" => {
             tracing::warn!("Using deprecated 'haraka_192f', please use 'slh-dsa-haraka-192f' for NIST FIPS 205 compliance");
-            Ok(SigVariant::Haraka192f)
+            Ok(SigVariant::SlhDsaHaraka192f)
         },
         "sha2_256s" => {
             tracing::warn!("Using deprecated 'sha2_256s', please use 'slh-dsa-sha2-256s' for NIST FIPS 205 compliance");
-            Ok(SigVariant::Sha2_256s)
+            Ok(SigVariant::SlhDsaSha2256s)
         },
         "shake_128f" => {
             tracing::warn!("Using deprecated 'shake_128f', please use 'slh-dsa-shake-128f' for NIST FIPS 205 compliance");
-            Ok(SigVariant::Shake128f)
+            Ok(SigVariant::SlhDsaShake128f)
         },
         
         _ => Err(AppError::InvalidVariant),
