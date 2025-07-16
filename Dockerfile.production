@@ -21,10 +21,9 @@ COPY Cargo.toml Cargo.lock ./
 COPY rest-api/Cargo.toml ./rest-api/
 COPY core-lib/Cargo.toml ./core-lib/
 
-# Copy source code and vendor dependencies
+# Copy source code (vendor is now included in core-lib)
 COPY rest-api/src ./rest-api/src
 COPY core-lib ./core-lib
-COPY vendor ./vendor
 
 # Build with security optimizations
 # ENV RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-s"

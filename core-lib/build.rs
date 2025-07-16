@@ -1,5 +1,6 @@
 use std::env;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 #[cfg(target_os = "windows")]
 const _OS_SUFFIX: &str = "windows";
@@ -10,7 +11,10 @@ const _OS_SUFFIX: &str = "linux";
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-    let sphincs_dir = manifest_dir.join("src/sig/sphincs/vendor/sphincsplus");
+    let sphincs_dir = manifest_dir.join("vendor/sphincsplus");
+
+    // Verify vendor code integrity before building
+    verify_vendor_integrity(&manifest_dir);
 
     build_kyber_all(&manifest_dir);
     build_dilithium_all(&manifest_dir);
@@ -20,16 +24,60 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 }
 
+/// Verify vendor code integrity before building
+fn verify_vendor_integrity(manifest_dir: &Path) {
+    // Only verify integrity if SKIP_VENDOR_INTEGRITY is not set
+    if env::var("SKIP_VENDOR_INTEGRITY").is_ok() {
+        println!("cargo:warning=Skipping vendor integrity verification");
+        return;
+    }
+
+    let vendor_script = manifest_dir.parent().unwrap().join("scripts/vendor-integrity.sh");
+    
+    if !vendor_script.exists() {
+        println!("cargo:warning=Vendor integrity script not found, skipping verification");
+        return;
+    }
+
+    println!("cargo:warning=Verifying vendor code integrity...");
+    
+    let output = Command::new("bash")
+        .arg(&vendor_script)
+        .arg("verify")
+        .current_dir(manifest_dir.parent().unwrap())
+        .output();
+
+    match output {
+        Ok(result) => {
+            if !result.status.success() {
+                eprintln!("Vendor integrity verification failed!");
+                eprintln!("STDOUT: {}", String::from_utf8_lossy(&result.stdout));
+                eprintln!("STDERR: {}", String::from_utf8_lossy(&result.stderr));
+                eprintln!("Set SKIP_VENDOR_INTEGRITY=1 to skip this check (not recommended)");
+                std::process::exit(1);
+            } else {
+                println!("cargo:warning=Vendor integrity verification passed");
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to run vendor integrity verification: {}", e);
+            eprintln!("Set SKIP_VENDOR_INTEGRITY=1 to skip this check (not recommended)");
+            std::process::exit(1);
+        }
+    }
+}
+
 fn build_kyber_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir.join("src/kem/vendor/kyber/ref");
+    let ref_dir = manifest_dir.join("vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
 assert!(
     ref_dir.join("indcpa.c").exists(),
-    "[build.rs] Missing Kyber file: indcpa.c"
+    "[build.rs] Missing ML-KEM (Kyber) file: indcpa.c"
 );
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
-        PQBuilder::new(format!("kyber{}", variant), &ref_dir)
+        // Use ML-KEM naming for NIST compliance while maintaining Kyber compatibility
+        PQBuilder::new(format!("ml_kem_{}", variant), &ref_dir)
             .files(vec![
                 "indcpa.c",
                 "kem.c",
@@ -46,6 +94,7 @@ assert!(
             .defines(vec![("KYBER_K", k_val)])
             .header("api.h")
             .allowlist(vec![
+                // Keep original function names for compatibility with C implementation
                 format!("pqcrystals_kyber{}_ref_keypair", variant),
                 format!("pqcrystals_kyber{}_ref_enc", variant),
                 format!("pqcrystals_kyber{}_ref_dec", variant),
@@ -55,11 +104,12 @@ assert!(
 }
 
 fn build_dilithium_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir.join("src/sig/dilithium/vendor/dilithium/ref");
+    let ref_dir = manifest_dir.join("vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
     for level in &["2", "3", "5"] {
-        PQBuilder::new(format!("dilithium_{}", level), &ref_dir)
+        // Use ML-DSA naming for NIST compliance while maintaining Dilithium compatibility
+        PQBuilder::new(format!("ml_dsa_{}", level), &ref_dir)
             .files(vec![
                 "sign.c",
                 "polyvec.c",
@@ -75,6 +125,7 @@ fn build_dilithium_all(manifest_dir: &Path) {
             .defines(vec![("DILITHIUM_MODE", level)])
             .header("api.h")
             .allowlist(vec![
+                // Keep original function names for compatibility with C implementation
                 format!("pqcrystals_dilithium{}_ref_keypair", level),
                 format!("pqcrystals_dilithium{}_ref_signature", level),
                 format!("pqcrystals_dilithium{}_ref_verify", level),
@@ -84,7 +135,7 @@ fn build_dilithium_all(manifest_dir: &Path) {
 }
 
 fn build_falcon_all(manifest_dir: &Path) {
-    let ref_dir = manifest_dir.join("src/sig/falcon/vendor/falcon");
+    let ref_dir = manifest_dir.join("vendor/falcon");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
     PQBuilder::new("falcon".into(), &ref_dir)
