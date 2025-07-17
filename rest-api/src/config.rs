@@ -176,9 +176,10 @@ impl AppConfig {
         config
     }
     
+    #[allow(dead_code)]
     pub fn validate(&self) -> Result<(), String> {
         // Validate server configuration
-        if self.server.port == 0 || self.server.port > 65535 {
+        if self.server.port == 0 {
             return Err("Invalid port number".to_string());
         }
         
@@ -218,6 +219,7 @@ impl AppConfig {
     }
 }
 
+#[allow(dead_code)]
 pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
     let config = AppConfig::from_env();
     config.validate().map_err(|e| format!("Configuration validation failed: {}", e))?;

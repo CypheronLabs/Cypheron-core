@@ -12,6 +12,7 @@ mod utils;
 mod security;
 mod validation;
 mod monitoring;
+mod state;
 
 #[tokio::main]
 async fn main() {
@@ -49,6 +50,12 @@ async fn main() {
         monitoring::ComplianceFramework::NistFips203,
         Duration::days(30)
     ));
+    
+    // Initialize compliance manager for SOC 2 and GDPR compliance
+    let compliance_manager = Arc::new(security::ComplianceManager::new());
+    
+    // Create combined app state
+    let app_state = state::AppState::new(audit_logger.clone(), compliance_manager.clone());
 
     // Start background monitoring tasks
     let alert_manager_bg = alert_manager.clone();
@@ -60,7 +67,34 @@ async fn main() {
         }
     });
 
+    // Start background data retention cleanup task
+    let compliance_manager_bg = compliance_manager.clone();
+    let audit_logger_bg = audit_logger.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600)); // Run every hour
+        loop {
+            interval.tick().await;
+            
+            // Cleanup old compliance events
+            compliance_manager_bg.cleanup_old_events().await;
+            
+            // Cleanup old audit logs (based on retention policy)
+            let retention_policy = compliance_manager_bg.get_retention_policy();
+            let audit_cutoff_days = retention_policy.audit_retention_days;
+            audit_logger_bg.cleanup_old_events(audit_cutoff_days).await;
+            
+            tracing::info!("Data retention cleanup cycle completed");
+        }
+    });
+
     tracing::info!("Security monitoring and alerting system initialized");
+    tracing::info!("Enhanced security features enabled:");
+    tracing::info!("  - Data Retention Policy: {} day default, {} day audit retention", 
+        compliance_manager.get_retention_policy().default_retention_days,
+        compliance_manager.get_retention_policy().audit_retention_days);
+    tracing::info!("  - Privacy Controls: PII sanitization and pseudonymization active");
+    tracing::info!("  - Post-Quantum Encryption: API key storage and retrieval");
+    tracing::info!("  - Background Data Cleanup: Hourly retention enforcement");
 
     // Create the combined monitoring state with audit logger
     let monitoring_state = monitoring::MonitoringState::new_with_audit(
@@ -85,7 +119,7 @@ async fn main() {
 
     // Authenticated API routes
     let api_routes = Router::new()
-        .merge(api::kem::routes().with_state(audit_logger.clone()))
+        .merge(api::kem::routes().with_state(app_state.clone()))
         .merge(api::sig::routes().with_state(audit_logger.clone()))
         .merge(api::hybrid::routes())
         .merge(api::nist::routes())
@@ -97,6 +131,10 @@ async fn main() {
         .layer(middleware::from_fn_with_state(
             rate_limiter.clone(),
             security::rate_limit_middleware,
+        ))
+        .layer(middleware::from_fn_with_state(
+            compliance_manager.clone(),
+            security::compliance_middleware,
         ))
         .layer(middleware::from_fn(security::request_validation_middleware))
         .layer(middleware::from_fn(security::timing_middleware))

@@ -1,9 +1,8 @@
 use axum::{Router, routing::{post, get}};
 use crate::handlers::kem_handler;
-use crate::security::AuditLogger;
-use std::sync::Arc;
+use crate::state::AppState;
 
-pub fn routes() -> Router<Arc<AuditLogger>> {
+pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/kem/{variant}/keygen", post(kem_handler::keygen))
         .route("/kem/{variant}/encapsulate", post(kem_handler::encapsulate))

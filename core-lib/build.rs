@@ -512,6 +512,8 @@ impl<'a> PQBuilder<'a> {
         {
             build.flag_if_supported("-std=c99");
             build.flag_if_supported("-Wno-unused-function");
+            build.flag_if_supported("-Wno-implicit-function-declaration");
+            build.define("_GNU_SOURCE", None);
             
             // Link with pthread for random number generation
             println!("cargo:rustc-link-lib=pthread");

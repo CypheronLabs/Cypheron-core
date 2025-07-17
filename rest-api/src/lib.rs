@@ -8,6 +8,7 @@ pub mod security;
 pub mod validation;
 pub mod config;
 pub mod monitoring;
+pub mod state;
 
 pub use config::{AppConfig, load_config};
 pub use security::*;

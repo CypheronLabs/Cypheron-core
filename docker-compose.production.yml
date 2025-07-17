@@ -2,9 +2,11 @@ version: '3.8'
 
 services:
   pq-core-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.production
+    # Use pre-built image from registry, fallback to local build
+    image: ghcr.io/cypheron-labs/cypheron-core:latest
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.production
     ports:
       - "3000:3000"
     environment:

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
+use std::sync::Arc;
 
 /// SOC 2 Compliance framework implementation
 /// Addresses Trust Services Criteria: Security, Availability, Processing Integrity, 
@@ -109,22 +110,33 @@ pub enum EncryptionStatus {
 }
 
 pub struct ComplianceManager {
-    events: Vec<ComplianceEvent>,
-    access_controls: HashMap<String, AccessControl>,
-    data_processing_records: Vec<DataProcessingRecord>,
+    events: Arc<tokio::sync::RwLock<Vec<ComplianceEvent>>>,
+    access_controls: Arc<tokio::sync::RwLock<HashMap<String, AccessControl>>>,
+    data_processing_records: Arc<tokio::sync::RwLock<Vec<DataProcessingRecord>>>,
+    retention_policy: DataRetentionPolicy,
+    privacy_controls: PrivacyControls,
 }
 
 impl ComplianceManager {
     pub fn new() -> Self {
         Self {
-            events: Vec::new(),
-            access_controls: HashMap::new(),
-            data_processing_records: Vec::new(),
+            events: Arc::new(tokio::sync::RwLock::new(Vec::new())),
+            access_controls: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            data_processing_records: Arc::new(tokio::sync::RwLock::new(Vec::new())),
+            retention_policy: DataRetentionPolicy::default(),
+            privacy_controls: PrivacyControls,
         }
     }
 
-    /// Log compliance event (SOC 2 CC7.1 - Monitoring)
-    pub fn log_event(&mut self, event_type: ComplianceEventType, details: HashMap<String, String>, risk_level: RiskLevel) {
+    /// Log compliance event asynchronously (SOC 2 CC7.1 - Monitoring)
+    pub async fn log_event(&self, event_type: ComplianceEventType, mut details: HashMap<String, String>, risk_level: RiskLevel) {
+        // Apply privacy controls to sanitize sensitive data in details
+        for (key, value) in details.iter_mut() {
+            if key.contains("user") || key.contains("email") || key.contains("identifier") {
+                *value = self.sanitize_sensitive_data(value);
+            }
+        }
+        
         let event = ComplianceEvent {
             id: Uuid::new_v4(),
             timestamp: Utc::now(),
@@ -136,7 +148,54 @@ impl ComplianceManager {
             risk_level,
         };
 
-        self.events.push(event.clone());
+        // Add to events collection
+        {
+            let mut events = self.events.write().await;
+            events.push(event.clone());
+        }
+
+        // Log to structured logging system
+        match event.risk_level {
+            RiskLevel::Critical => tracing::error!("COMPLIANCE_CRITICAL: {:?}", event),
+            RiskLevel::High => tracing::warn!("COMPLIANCE_HIGH: {:?}", event),
+            RiskLevel::Medium => tracing::info!("COMPLIANCE_MEDIUM: {:?}", event),
+            RiskLevel::Low => tracing::debug!("COMPLIANCE_LOW: {:?}", event),
+        }
+    }
+
+    /// Log compliance event in a non-blocking way (fire and forget)
+    pub fn log_event_async(&self, event_type: ComplianceEventType, details: HashMap<String, String>, risk_level: RiskLevel) {
+        let self_clone = self.clone();
+        tokio::spawn(async move {
+            self_clone.log_event(event_type, details, risk_level).await;
+        });
+    }
+
+    /// Enhanced logging with user context and privacy controls
+    pub async fn log_event_with_user(&self, event_type: ComplianceEventType, mut details: HashMap<String, String>, risk_level: RiskLevel, user_id: Option<&str>, ip_address: Option<&str>) {
+        // Apply privacy controls to sanitize sensitive data
+        for (key, value) in details.iter_mut() {
+            if key.contains("user") || key.contains("email") || key.contains("identifier") {
+                *value = self.sanitize_sensitive_data(value);
+            }
+        }
+        
+        let event = ComplianceEvent {
+            id: Uuid::new_v4(),
+            timestamp: Utc::now(),
+            event_type,
+            details,
+            user_id: user_id.map(|id| self.pseudonymize_user_id(id)),
+            api_key_id: None,
+            ip_address: ip_address.map(|ip| self.sanitize_sensitive_data(ip)),
+            risk_level,
+        };
+
+        // Add to events collection
+        {
+            let mut events = self.events.write().await;
+            events.push(event.clone());
+        }
 
         // Log to structured logging system
         match event.risk_level {
@@ -148,7 +207,7 @@ impl ComplianceManager {
     }
 
     /// Record data processing activity (SOC 2 P1.0 - Privacy)
-    pub fn record_data_processing(&mut self, operation: String, data_type: String, purpose: String) {
+    pub async fn record_data_processing(&self, operation: String, data_type: String, purpose: String) {
         let record = DataProcessingRecord {
             id: Uuid::new_v4(),
             operation,
@@ -161,12 +220,14 @@ impl ComplianceManager {
             encryption_status: EncryptionStatus::Both,
         };
 
-        self.data_processing_records.push(record);
+        let mut records = self.data_processing_records.write().await;
+        records.push(record);
     }
 
     /// Validate access controls (SOC 2 CC6.2 - Logical Access)
-    pub fn validate_access(&self, user_id: &str, required_permission: &str) -> bool {
-        if let Some(access_control) = self.access_controls.get(user_id) {
+    pub async fn validate_access(&self, user_id: &str, required_permission: &str) -> bool {
+        let access_controls = self.access_controls.read().await;
+        if let Some(access_control) = access_controls.get(user_id) {
             match access_control.status {
                 AccessStatus::Active => {
                     // Check expiration
@@ -188,8 +249,9 @@ impl ComplianceManager {
     }
 
     /// Generate compliance report (SOC 2 CC7.4 - Reporting)
-    pub fn generate_compliance_report(&self, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> ComplianceReport {
-        let events_in_period: Vec<&ComplianceEvent> = self.events.iter()
+    pub async fn generate_compliance_report(&self, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> ComplianceReport {
+        let events = self.events.read().await;
+        let events_in_period: Vec<&ComplianceEvent> = events.iter()
             .filter(|e| e.timestamp >= start_date && e.timestamp <= end_date)
             .collect();
 
@@ -231,6 +293,44 @@ impl ComplianceManager {
     fn count_access_reviews(&self, _start_date: DateTime<Utc>, _end_date: DateTime<Utc>) -> u32 {
         // Implementation would count access reviews performed in period
         0
+    }
+
+    /// Clean up old events based on retention policy (SOC 2 P1.2 - Data Retention)
+    pub async fn cleanup_old_events(&self) {
+        let cutoff_date = Utc::now() - chrono::Duration::days(self.retention_policy.compliance_retention_days as i64);
+        
+        {
+            let mut events = self.events.write().await;
+            events.retain(|event| event.timestamp >= cutoff_date);
+        }
+        
+        // Also cleanup data processing records
+        let data_cutoff_date = Utc::now() - chrono::Duration::days(self.retention_policy.default_retention_days as i64);
+        {
+            let mut records = self.data_processing_records.write().await;
+            records.retain(|record| record.timestamp >= data_cutoff_date);
+        }
+        
+        tracing::info!(
+            "Compliance data cleanup completed. Removed events older than {} days and records older than {} days",
+            self.retention_policy.compliance_retention_days,
+            self.retention_policy.default_retention_days
+        );
+    }
+
+    /// Get retention policy for external use
+    pub fn get_retention_policy(&self) -> &DataRetentionPolicy {
+        &self.retention_policy
+    }
+
+    /// Apply privacy controls to sensitive data before logging
+    pub fn sanitize_sensitive_data(&self, data: &str) -> String {
+        PrivacyControls::sanitize_for_compliance_log(data)
+    }
+
+    /// Pseudonymize user identifier for privacy compliance
+    pub fn pseudonymize_user_id(&self, user_id: &str) -> String {
+        PrivacyControls::pseudonymize_identifier(user_id)
     }
 
     /// Perform security control validation (SOC 2 CC6.0)
@@ -275,6 +375,7 @@ pub struct SecurityControlStatus {
 }
 
 /// Data retention policy implementation (SOC 2 P1.2)
+#[derive(Debug, Clone)]
 pub struct DataRetentionPolicy {
     pub default_retention_days: u32,
     pub log_retention_days: u32,
@@ -294,6 +395,7 @@ impl Default for DataRetentionPolicy {
 }
 
 /// Privacy controls implementation (SOC 2 P1.0)
+#[derive(Debug, Clone, Copy)]
 pub struct PrivacyControls;
 
 impl PrivacyControls {
@@ -328,5 +430,16 @@ impl PrivacyControls {
         }
         
         sanitized
+    }
+}
+impl Clone for ComplianceManager {
+    fn clone(&self) -> Self {
+        Self {
+            events: Arc::clone(&self.events),
+            access_controls: Arc::clone(&self.access_controls),
+            data_processing_records: Arc::clone(&self.data_processing_records),
+            retention_policy: self.retention_policy.clone(),
+            privacy_controls: self.privacy_controls,
+        }
     }
 }

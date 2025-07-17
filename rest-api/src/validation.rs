@@ -3,10 +3,12 @@ use serde_json::Value;
 use base64::Engine;
 
 pub const MAX_MESSAGE_SIZE: usize = 1024 * 1024; 
+#[allow(dead_code)]
 pub const MAX_JSON_PAYLOAD_SIZE: usize = 10 * 1024 * 1024; 
 pub const MAX_BASE64_KEY_SIZE: usize = 8192; 
 pub const MAX_BASE64_SIGNATURE_SIZE: usize = 16384; 
 pub const MAX_PATH_PARAMETER_LENGTH: usize = 100;
+#[allow(dead_code)]
 pub const MAX_API_KEY_NAME_LENGTH: usize = 100;
 
 pub fn validate_message(message: &str) -> Result<(), AppError> {
@@ -100,6 +102,7 @@ pub fn validate_path_parameter(param: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn validate_api_key_name(name: &str) -> Result<(), AppError> {
     if name.is_empty() {
         return Err(AppError::ValidationError("API key name cannot be empty".to_string()));
@@ -120,6 +123,7 @@ pub fn validate_api_key_name(name: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn validate_json_payload_size(json: &Value) -> Result<(), AppError> {
     let serialized_size = serde_json::to_string(json)
         .map_err(|_| AppError::ValidationError("Failed to serialize JSON".to_string()))?
@@ -134,6 +138,7 @@ pub fn validate_json_payload_size(json: &Value) -> Result<(), AppError> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn validate_permissions(permissions: &[String]) -> Result<(), AppError> {
     const MAX_PERMISSIONS: usize = 10;
     const VALID_PERMISSIONS: &[&str] = &[
@@ -164,6 +169,7 @@ pub fn validate_permissions(permissions: &[String]) -> Result<(), AppError> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn validate_rate_limit(rate_limit: u32) -> Result<(), AppError> {
     const MIN_RATE_LIMIT: u32 = 1;
     const MAX_RATE_LIMIT: u32 = 10000; 
@@ -178,6 +184,7 @@ pub fn validate_rate_limit(rate_limit: u32) -> Result<(), AppError> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn sanitize_for_logging(input: &str) -> String {
     input
         .chars()

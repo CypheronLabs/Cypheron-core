@@ -5,15 +5,15 @@ pub mod security_events;
 pub mod health;
 
 // Export key types with specific names to avoid conflicts
-pub use metrics::{MetricsCollector, CryptoMetrics, SecurityEventType as MetricsSecurityEventType, SecuritySeverity as MetricsSecuritySeverity};
-pub use alerts::{AlertManager, Alert, AlertRule, AlertStatus, AlertSeverity};
-pub use compliance::{ComplianceChecker, ComplianceFramework, ComplianceStatus as ComplianceCheckStatus};
-pub use security_events::{SecurityEventMonitor, SecurityEvent, SecurityEventType as EventSecurityEventType, SecuritySeverity as EventSecuritySeverity, ThreatLevel as EventThreatLevel};
-pub use health::{HealthChecker, HealthStatus, ServiceHealth, ServiceStatus, ThreatLevel as HealthThreatLevel};
+pub use metrics::MetricsCollector;
+pub use alerts::{AlertManager, Alert, AlertRule};
+pub use compliance::{ComplianceChecker, ComplianceFramework};
+pub use security_events::{SecurityEventMonitor, SecurityEvent};
+pub use health::HealthChecker;
 
 use std::sync::Arc;
 use axum::extract::FromRef;
-use crate::security::AuditLogger;
+use crate::security::{AuditLogger, ComplianceManager};
 
 /// Combined monitoring state for the API routes
 #[derive(Clone)]
@@ -24,6 +24,7 @@ pub struct MonitoringState {
     pub security_events: Arc<SecurityEventMonitor>,
     pub health: Arc<HealthChecker>,
     pub audit: Arc<AuditLogger>,
+    pub compliance_manager: Arc<ComplianceManager>,
 }
 
 impl MonitoringState {
@@ -36,6 +37,7 @@ impl MonitoringState {
     ) -> Self {
         // Create audit logger with reasonable defaults
         let audit = Arc::new(AuditLogger::new(10000));
+        let compliance_manager = Arc::new(ComplianceManager::new());
         
         Self {
             metrics,
@@ -44,6 +46,7 @@ impl MonitoringState {
             security_events,
             health,
             audit,
+            compliance_manager,
         }
     }
     
@@ -55,6 +58,8 @@ impl MonitoringState {
         health: Arc<HealthChecker>,
         audit: Arc<AuditLogger>,
     ) -> Self {
+        let compliance_manager = Arc::new(ComplianceManager::new());
+        
         Self {
             metrics,
             alerts,
@@ -62,6 +67,7 @@ impl MonitoringState {
             security_events,
             health,
             audit,
+            compliance_manager,
         }
     }
 }
@@ -100,5 +106,11 @@ impl FromRef<MonitoringState> for Arc<HealthChecker> {
 impl FromRef<MonitoringState> for Arc<AuditLogger> {
     fn from_ref(state: &MonitoringState) -> Arc<AuditLogger> {
         state.audit.clone()
+    }
+}
+
+impl FromRef<MonitoringState> for Arc<ComplianceManager> {
+    fn from_ref(state: &MonitoringState) -> Arc<ComplianceManager> {
+        state.compliance_manager.clone()
     }
 }
