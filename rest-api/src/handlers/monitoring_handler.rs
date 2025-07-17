@@ -17,6 +17,7 @@ pub struct MetricsQuery {
 #[derive(Debug, Deserialize)]
 pub struct AlertQuery {
     pub status: Option<String>,
+    #[allow(dead_code)]
     pub severity: Option<String>,
     pub limit: Option<usize>,
 }

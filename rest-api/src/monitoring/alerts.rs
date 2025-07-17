@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc, Duration};
 use uuid::Uuid;
 use std::collections::HashMap;
 
-use super::metrics::{MetricsCollector, SecurityEventType, SecuritySeverity};
+use super::metrics::{MetricsCollector, SecurityEventType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Alert {

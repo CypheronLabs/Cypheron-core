@@ -22,6 +22,7 @@ use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 use core_lib::kem::{MlKem768, Kem};
 use core_lib::platform::secure_random_bytes;
 use base64::{Engine as _, engine::general_purpose};
+use super::compliance::{ComplianceManager, ComplianceEventType, RiskLevel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiKey {
@@ -368,7 +369,7 @@ impl ApiKeyStore {
     
     async fn validate_key_from_db(&self, key_hash: &str) -> Result<Option<ApiKey>, AuthError> {
         let query = r#"
-            SELECT id, name, permissions, rate_limit, created_at, expires_at, is_active, last_used, usage_count
+            SELECT id, name, permissions, rate_limit, created_at, expires_at, is_active, last_used, usage_count, encrypted_key
             FROM api_mgmt.api_keys
             WHERE key_hash = $1
         "#;
@@ -384,6 +385,37 @@ impl ApiKeyStore {
             })?;
         
         if let Some(row) = row {
+            // First, try to decrypt the stored key to verify it matches the provided key
+            let encrypted_key_b64: String = row.try_get("encrypted_key").map_err(|_| AuthError {
+                error: "database_error".to_string(),
+                message: "Failed to parse encrypted_key".to_string(),
+                code: 500,
+            })?;
+            
+            // Decode and decrypt the stored key for validation
+            if let Ok(encrypted_key_bytes) = general_purpose::STANDARD.decode(&encrypted_key_b64) {
+                if let Ok(decrypted_key_bytes) = self.encryption.decrypt(&encrypted_key_bytes) {
+                    if let Ok(decrypted_key) = String::from_utf8(decrypted_key_bytes) {
+                        // Verify that the decrypted key matches the hash
+                        let decrypted_hash = format!("{:x}", Sha256::digest(decrypted_key.as_bytes()));
+                        if decrypted_hash != key_hash {
+                            tracing::warn!("Post-quantum encrypted key validation failed - hash mismatch");
+                            return Ok(None);
+                        }
+                        tracing::debug!("Post-quantum encrypted key validation successful");
+                    } else {
+                        tracing::warn!("Post-quantum decryption produced invalid UTF-8");
+                        return Ok(None);
+                    }
+                } else {
+                    tracing::warn!("Failed to decrypt stored key with post-quantum encryption");
+                    return Ok(None);
+                }
+            } else {
+                tracing::warn!("Failed to decode base64 encrypted key");
+                return Ok(None);
+            }
+            
             let api_key = ApiKey {
                 id: row.try_get("id").map_err(|_| AuthError {
                     error: "database_error".to_string(),
@@ -606,19 +638,51 @@ pub async fn auth_middleware(
     let api_key = extract_api_key(&headers)?;
     
     let validated_key = api_store.validate_key(&api_key).await
-        .ok_or_else(|| (
-            StatusCode::UNAUTHORIZED,
-            Json(AuthError {
-                error: "invalid_api_key".to_string(),
-                message: "Invalid or expired API key".to_string(),
-                code: 401,
-            }),
-        ))?;
+        .ok_or_else(|| {
+            // Log compliance event for failed authentication
+            if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
+                let mut details = HashMap::new();
+                details.insert("error".to_string(), "invalid_api_key".to_string());
+                details.insert("path".to_string(), request.uri().path().to_string());
+                details.insert("method".to_string(), request.method().to_string());
+                
+                compliance_manager.log_event_async(
+                    ComplianceEventType::AccessDenied,
+                    details,
+                    RiskLevel::Medium,
+                );
+            }
+            
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(AuthError {
+                    error: "invalid_api_key".to_string(),
+                    message: "Invalid or expired API key".to_string(),
+                    code: 401,
+                }),
+            )
+        })?;
     
     let path = request.uri().path();
     let resource = extract_resource_from_path(path);
     
     if !api_store.check_permission(&api_key, &resource).await {
+        // Log compliance event for permission failure
+        if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
+            let mut details = HashMap::new();
+            details.insert("error".to_string(), "insufficient_permissions".to_string());
+            details.insert("resource".to_string(), resource.clone());
+            details.insert("api_key_id".to_string(), validated_key.id.to_string());
+            details.insert("path".to_string(), request.uri().path().to_string());
+            details.insert("method".to_string(), request.method().to_string());
+            
+            compliance_manager.log_event_async(
+                ComplianceEventType::AccessDenied,
+                details,
+                RiskLevel::High,
+            );
+        }
+        
         return Err((
             StatusCode::FORBIDDEN,
             Json(AuthError {
@@ -636,7 +700,32 @@ pub async fn auth_middleware(
         validated_key.usage_count
     );
     
+    // Log compliance event for successful authentication
+    if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
+        let mut details = HashMap::new();
+        details.insert("api_key_id".to_string(), validated_key.id.to_string());
+        details.insert("resource".to_string(), resource.clone());
+        details.insert("method".to_string(), request.method().to_string());
+        details.insert("path".to_string(), request.uri().path().to_string());
+        
+        compliance_manager.log_event_async(
+            ComplianceEventType::Authentication,
+            details,
+            RiskLevel::Low,
+        );
+    }
+    
     Ok(next.run(request).await)
+}
+
+/// Middleware to inject ComplianceManager into request extensions
+pub async fn compliance_middleware(
+    State(compliance_manager): State<Arc<ComplianceManager>>,
+    mut request: Request,
+    next: Next,
+) -> Response {
+    request.extensions_mut().insert(compliance_manager);
+    next.run(request).await
 }
 
 fn extract_api_key(headers: &HeaderMap) -> Result<String, (StatusCode, Json<AuthError>)> {

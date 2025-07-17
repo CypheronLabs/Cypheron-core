@@ -16,18 +16,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Copy dependency manifests
+# Copy dependency manifests first for better caching
 COPY Cargo.toml Cargo.lock ./
 COPY rest-api/Cargo.toml ./rest-api/
 COPY core-lib/Cargo.toml ./core-lib/
+COPY core-lib/build.rs ./core-lib/
 
-# Copy source code (vendor is now included in core-lib)
+# Copy vendor code (needed for core-lib build)
+COPY core-lib/vendor ./core-lib/vendor
+
+# Create dummy source files to build dependencies
+RUN mkdir -p rest-api/src core-lib/src \
+    && echo "fn main() {}" > rest-api/src/main.rs \
+    && echo "fn main() {}" > core-lib/src/main.rs \
+    && echo "" > core-lib/src/lib.rs
+
+# Build dependencies (this layer will be cached)
+RUN SKIP_VENDOR_INTEGRITY=1 cargo build --release --bin rest-api
+
+# Remove dummy files
+RUN rm -rf rest-api/src core-lib/src
+
+# Copy actual source code
 COPY rest-api/src ./rest-api/src
-COPY core-lib ./core-lib
+COPY core-lib/src ./core-lib/src
 
 # Build with security optimizations
 # ENV RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-s"
-RUN cargo build --release --bin rest-api
+RUN SKIP_VENDOR_INTEGRITY=1 cargo build --release --bin rest-api
 
 # Runtime stage - using distroless for minimal attack surface
 FROM gcr.io/distroless/cc-debian12

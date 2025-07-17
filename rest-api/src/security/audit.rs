@@ -157,6 +157,24 @@ impl AuditLogger {
             .cloned()
             .collect()
     }
+
+    /// Clean up old audit events based on retention policy
+    pub async fn cleanup_old_events(&self, retention_days: u32) {
+        let cutoff_date = Utc::now() - chrono::Duration::days(retention_days as i64);
+        let mut events = self.events.write().await;
+        
+        let original_count = events.len();
+        events.retain(|event| event.timestamp >= cutoff_date);
+        let cleaned_count = original_count - events.len();
+        
+        if cleaned_count > 0 {
+            tracing::info!(
+                "Audit log cleanup completed. Removed {} events older than {} days",
+                cleaned_count,
+                retention_days
+            );
+        }
+    }
 }
 
 // Helper function to create audit events

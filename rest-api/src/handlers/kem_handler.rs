@@ -4,13 +4,15 @@ use crate::services::kem_service::KemService;
 use crate::error::AppError;
 use core_lib::kem::KemVariant;
 use crate::utils::encoding::encode_struct_base64;
-use crate::security::{AuditLogger, AuditEvent, AuditEventType};
+use crate::security::{AuditEvent, AuditEventType, ComplianceEventType, RiskLevel};
+use crate::state::AppState;
 use serde_json::json;
-use std::sync::Arc;
+use std::collections::HashMap;
+use uuid::Uuid;
 
 pub async fn keygen(
     Path(variant): Path<String>,
-    State(audit_logger): State<Arc<AuditLogger>>,
+    State(app_state): State<AppState>,
 ) -> Result<Json<KeypairResponse>, AppError> {
     validation::validate_path_parameter(&variant)?;
     let variant = parse_variant(&variant)?;
@@ -39,7 +41,31 @@ pub async fn keygen(
          }
      }));
     
-    audit_logger.log_event(audit_event).await;
+    app_state.audit_logger.log_event(audit_event).await;
+    
+    // Log compliance event for data processing with privacy controls
+    let mut details = HashMap::new();
+    details.insert("operation".to_string(), "keygen".to_string());
+    details.insert("variant".to_string(), variant_to_string(&variant).to_string());
+    details.insert("response_time_ms".to_string(), response_time.to_string());
+    details.insert("success".to_string(), "true".to_string());
+    details.insert("key_sizes".to_string(), format!("pk:{}, sk:{}", pk.len(), sk.len()));
+    
+    // Use AppState convenience methods for privacy controls
+    let sanitized_variant = app_state.sanitize_sensitive_data(&variant_to_string(&variant));
+    details.insert("sanitized_variant".to_string(), sanitized_variant);
+    
+    // If there was a session ID or user context, we would pseudonymize it
+    // Example: let pseudo_session = app_state.pseudonymize_user_id("session_12345");
+    
+    // Use enhanced logging with user context (no user context for keygen, but shows the pattern)
+    app_state.log_compliance_with_user(
+        ComplianceEventType::DataCreated,
+        details,
+        RiskLevel::Low,
+        None, // No user context for key generation
+        None, // Could extract IP from request headers if needed
+    ).await;
     
     Ok(Json(KeypairResponse { 
         pk: pk.clone(), 
@@ -52,7 +78,7 @@ pub async fn keygen(
 
 pub async fn encapsulate(
     Path(variant): Path<String>,
-    State(audit_logger): State<Arc<AuditLogger>>,
+    State(app_state): State<AppState>,
     Json(payload): Json<EncapsulateRequest>,
 ) -> Result<Json<EncapsulateResponse>, AppError> {
     validation::validate_path_parameter(&variant)?;
@@ -84,7 +110,30 @@ pub async fn encapsulate(
          }
      }));
     
-    audit_logger.log_event(audit_event).await;
+    app_state.audit_logger.log_event(audit_event).await;
+    
+    // Log compliance event for data processing with privacy controls
+    let mut details = HashMap::new();
+    details.insert("operation".to_string(), "encapsulate".to_string());
+    details.insert("variant".to_string(), variant_to_string(&variant).to_string());
+    details.insert("response_time_ms".to_string(), response_time.to_string());
+    details.insert("success".to_string(), "true".to_string());
+    details.insert("output_sizes".to_string(), format!("ct:{}, ss:{}", ct.len(), ss.len()));
+    
+    // Use AppState convenience methods for privacy controls
+    // Simulate processing a request ID that might contain sensitive information
+    let request_id = format!("encap_req_{}", Uuid::new_v4());
+    let pseudonymized_request = app_state.pseudonymize_user_id(&request_id);
+    details.insert("request_id".to_string(), pseudonymized_request);
+    
+    // Use enhanced logging with privacy controls
+    app_state.log_compliance_with_user(
+        ComplianceEventType::DataEncrypted,
+        details,
+        RiskLevel::Low,
+        None, // Could extract user from API key context if available
+        None, // Could extract IP from request headers
+    ).await;
     
     Ok(Json(EncapsulateResponse { 
         ct, 
@@ -95,7 +144,7 @@ pub async fn encapsulate(
 
 pub async fn decapsulate(
     Path(variant): Path<String>,
-    State(audit_logger): State<Arc<AuditLogger>>,
+    State(app_state): State<AppState>,
     Json(payload): Json<DecapsulateRequest>,
 ) -> Result<Json<DecapsulateResponse>, AppError> {
     validation::validate_path_parameter(&variant)?;
@@ -127,7 +176,24 @@ pub async fn decapsulate(
          }
      }));
     
-    audit_logger.log_event(audit_event).await;
+    app_state.audit_logger.log_event(audit_event).await;
+    
+    // Log compliance event for data processing with privacy controls
+    let mut details = HashMap::new();
+    details.insert("operation".to_string(), "decapsulate".to_string());
+    details.insert("variant".to_string(), variant_to_string(&variant).to_string());
+    details.insert("response_time_ms".to_string(), response_time.to_string());
+    details.insert("success".to_string(), "true".to_string());
+    details.insert("output_size".to_string(), format!("ss:{}", ss.len()));
+    
+    // Use enhanced logging with privacy controls
+    app_state.log_compliance_with_user(
+        ComplianceEventType::DataDecrypted,
+        details,
+        RiskLevel::Low,
+        None, // Could extract user from API key context if available
+        None, // Could extract IP from request headers
+    ).await;
     
     Ok(Json(DecapsulateResponse { ss, format: payload.format }))
 }

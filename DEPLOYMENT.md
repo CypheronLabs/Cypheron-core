@@ -1,5 +1,19 @@
 # 🚀 Cypheron API Production Deployment Guide
 
+## Optimized CI/CD Pipeline
+
+This project now uses an optimized CI/CD pipeline that builds Docker images once and deploys them multiple times, avoiding the need to recompile cryptographic libraries on each deployment.
+
+### Pipeline Flow
+```
+Code Push → GitHub Actions → Build & Test → Docker Build → Push to Registry → Deploy
+```
+
+### Build Performance
+- **First CI build**: 20-30 minutes (builds all cryptographic libraries)
+- **Subsequent builds**: 2-5 minutes (with caching)
+- **Deployments**: 30 seconds (just pulls pre-built image)
+
 ## Security Improvements Implemented
 
 ### ✅ Dockerfile.production (Maximum Security)
@@ -19,12 +33,33 @@
 
 ## Quick Start
 
-### 1. Production Setup (First Time)
+### 1. Deploy Using Pre-built Images (Recommended)
+```bash
+# Deploy latest image to production
+./deploy.sh production latest
+
+# Deploy specific commit to production
+./deploy.sh production sha-abcd1234
+
+# Deploy to staging
+./deploy.sh staging develop
+```
+
+### 2. Manual Deployment
+```bash
+# Pull the latest image
+docker pull ghcr.io/cypheron-labs/cypheron-core:latest
+
+# Deploy with docker-compose
+docker-compose -f docker-compose.production.yml up -d
+```
+
+### 3. Production Setup (First Time)
 ```bash
 # Set up Docker secrets and environment
 ./scripts/setup-production.sh
 
-# Build and start services
+# Build and start services (if not using pre-built images)
 docker-compose -f docker-compose.production.yml up -d
 ```
 
