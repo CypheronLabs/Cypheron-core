@@ -1,0 +1,165 @@
+# Vendor Cryptographic Library Version Manifest
+# This file pins specific versions/commits of vendor cryptographic libraries
+# to ensure reproducible builds and safe updates.
+
+[metadata]
+# Version of this manifest format
+version = "1.0"
+# Last updated timestamp
+updated = "2025-01-17T00:00:00Z"
+# Update policy: manual | automated | scheduled
+update_policy = "manual"
+
+# =============================================================================
+# NIST Post-Quantum Cryptography Reference Implementations
+# =============================================================================
+
+[kyber]
+# CRYSTALS-Kyber - ML-KEM (Key Encapsulation Mechanism)
+# Repository: https://github.com/pq-crystals/kyber
+name = "CRYSTALS-Kyber (ML-KEM)"
+description = "NIST standardized ML-KEM implementation"
+repository = "https://github.com/pq-crystals/kyber.git"
+# TODO: Pin to specific commit/tag after investigation
+branch = "master"
+commit = "TBD"  # To be determined from current vendor code
+tag = ""
+license = "MIT"
+security_level = ["NIST Level 1", "NIST Level 3", "NIST Level 5"]
+algorithms = ["Kyber-512", "Kyber-768", "Kyber-1024"]
+# Checksum of the commit for verification (calculated post-clone)
+checksum = ""
+# Date when this version was last verified
+verified_date = ""
+
+[dilithium]
+# CRYSTALS-Dilithium - ML-DSA (Digital Signature Algorithm)
+# Repository: https://github.com/pq-crystals/dilithium
+name = "CRYSTALS-Dilithium (ML-DSA)"
+description = "NIST standardized ML-DSA implementation (FIPS 204)"
+repository = "https://github.com/pq-crystals/dilithium.git"
+# TODO: Pin to specific commit/tag after investigation
+branch = "master"
+commit = "TBD"  # To be determined from current vendor code
+tag = ""
+license = "MIT"
+security_level = ["NIST Level 2", "NIST Level 3", "NIST Level 5"]
+algorithms = ["Dilithium-2", "Dilithium-3", "Dilithium-5"]
+# Checksum of the commit for verification (calculated post-clone)
+checksum = ""
+# Date when this version was last verified
+verified_date = ""
+
+[falcon]
+# Falcon - Digital Signature Algorithm
+# Repository: https://github.com/falcon-sign/falcon
+name = "Falcon"
+description = "Falcon post-quantum signature scheme"
+repository = "https://github.com/falcon-sign/falcon.git"
+# Current version found in README: 2021-12-03
+version = "2021-12-03"
+branch = "master"
+commit = "TBD"  # To be determined from current vendor code
+tag = ""
+license = "MIT"
+security_level = ["NIST Level 1", "NIST Level 5"]
+algorithms = ["Falcon-512", "Falcon-1024"]
+# Special configuration for deterministic signing
+deterministic_mode = true
+# Checksum of the commit for verification (calculated post-clone)
+checksum = ""
+# Date when this version was last verified
+verified_date = ""
+
+[sphincsplus]
+# SPHINCS+ - Hash-based Digital Signature Algorithm
+# Repository: https://github.com/sphincs/sphincsplus
+name = "SPHINCS+"
+description = "SPHINCS+ hash-based signature scheme"
+repository = "https://github.com/sphincs/sphincsplus.git"
+# TODO: Pin to specific commit/tag after investigation
+branch = "master"
+commit = "TBD"  # To be determined from current vendor code
+tag = ""
+license = "CC0-1.0"
+security_level = ["NIST Level 1", "NIST Level 3", "NIST Level 5"]
+algorithms = [
+    "SPHINCS+-SHA2-128f", "SPHINCS+-SHA2-128s",
+    "SPHINCS+-SHA2-192f", "SPHINCS+-SHA2-192s", 
+    "SPHINCS+-SHA2-256f", "SPHINCS+-SHA2-256s",
+    "SPHINCS+-SHAKE-128f", "SPHINCS+-SHAKE-128s",
+    "SPHINCS+-SHAKE-192f", "SPHINCS+-SHAKE-192s",
+    "SPHINCS+-SHAKE-256f", "SPHINCS+-SHAKE-256s",
+    "SPHINCS+-Haraka-128f", "SPHINCS+-Haraka-128s",
+    "SPHINCS+-Haraka-192f", "SPHINCS+-Haraka-192s",
+    "SPHINCS+-Haraka-256f", "SPHINCS+-Haraka-256s"
+]
+# Checksum of the commit for verification (calculated post-clone)
+checksum = ""
+# Date when this version was last verified
+verified_date = ""
+
+# =============================================================================
+# Update Configuration
+# =============================================================================
+
+[update_config]
+# Update check frequency (in days)
+check_frequency = 30
+# Staging environment for testing updates
+staging_required = true
+# Automatic rollback on failure
+auto_rollback = true
+# Backup retention period (in days)
+backup_retention = 90
+# Require manual approval for major version changes
+require_approval_for_major = true
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+
+[security]
+# Require GPG signature verification for downloads
+require_signatures = true
+# List of trusted GPG key fingerprints
+trusted_keys = [
+    # Add GPG key fingerprints for vendor repositories
+]
+# Minimum TLS version for downloads
+min_tls_version = "1.2"
+# Verify checksums before build
+verify_checksums = true
+# Generate audit trail for all updates
+audit_trail = true
+
+# =============================================================================
+# Build Configuration
+# =============================================================================
+
+[build]
+# Skip vendor integrity check (not recommended for production)
+skip_integrity_check = false
+# Custom build flags per algorithm
+[build.custom_flags]
+kyber = []
+dilithium = []
+falcon = ["FALCON_FPEMU=1", "FALCON_FMA=0"]  # Deterministic mode
+sphincsplus = []
+
+# =============================================================================
+# Compliance and Certification
+# =============================================================================
+
+[compliance]
+# FIPS 140-2 validation status
+fips_validated = false
+# Common Criteria certification status  
+cc_certified = false
+# NIST PQC competition status
+nist_status = {
+    kyber = "Standardized",
+    dilithium = "Standardized", 
+    falcon = "Selected",
+    sphincsplus = "Selected"
+}
