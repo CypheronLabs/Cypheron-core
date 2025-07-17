@@ -1,19 +1,46 @@
-use axum::extract::{Path, Json};
+use axum::extract::{Path, Json, State};
 use crate::{models::kem::*, validation};
 use crate::services::kem_service::KemService;
 use crate::error::AppError;
 use core_lib::kem::KemVariant;
 use crate::utils::encoding::encode_struct_base64;
+use crate::security::{AuditLogger, AuditEvent, AuditEventType};
 use serde_json::json;
+use std::sync::Arc;
 
-pub async fn keygen(Path(variant): Path<String>) -> Result<Json<KeypairResponse>, AppError> {
+pub async fn keygen(
+    Path(variant): Path<String>,
+    State(audit_logger): State<Arc<AuditLogger>>,
+) -> Result<Json<KeypairResponse>, AppError> {
     validation::validate_path_parameter(&variant)?;
     let variant = parse_variant(&variant)?;
     
-    // TODO: Add audit logging here when monitoring is integrated
+    let start_time = std::time::Instant::now();
     tracing::info!("KEM keygen operation: variant={:?}", variant);
     
     let (pk, sk) = KemService::generate_keypair(variant)?;
+    
+    // Log audit event
+    let response_time = start_time.elapsed().as_millis() as u64;
+    let audit_event = AuditEvent::new(
+        AuditEventType::CryptoOperation,
+        "POST".to_string(),
+        format!("/kem/{}/keygen", variant_to_string(&variant)),
+        200,
+        response_time,
+        "127.0.0.1".to_string(), // Will be updated with actual IP in middleware
+    ).with_resource(format!("KEM-{:?}-KeyGen", variant))
+     .with_additional_data(json!({
+         "operation": "keygen",
+         "variant": format!("{:?}", variant),
+         "key_sizes": {
+             "public_key": pk.len(),
+             "secret_key": sk.len()
+         }
+     }));
+    
+    audit_logger.log_event(audit_event).await;
+    
     Ok(Json(KeypairResponse { 
         pk: pk.clone(), 
         sk: sk.clone(),
@@ -25,6 +52,7 @@ pub async fn keygen(Path(variant): Path<String>) -> Result<Json<KeypairResponse>
 
 pub async fn encapsulate(
     Path(variant): Path<String>,
+    State(audit_logger): State<Arc<AuditLogger>>,
     Json(payload): Json<EncapsulateRequest>,
 ) -> Result<Json<EncapsulateResponse>, AppError> {
     validation::validate_path_parameter(&variant)?;
@@ -32,10 +60,32 @@ pub async fn encapsulate(
     
     let variant = parse_variant(&variant)?;
     
-    // TODO: Add audit logging here when monitoring is integrated
+    let start_time = std::time::Instant::now();
     tracing::info!("KEM encapsulate operation: variant={:?}", variant);
     
     let (ct, ss) = KemService::encapsulate(variant, &payload.pk)?;
+    
+    // Log audit event
+    let response_time = start_time.elapsed().as_millis() as u64;
+    let audit_event = AuditEvent::new(
+        AuditEventType::CryptoOperation,
+        "POST".to_string(),
+        format!("/kem/{}/encapsulate", variant_to_string(&variant)),
+        200,
+        response_time,
+        "127.0.0.1".to_string(),
+    ).with_resource(format!("KEM-{:?}-Encapsulate", variant))
+     .with_additional_data(json!({
+         "operation": "encapsulate",
+         "variant": format!("{:?}", variant),
+         "output_sizes": {
+             "ciphertext": ct.len(),
+             "shared_secret": ss.len()
+         }
+     }));
+    
+    audit_logger.log_event(audit_event).await;
+    
     Ok(Json(EncapsulateResponse { 
         ct, 
         ss,
@@ -45,6 +95,7 @@ pub async fn encapsulate(
 
 pub async fn decapsulate(
     Path(variant): Path<String>,
+    State(audit_logger): State<Arc<AuditLogger>>,
     Json(payload): Json<DecapsulateRequest>,
 ) -> Result<Json<DecapsulateResponse>, AppError> {
     validation::validate_path_parameter(&variant)?;
@@ -53,10 +104,31 @@ pub async fn decapsulate(
     
     let variant = parse_variant(&variant)?;
     
-    // TODO: Add audit logging here when monitoring is integrated
+    let start_time = std::time::Instant::now();
     tracing::info!("KEM decapsulate operation: variant={:?}", variant);
     
     let ss = KemService::decapsulate(variant, &payload.ct, &payload.sk)?;
+    
+    // Log audit event
+    let response_time = start_time.elapsed().as_millis() as u64;
+    let audit_event = AuditEvent::new(
+        AuditEventType::CryptoOperation,
+        "POST".to_string(),
+        format!("/kem/{}/decapsulate", variant_to_string(&variant)),
+        200,
+        response_time,
+        "127.0.0.1".to_string(),
+    ).with_resource(format!("KEM-{:?}-Decapsulate", variant))
+     .with_additional_data(json!({
+         "operation": "decapsulate",
+         "variant": format!("{:?}", variant),
+         "output_sizes": {
+             "shared_secret": ss.len()
+         }
+     }));
+    
+    audit_logger.log_event(audit_event).await;
+    
     Ok(Json(DecapsulateResponse { ss, format: payload.format }))
 }
 
@@ -158,5 +230,19 @@ fn parse_variant(s: &str) -> Result<KemVariant, AppError> {
         },
         
         _ => Err(AppError::InvalidVariant),
+    }
+}
+
+fn variant_to_string(variant: &KemVariant) -> &'static str {
+    match variant {
+        KemVariant::MlKem512 => "ml-kem-512",
+        KemVariant::MlKem768 => "ml-kem-768",
+        KemVariant::MlKem1024 => "ml-kem-1024",
+        #[allow(deprecated)]
+        KemVariant::Kyber512 => "kyber512",
+        #[allow(deprecated)]
+        KemVariant::Kyber768 => "kyber768",
+        #[allow(deprecated)]
+        KemVariant::Kyber1024 => "kyber1024",
     }
 }

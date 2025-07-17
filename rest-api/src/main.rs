@@ -85,8 +85,8 @@ async fn main() {
 
     // Authenticated API routes
     let api_routes = Router::new()
-        .merge(api::kem::routes())
-        .merge(api::sig::routes())
+        .merge(api::kem::routes().with_state(audit_logger.clone()))
+        .merge(api::sig::routes().with_state(audit_logger.clone()))
         .merge(api::hybrid::routes())
         .merge(api::nist::routes())
         .merge(monitoring_routes)
