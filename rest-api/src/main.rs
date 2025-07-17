@@ -35,7 +35,7 @@ async fn main() {
     };
 
     let rate_limiter = security::RateLimiter::new(60); 
-    let audit_logger = security::AuditLogger::new(10000);
+    let audit_logger = Arc::new(security::AuditLogger::new(10000));
 
     // Initialize monitoring and alerting system
     use std::sync::Arc;
@@ -62,13 +62,14 @@ async fn main() {
 
     tracing::info!("Security monitoring and alerting system initialized");
 
-    // Create the combined monitoring state
-    let monitoring_state = monitoring::MonitoringState::new(
+    // Create the combined monitoring state with audit logger
+    let monitoring_state = monitoring::MonitoringState::new_with_audit(
         metrics_collector.clone(),
         alert_manager.clone(),
         compliance_checker.clone(),
         security_monitor.clone(),
         health_checker.clone(),
+        audit_logger.clone(),
     );
 
     let monitoring_routes = api::monitoring::routes()
@@ -105,7 +106,7 @@ async fn main() {
         .with_state(api_key_store.clone());
     
     let admin_audit_routes = security::audit_routes()
-        .with_state(audit_logger.clone());
+        .with_state((*audit_logger).clone());
 
     // Combine all routes with CORS middleware
     let app = Router::new()

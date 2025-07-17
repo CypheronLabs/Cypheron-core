@@ -9,6 +9,10 @@ use serde_json::json;
 pub async fn keygen(Path(variant): Path<String>) -> Result<Json<KeypairResponse>, AppError> {
     validation::validate_path_parameter(&variant)?;
     let variant = parse_variant(&variant)?;
+    
+    // TODO: Add audit logging here when monitoring is integrated
+    tracing::info!("KEM keygen operation: variant={:?}", variant);
+    
     let (pk, sk) = KemService::generate_keypair(variant)?;
     Ok(Json(KeypairResponse { 
         pk: pk.clone(), 
@@ -27,6 +31,10 @@ pub async fn encapsulate(
     validation::validate_base64_key(&payload.pk)?;
     
     let variant = parse_variant(&variant)?;
+    
+    // TODO: Add audit logging here when monitoring is integrated
+    tracing::info!("KEM encapsulate operation: variant={:?}", variant);
+    
     let (ct, ss) = KemService::encapsulate(variant, &payload.pk)?;
     Ok(Json(EncapsulateResponse { 
         ct, 
@@ -44,6 +52,10 @@ pub async fn decapsulate(
     validation::validate_base64_key(&payload.ct)?; 
     
     let variant = parse_variant(&variant)?;
+    
+    // TODO: Add audit logging here when monitoring is integrated
+    tracing::info!("KEM decapsulate operation: variant={:?}", variant);
+    
     let ss = KemService::decapsulate(variant, &payload.ct, &payload.sk)?;
     Ok(Json(DecapsulateResponse { ss, format: payload.format }))
 }

@@ -24,9 +24,14 @@ fn encode_signature(sig: AnySignature) -> String {
 pub async fn keygen(Path(variant): Path<String>) -> Result<Json<KeypairResponse>, AppError> {
     validation::validate_path_parameter(&variant)?;
     let variant = parse_sig_variant(&variant)?;
+    
+    // TODO: Add audit logging here when monitoring is integrated
+    tracing::info!("Signature keygen operation: variant={:?}", variant);
+    
     let keypair = SigService::generate_keypair(variant)?;
     Ok(Json(keypair))
 }
+
 pub async fn sign(
     Path(variant): Path<String>,
     Json(payload): Json<SignRequest>,
@@ -36,10 +41,15 @@ pub async fn sign(
     validation::validate_base64_key(&payload.sk)?;
     
     let variant = parse_sig_variant(&variant)?;
+    
+    // TODO: Add audit logging here when monitoring is integrated
+    tracing::info!("Signature sign operation: variant={:?}", variant);
+    
     let signature = SigService::sign(variant, &payload.message, &payload.sk)?;
     let signature = encode_signature(signature);
     Ok(Json(SignResponse { signature }))
 }
+
 pub async fn verify(
     Path(variant): Path<String>,
     Json(payload): Json<VerifyRequest>,
@@ -50,6 +60,10 @@ pub async fn verify(
     validation::validate_base64_signature(&payload.signature)?;
     
     let variant = parse_sig_variant(&variant)?;
+    
+    // TODO: Add audit logging here when monitoring is integrated
+    tracing::info!("Signature verify operation: variant={:?}", variant);
+    
     let valid = SigService::verify(variant, &payload.pk, &payload.message, &payload.signature)?;
     Ok(Json(VerifyResponse { valid }))
 }

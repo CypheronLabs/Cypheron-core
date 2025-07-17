@@ -32,6 +32,7 @@ pub enum AuditEventType {
     RateLimitExceeded,
     SuspiciousActivity,
     CryptoOperation,
+    CryptoVerification,
     ErrorOccurred,
 }
 
