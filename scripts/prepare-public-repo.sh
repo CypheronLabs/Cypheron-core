@@ -68,7 +68,7 @@ EOF
 # Copy private components
 echo "Copying private components..."
 cp -r core-lib/ "$PRIVATE_REPO_DIR/"
-cp -r vendor/ "$PRIVATE_REPO_DIR/" 2>/dev/null || echo "vendor/ directory not found, skipping..."
+# Note: vendor code is now part of core-lib/vendor/ directory
 cp -r cli/ "$PRIVATE_REPO_DIR/" 2>/dev/null || echo "cli/ directory not found, skipping..."
 cp -r grpc-api/ "$PRIVATE_REPO_DIR/" 2>/dev/null || echo "grpc-api/ directory not found, skipping..."
 

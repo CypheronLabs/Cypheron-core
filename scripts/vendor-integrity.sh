@@ -103,13 +103,24 @@ generate_checksums() {
     # Remove old checksum file
     rm -f "${checksum_file}"
     
-    # Generate new checksums for key files
-    find . -type f \( -name "*.c" -o -name "*.h" -o -name "*.S" -o -name "*.s" -o -name "*.go" \) \
+    # Generate comprehensive checksums for all critical files
+    find . -type f \( \
+        -name "*.c" -o -name "*.h" -o -name "*.S" -o -name "*.s" \
+        -o -name "*.go" -o -name "*.txt" -o -name "*.md" \
+        -o -name "Makefile" -o -name "*.mk" -o -name "*.yml" \
+        -o -name "*.gp" -o -name "*.inc" \
+    \) \
         -not -path "./test/*" \
         -not -path "./tests/*" \
         -not -path "./benchmark/*" \
         -not -path "./nistkat/*" \
+        -not -path "./.git/*" \
         | sort | xargs sha256sum > "${checksum_file}"
+    
+    # Add metadata to checksum file
+    echo "# Vendor code checksums generated on $(date -u)" >> "${checksum_file}"
+    echo "# Algorithm: $(basename "${algo_dir}")" >> "${checksum_file}"
+    echo "# Total files: $(wc -l < "${checksum_file}")" >> "${checksum_file}"
     
     popd > /dev/null
     
@@ -138,13 +149,123 @@ verify_all() {
     fi
 }
 
-# Function to update vendor code with integrity verification
+# Function to create backup of vendor code
+backup_vendor() {
+    local algorithm="$1"
+    local backup_reason="${2:-manual}"
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    local backup_dir="${VENDOR_DIR}/../backups/${algorithm}.${backup_reason}.${timestamp}"
+    
+    log_info "Creating backup for ${algorithm}..."
+    
+    # Ensure backup directory exists
+    mkdir -p "${VENDOR_DIR}/../backups"
+    
+    if [[ -d "${VENDOR_DIR}/${algorithm}" ]]; then
+        cp -r "${VENDOR_DIR}/${algorithm}" "${backup_dir}"
+        
+        # Create backup metadata
+        cat > "${backup_dir}/BACKUP_INFO.txt" << EOF
+Backup Information
+==================
+Algorithm: ${algorithm}
+Reason: ${backup_reason}
+Created: $(date -u)
+Original Path: ${VENDOR_DIR}/${algorithm}
+Backup Path: ${backup_dir}
+
+Restore Command:
+./scripts/vendor-integrity.sh restore ${algorithm} $(basename "${backup_dir}")
+EOF
+        
+        log_success "Backup created: ${backup_dir}"
+        echo "${backup_dir}"
+    else
+        log_error "Algorithm directory not found: ${VENDOR_DIR}/${algorithm}"
+        return 1
+    fi
+}
+
+# Function to list available backups
+list_backups() {
+    local algorithm="${1:-}"
+    local backup_base_dir="${VENDOR_DIR}/../backups"
+    
+    log_info "Available backups:"
+    echo "=================="
+    
+    if [[ ! -d "${backup_base_dir}" ]]; then
+        log_warning "No backup directory found"
+        return 0
+    fi
+    
+    local backup_pattern="${algorithm:-*}"
+    
+    for backup_dir in "${backup_base_dir}"/${backup_pattern}.*; do
+        if [[ -d "${backup_dir}" ]]; then
+            local backup_name=$(basename "${backup_dir}")
+            local backup_info="${backup_dir}/BACKUP_INFO.txt"
+            
+            echo "📦 ${backup_name}"
+            
+            if [[ -f "${backup_info}" ]]; then
+                echo "   Created: $(grep "Created:" "${backup_info}" | cut -d: -f2-)"
+                echo "   Reason: $(grep "Reason:" "${backup_info}" | cut -d: -f2-)"
+            fi
+            echo ""
+        fi
+    done
+}
+
+# Function to restore from backup
+restore_vendor() {
+    local algorithm="$1"
+    local backup_name="$2"
+    local backup_base_dir="${VENDOR_DIR}/../backups"
+    local backup_dir="${backup_base_dir}/${backup_name}"
+    
+    log_info "Restoring ${algorithm} from backup: ${backup_name}"
+    
+    if [[ ! -d "${backup_dir}" ]]; then
+        log_error "Backup not found: ${backup_dir}"
+        return 1
+    fi
+    
+    # Create current backup before restoring
+    backup_vendor "${algorithm}" "pre-restore"
+    
+    # Remove current version
+    if [[ -d "${VENDOR_DIR}/${algorithm}" ]]; then
+        rm -rf "${VENDOR_DIR}/${algorithm}"
+    fi
+    
+    # Restore from backup (exclude backup metadata)
+    cp -r "${backup_dir}" "${VENDOR_DIR}/${algorithm}"
+    rm -f "${VENDOR_DIR}/${algorithm}/BACKUP_INFO.txt"
+    
+    # Verify restored code
+    if verify_checksums "${VENDOR_DIR}/${algorithm}"; then
+        log_success "Successfully restored ${algorithm} from backup"
+    else
+        log_warning "Restored code failed verification - may need regeneration"
+        log_info "Run: ./scripts/vendor-integrity.sh generate ${algorithm}"
+    fi
+}
+
+# Function to update vendor code with comprehensive backup and rollback
 update_vendor() {
     local algorithm="$1"
     local source_url="$2"
     local temp_dir=$(mktemp -d)
     
     log_info "Updating vendor code for ${algorithm}..."
+    
+    # Create pre-update backup
+    local backup_dir=$(backup_vendor "${algorithm}" "pre-update")
+    if [[ -z "${backup_dir}" ]]; then
+        log_error "Failed to create backup, aborting update"
+        return 1
+    fi
     
     # Download and extract new code
     if ! wget -q "${source_url}" -O "${temp_dir}/source.tar.gz"; then
@@ -156,10 +277,6 @@ update_vendor() {
     # Extract and verify
     tar -xzf "${temp_dir}/source.tar.gz" -C "${temp_dir}"
     
-    # Create backup
-    local backup_dir="${VENDOR_DIR}/${algorithm}.backup.$(date +%Y%m%d_%H%M%S)"
-    cp -r "${VENDOR_DIR}/${algorithm}" "${backup_dir}"
-    
     # Update vendor code
     rm -rf "${VENDOR_DIR}/${algorithm}"
     mv "${temp_dir}/${algorithm}" "${VENDOR_DIR}/${algorithm}"
@@ -170,15 +287,62 @@ update_vendor() {
     # Verify the new code
     if verify_checksums "${VENDOR_DIR}/${algorithm}"; then
         log_success "Vendor code updated successfully for ${algorithm}"
-        rm -rf "${backup_dir}"
+        
+        # Run additional verification (if cargo test available)
+        log_info "Running additional verification tests..."
+        if command -v cargo >/dev/null 2>&1; then
+            cd "${PROJECT_ROOT}"
+            if cargo test --release 2>/dev/null; then
+                log_success "All tests pass with updated vendor code"
+            else
+                log_error "Tests failed with updated code, rolling back..."
+                restore_vendor "${algorithm}" "$(basename "${backup_dir}")"
+                rm -rf "${temp_dir}"
+                return 1
+            fi
+        fi
+        
+        # Keep backup for 7 days, then clean up
+        touch "${backup_dir}/.cleanup_after_$(date -d '+7 days' +%Y%m%d)"
+        
     else
-        log_error "New vendor code failed verification, restoring backup"
-        rm -rf "${VENDOR_DIR}/${algorithm}"
-        mv "${backup_dir}" "${VENDOR_DIR}/${algorithm}"
+        log_error "New vendor code failed verification, rolling back..."
+        restore_vendor "${algorithm}" "$(basename "${backup_dir}")"
+        rm -rf "${temp_dir}"
         return 1
     fi
     
     rm -rf "${temp_dir}"
+}
+
+# Function to clean up old backups
+cleanup_backups() {
+    local backup_base_dir="${VENDOR_DIR}/../backups"
+    local cleaned=0
+    
+    log_info "Cleaning up old backups..."
+    
+    if [[ ! -d "${backup_base_dir}" ]]; then
+        log_info "No backup directory found"
+        return 0
+    fi
+    
+    # Clean up backups marked for cleanup
+    for cleanup_marker in "${backup_base_dir}"/*/.cleanup_after_*; do
+        if [[ -f "${cleanup_marker}" ]]; then
+            local cleanup_date=$(basename "${cleanup_marker}" | sed 's/\.cleanup_after_//')
+            local current_date=$(date +%Y%m%d)
+            
+            if [[ "${current_date}" -ge "${cleanup_date}" ]]; then
+                local backup_dir=$(dirname "${cleanup_marker}")
+                log_info "Removing old backup: $(basename "${backup_dir}")"
+                rm -rf "${backup_dir}"
+                ((cleaned++))
+            fi
+        fi
+    done
+    
+    log_success "Cleaned up ${cleaned} old backups"
 }
 
 # Function to show vendor code status
@@ -313,6 +477,26 @@ main() {
             fi
             update_vendor "${2}" "${3}"
             ;;
+        "backup")
+            if [[ -z "${2:-}" ]]; then
+                log_error "Usage: $0 backup <algorithm> [reason]"
+                exit 1
+            fi
+            backup_vendor "${2}" "${3:-manual}"
+            ;;
+        "restore")
+            if [[ -z "${2:-}" || -z "${3:-}" ]]; then
+                log_error "Usage: $0 restore <algorithm> <backup_name>"
+                exit 1
+            fi
+            restore_vendor "${2}" "${3}"
+            ;;
+        "list-backups")
+            list_backups "${2:-}"
+            ;;
+        "cleanup-backups")
+            cleanup_backups
+            ;;
         "status")
             show_status
             ;;
@@ -320,14 +504,18 @@ main() {
             audit_vendor
             ;;
         *)
-            echo "Usage: $0 {verify|generate|update|status|audit}"
+            echo "Usage: $0 {verify|generate|update|backup|restore|list-backups|cleanup-backups|status|audit}"
             echo ""
             echo "Commands:"
-            echo "  verify                     - Verify all vendor code checksums"
-            echo "  generate <algorithm>       - Generate checksums for an algorithm"
-            echo "  update <algorithm> <url>   - Update vendor code from URL"
-            echo "  status                     - Show vendor code status"
-            echo "  audit                      - Generate vendor audit report"
+            echo "  verify                           - Verify all vendor code checksums"
+            echo "  generate <algorithm>             - Generate checksums for an algorithm"
+            echo "  update <algorithm> <url>         - Update vendor code from URL with backup"
+            echo "  backup <algorithm> [reason]      - Create backup of algorithm code"
+            echo "  restore <algorithm> <backup>     - Restore algorithm from backup"
+            echo "  list-backups [algorithm]         - List available backups"
+            echo "  cleanup-backups                  - Remove old backups"
+            echo "  status                           - Show vendor code status"
+            echo "  audit                            - Generate vendor audit report"
             exit 1
             ;;
     esac
