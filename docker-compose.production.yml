@@ -18,11 +18,14 @@ services:
       - PQ_MAX_REQUEST_SIZE=10485760
       - PQ_ENABLE_SOC2=true
       - PQ_ENABLE_GDPR=true
+      - FIRESTORE_PROJECT_ID=${FIRESTORE_PROJECT_ID:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
     env_file:
       - .env.production
     volumes:
       - logs:/app/logs:rw
       - config:/app/config:ro
+      - ${GCP_CREDENTIALS_PATH:-./gcp-credentials.json}:/app/gcp-credentials.json:ro
     restart: unless-stopped
     depends_on:
       postgres:
