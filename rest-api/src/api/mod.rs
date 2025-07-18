@@ -3,3 +3,4 @@ pub mod hybrid;
 pub mod sig;
 pub mod nist;
 pub mod monitoring;
+pub mod public;

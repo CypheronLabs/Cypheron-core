@@ -13,6 +13,7 @@ mod security;
 mod validation;
 mod monitoring;
 mod state;
+mod metrics;
 
 #[tokio::main]
 async fn main() {
@@ -37,6 +38,20 @@ async fn main() {
 
     let rate_limiter = security::RateLimiter::new(60); 
     let audit_logger = Arc::new(security::AuditLogger::new(10000));
+
+    let firestore_metrics = match metrics::FirestoreMetricsClient::new().await {
+        Ok(client) => {
+            tracing::info!("Firestore metrics client initialized");
+            Arc::new(client)
+        },
+        Err(e) => {
+            tracing::warn!("Failed to initialize Firestore metrics: {}", e);
+            tracing::info!("Continuing without Firestore metrics collection");
+            Arc::new(metrics::FirestoreMetricsClient::new().await.unwrap_or_else(|_| {
+                panic!("Critical error: Cannot create fallback metrics client")
+            }))
+        }
+    };
 
     // Initialize monitoring and alerting system
     use std::sync::Arc;
@@ -115,7 +130,8 @@ async fn main() {
         .route("/health/detailed", get(handlers::monitoring_handler::get_detailed_health_report))
         .route("/health/ready", get(handlers::monitoring_handler::get_readiness_check))
         .route("/health/live", get(handlers::monitoring_handler::get_liveness_check))
-        .with_state(monitoring_state);
+        .with_state(monitoring_state)
+        .merge(api::public::routes().with_state(firestore_metrics.clone()));
 
     // Authenticated API routes
     let api_routes = Router::new()
@@ -124,6 +140,10 @@ async fn main() {
         .merge(api::hybrid::routes())
         .merge(api::nist::routes())
         .merge(monitoring_routes)
+        .layer(middleware::from_fn_with_state(
+            firestore_metrics.clone(),
+            security::metrics_middleware,
+        ))
         .layer(middleware::from_fn_with_state(
             api_key_store.clone(),
             security::auth_middleware,
