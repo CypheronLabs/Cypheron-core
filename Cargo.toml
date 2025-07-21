@@ -6,3 +6,6 @@ members = [
     # "grpc-api",  # Not needed if using REST API
     "rest-api"
 ]
+
+[workspace.dependencies]
+core-lib = { path = "core-lib" }

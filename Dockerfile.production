@@ -16,30 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Copy dependency manifests first for better caching
-COPY Cargo.toml Cargo.lock ./
-COPY rest-api/Cargo.toml ./rest-api/
-COPY core-lib/Cargo.toml ./core-lib/
-COPY core-lib/build.rs ./core-lib/
-
-# Copy vendor code (needed for core-lib build)
-COPY core-lib/vendor ./core-lib/vendor
-
-# Create dummy source files to build dependencies
-RUN mkdir -p rest-api/src core-lib/src \
-    && echo "fn main() {}" > rest-api/src/main.rs \
-    && echo "fn main() {}" > core-lib/src/main.rs \
-    && echo "" > core-lib/src/lib.rs
-
-# Build dependencies (this layer will be cached)
-RUN SKIP_VENDOR_INTEGRITY=1 cargo build --release --bin rest-api
-
-# Remove dummy files
-RUN rm -rf rest-api/src core-lib/src
-
-# Copy actual source code
-COPY rest-api/src ./rest-api/src
-COPY core-lib/src ./core-lib/src
+# Copy entire workspace to ensure proper module resolution
+COPY . .
 
 # Build with security optimizations
 # ENV RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-s"
@@ -54,14 +32,16 @@ WORKDIR /app
 # Copy the binary with proper ownership
 COPY --from=builder --chown=65534:65534 /app/target/release/rest-api /app/pq-core-api
 
-# Copy configuration files (create empty config if none exist)
-COPY --chown=65534:65534 config* ./config/
+# Configuration comes from environment variables in Cloud Run
 
 # Use non-root user (distroless default nonroot user)
 USER 65534:65534
 
+# Set the PORT environment variable for Cloud Run
+ENV PORT=8080
+
 # Expose port
-EXPOSE 3000
+EXPOSE 8080
 
 # Run the application
 ENTRYPOINT ["/app/pq-core-api"]
