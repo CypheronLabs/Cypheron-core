@@ -123,7 +123,8 @@ impl AppConfig {
             config.server.host = host;
         }
 
-        if let Ok(port) = env::var("PQ_PORT") {
+        // Check PQ_PORT first, then fall back to Cloud Run's PORT
+        if let Ok(port) = env::var("PQ_PORT").or_else(|_| env::var("PORT")) {
             if let Ok(port_num) = port.parse::<u16>() {
                 config.server.port = port_num;
             }
