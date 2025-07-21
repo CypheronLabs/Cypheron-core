@@ -1,7 +1,7 @@
-use base64::{engine::general_purpose, Engine as _};
 use crate::error::AppError;
-use serde::{Serialize, de::DeserializeOwned};
+use base64::{engine::general_purpose, Engine as _};
 use hex;
+use serde::{de::DeserializeOwned, Serialize};
 
 // Standard base64 encoding (used by signature handlers)
 pub fn encode_base64(data: &[u8]) -> String {

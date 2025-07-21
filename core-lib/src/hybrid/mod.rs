@@ -1,11 +1,11 @@
-pub mod traits;
 pub mod composite;
-pub mod schemes;
 pub mod ecdsa;
+pub mod schemes;
+pub mod traits;
 
-pub use traits::{HybridEngine, HybridScheme};
-pub use composite::{CompositeSignature, CompositeKeypair};
+pub use composite::{CompositeKeypair, CompositeSignature};
 pub use schemes::{EccDilithium, EccFalcon, EccSphincs};
+pub use traits::{HybridEngine, HybridScheme};
 
 /// NIST FIPS Compliant Hybrid Algorithm Variants
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -22,7 +22,7 @@ pub enum HybridVariant {
     EccFalcon1024,
     /// ECDSA P-256 + SLH-DSA (formerly EccSphincs) - NIST FIPS 205 compliant
     EccSlhDsa,
-    
+
     // Deprecated variants for backward compatibility - will be removed in future versions
     #[deprecated(since = "0.2.0", note = "Use EccMlDsa44 instead for NIST FIPS 204 compliance")]
     EccDilithium2,

@@ -2,8 +2,8 @@
 
 use super::bindings;
 use crate::sig::sphincs::errors::SphincsError;
-use zeroize::Zeroize;
 use std::fmt;
+use zeroize::Zeroize;
 
 use once_cell::sync::Lazy;
 
@@ -46,11 +46,11 @@ impl PublicKey {
     pub fn length() -> usize {
         *PUBLIC_KEY_BYTES_USIZE
     }
-} 
+}
 
 impl fmt::Debug for PublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PublicKeyShake192f") 
+        f.debug_struct("PublicKeyShake192f")
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",
@@ -95,13 +95,11 @@ impl SecretKey {
     pub fn length() -> usize {
         *SECRET_KEY_BYTES_USIZE
     }
-} 
+}
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SecretKeyShake192f") 
-            .field("len", &Self::length()) 
-            .finish_non_exhaustive()
+        f.debug_struct("SecretKeyShake192f").field("len", &Self::length()).finish_non_exhaustive()
     }
 }
 
@@ -139,11 +137,11 @@ impl Signature {
     pub fn length() -> usize {
         *SIGNATURE_BYTES_USIZE
     }
-} 
+}
 
 impl fmt::Debug for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SignatureShake192f") 
+        f.debug_struct("SignatureShake192f")
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",
@@ -158,7 +156,6 @@ impl fmt::Debug for Signature {
 pub struct Seed(Vec<u8>);
 
 impl Seed {
-
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, SphincsError> {
         if bytes.len() != *SEED_BYTES_USIZE {
             Err(SphincsError::InvalidSeedLength {
@@ -181,12 +178,10 @@ impl Seed {
     pub fn length() -> usize {
         *SEED_BYTES_USIZE
     }
-} 
+}
 
 impl fmt::Debug for Seed {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SeedShake192f") 
-            .field("len", &Self::length())
-            .finish_non_exhaustive()
+        f.debug_struct("SeedShake192f").field("len", &Self::length()).finish_non_exhaustive()
     }
 }

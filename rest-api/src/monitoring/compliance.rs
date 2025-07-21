@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc, Duration};
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -188,12 +188,7 @@ pub enum RecommendationPriority {
 impl ComplianceChecker {
     pub fn new(framework: ComplianceFramework, check_interval: Duration) -> Self {
         let now = Utc::now();
-        Self {
-            framework,
-            last_check: now,
-            next_check: now + check_interval,
-            check_interval,
-        }
+        Self { framework, last_check: now, next_check: now + check_interval, check_interval }
     }
 
     pub async fn assess_nist_fips_203_compliance(&self) -> ComplianceReport {
@@ -206,19 +201,19 @@ impl ComplianceChecker {
             control_id: "FIPS-203-1".to_string(),
             control_name: "ML-KEM Algorithm Implementation".to_string(),
             category: "Cryptographic Implementation".to_string(),
-            requirement: "Implement ML-KEM-512, ML-KEM-768, and ML-KEM-1024 according to NIST FIPS 203".to_string(),
+            requirement:
+                "Implement ML-KEM-512, ML-KEM-768, and ML-KEM-1024 according to NIST FIPS 203"
+                    .to_string(),
             implementation_status: ImplementationStatus::Implemented,
             effectiveness: ControlEffectiveness::Effective,
-            evidence: vec![
-                Evidence {
-                    evidence_id: Uuid::new_v4(),
-                    evidence_type: EvidenceType::TestResult,
-                    description: "ML-KEM implementations pass NIST test vectors".to_string(),
-                    source: "KAT Tests".to_string(),
-                    collected_at: Utc::now(),
-                    quality_score: 0.95,
-                }
-            ],
+            evidence: vec![Evidence {
+                evidence_id: Uuid::new_v4(),
+                evidence_type: EvidenceType::TestResult,
+                description: "ML-KEM implementations pass NIST test vectors".to_string(),
+                source: "KAT Tests".to_string(),
+                collected_at: Utc::now(),
+                quality_score: 0.95,
+            }],
             gaps: vec![],
             last_tested: Some(Utc::now() - Duration::days(1)),
             next_test: Some(Utc::now() + Duration::days(30)),
@@ -231,16 +226,14 @@ impl ComplianceChecker {
             requirement: "Ensure secure key encapsulation and decapsulation operations".to_string(),
             implementation_status: ImplementationStatus::Implemented,
             effectiveness: ControlEffectiveness::Effective,
-            evidence: vec![
-                Evidence {
-                    evidence_id: Uuid::new_v4(),
-                    evidence_type: EvidenceType::LogData,
-                    description: "Audit logs show successful key encapsulation operations".to_string(),
-                    source: "Crypto Engine Logs".to_string(),
-                    collected_at: Utc::now(),
-                    quality_score: 0.90,
-                }
-            ],
+            evidence: vec![Evidence {
+                evidence_id: Uuid::new_v4(),
+                evidence_type: EvidenceType::LogData,
+                description: "Audit logs show successful key encapsulation operations".to_string(),
+                source: "Crypto Engine Logs".to_string(),
+                collected_at: Utc::now(),
+                quality_score: 0.90,
+            }],
             gaps: vec![],
             last_tested: Some(Utc::now()),
             next_test: Some(Utc::now() + Duration::days(30)),
@@ -253,16 +246,15 @@ impl ComplianceChecker {
             requirement: "Use only approved parameter sets for ML-KEM variants".to_string(),
             implementation_status: ImplementationStatus::Implemented,
             effectiveness: ControlEffectiveness::Effective,
-            evidence: vec![
-                Evidence {
-                    evidence_id: Uuid::new_v4(),
-                    evidence_type: EvidenceType::Configuration,
-                    description: "Configuration files contain only NIST-approved parameter sets".to_string(),
-                    source: "System Configuration".to_string(),
-                    collected_at: Utc::now(),
-                    quality_score: 1.0,
-                }
-            ],
+            evidence: vec![Evidence {
+                evidence_id: Uuid::new_v4(),
+                evidence_type: EvidenceType::Configuration,
+                description: "Configuration files contain only NIST-approved parameter sets"
+                    .to_string(),
+                source: "System Configuration".to_string(),
+                collected_at: Utc::now(),
+                quality_score: 1.0,
+            }],
             gaps: vec![],
             last_tested: Some(Utc::now()),
             next_test: Some(Utc::now() + Duration::days(90)),
@@ -295,19 +287,18 @@ impl ComplianceChecker {
             control_id: "FIPS-204-1".to_string(),
             control_name: "ML-DSA Algorithm Implementation".to_string(),
             category: "Digital Signature Implementation".to_string(),
-            requirement: "Implement ML-DSA-44, ML-DSA-65, and ML-DSA-87 according to NIST FIPS 204".to_string(),
+            requirement: "Implement ML-DSA-44, ML-DSA-65, and ML-DSA-87 according to NIST FIPS 204"
+                .to_string(),
             implementation_status: ImplementationStatus::Implemented,
             effectiveness: ControlEffectiveness::Effective,
-            evidence: vec![
-                Evidence {
-                    evidence_id: Uuid::new_v4(),
-                    evidence_type: EvidenceType::TestResult,
-                    description: "ML-DSA implementations pass NIST test vectors".to_string(),
-                    source: "Signature Tests".to_string(),
-                    collected_at: Utc::now(),
-                    quality_score: 0.95,
-                }
-            ],
+            evidence: vec![Evidence {
+                evidence_id: Uuid::new_v4(),
+                evidence_type: EvidenceType::TestResult,
+                description: "ML-DSA implementations pass NIST test vectors".to_string(),
+                source: "Signature Tests".to_string(),
+                collected_at: Utc::now(),
+                quality_score: 0.95,
+            }],
             gaps: vec![],
             last_tested: Some(Utc::now() - Duration::days(1)),
             next_test: Some(Utc::now() + Duration::days(30)),
@@ -320,16 +311,14 @@ impl ComplianceChecker {
             requirement: "Ensure secure signature generation with proper randomness".to_string(),
             implementation_status: ImplementationStatus::Implemented,
             effectiveness: ControlEffectiveness::Effective,
-            evidence: vec![
-                Evidence {
-                    evidence_id: Uuid::new_v4(),
-                    evidence_type: EvidenceType::LogData,
-                    description: "Entropy quality monitoring shows proper randomness".to_string(),
-                    source: "Entropy Monitor".to_string(),
-                    collected_at: Utc::now(),
-                    quality_score: 0.92,
-                }
-            ],
+            evidence: vec![Evidence {
+                evidence_id: Uuid::new_v4(),
+                evidence_type: EvidenceType::LogData,
+                description: "Entropy quality monitoring shows proper randomness".to_string(),
+                source: "Entropy Monitor".to_string(),
+                collected_at: Utc::now(),
+                quality_score: 0.92,
+            }],
             gaps: vec![],
             last_tested: Some(Utc::now()),
             next_test: Some(Utc::now() + Duration::days(30)),
@@ -362,19 +351,19 @@ impl ComplianceChecker {
             control_id: "CC6.1".to_string(),
             control_name: "Logical and Physical Access Controls".to_string(),
             category: "Security".to_string(),
-            requirement: "Implement logical and physical access controls to protect against threats".to_string(),
+            requirement:
+                "Implement logical and physical access controls to protect against threats"
+                    .to_string(),
             implementation_status: ImplementationStatus::Implemented,
             effectiveness: ControlEffectiveness::Effective,
-            evidence: vec![
-                Evidence {
-                    evidence_id: Uuid::new_v4(),
-                    evidence_type: EvidenceType::LogData,
-                    description: "API key authentication logs show proper access controls".to_string(),
-                    source: "Authentication System".to_string(),
-                    collected_at: Utc::now(),
-                    quality_score: 0.88,
-                }
-            ],
+            evidence: vec![Evidence {
+                evidence_id: Uuid::new_v4(),
+                evidence_type: EvidenceType::LogData,
+                description: "API key authentication logs show proper access controls".to_string(),
+                source: "Authentication System".to_string(),
+                collected_at: Utc::now(),
+                quality_score: 0.88,
+            }],
             gaps: vec![],
             last_tested: Some(Utc::now()),
             next_test: Some(Utc::now() + Duration::days(30)),
@@ -387,16 +376,14 @@ impl ComplianceChecker {
             requirement: "Transmit and dispose of data securely".to_string(),
             implementation_status: ImplementationStatus::Implemented,
             effectiveness: ControlEffectiveness::Effective,
-            evidence: vec![
-                Evidence {
-                    evidence_id: Uuid::new_v4(),
-                    evidence_type: EvidenceType::Configuration,
-                    description: "TLS encryption enabled for all data transmission".to_string(),
-                    source: "Network Configuration".to_string(),
-                    collected_at: Utc::now(),
-                    quality_score: 0.95,
-                }
-            ],
+            evidence: vec![Evidence {
+                evidence_id: Uuid::new_v4(),
+                evidence_type: EvidenceType::Configuration,
+                description: "TLS encryption enabled for all data transmission".to_string(),
+                source: "Network Configuration".to_string(),
+                collected_at: Utc::now(),
+                quality_score: 0.95,
+            }],
             gaps: vec![],
             last_tested: Some(Utc::now()),
             next_test: Some(Utc::now() + Duration::days(30)),
@@ -424,19 +411,31 @@ impl ComplianceChecker {
             return 0.0;
         }
 
-        let total_score: f64 = controls.iter().map(|control| {
-            match (&control.implementation_status, &control.effectiveness) {
-                (ImplementationStatus::Implemented, ControlEffectiveness::Effective) => 100.0,
-                (ImplementationStatus::Implemented, ControlEffectiveness::PartiallyEffective) => 75.0,
-                (ImplementationStatus::PartiallyImplemented, ControlEffectiveness::Effective) => 60.0,
-                (ImplementationStatus::PartiallyImplemented, ControlEffectiveness::PartiallyEffective) => 40.0,
-                (ImplementationStatus::InProgress, _) => 25.0,
-                (ImplementationStatus::NotImplemented, _) => 0.0,
-                (ImplementationStatus::NotApplicable, _) => 100.0, // Don't penalize N/A controls
-                (_, ControlEffectiveness::Ineffective) => 0.0,
-                (_, ControlEffectiveness::NotTested) => 50.0, // Assume partial until tested
-            }
-        }).sum();
+        let total_score: f64 = controls
+            .iter()
+            .map(|control| {
+                match (&control.implementation_status, &control.effectiveness) {
+                    (ImplementationStatus::Implemented, ControlEffectiveness::Effective) => 100.0,
+                    (
+                        ImplementationStatus::Implemented,
+                        ControlEffectiveness::PartiallyEffective,
+                    ) => 75.0,
+                    (
+                        ImplementationStatus::PartiallyImplemented,
+                        ControlEffectiveness::Effective,
+                    ) => 60.0,
+                    (
+                        ImplementationStatus::PartiallyImplemented,
+                        ControlEffectiveness::PartiallyEffective,
+                    ) => 40.0,
+                    (ImplementationStatus::InProgress, _) => 25.0,
+                    (ImplementationStatus::NotImplemented, _) => 0.0,
+                    (ImplementationStatus::NotApplicable, _) => 100.0, // Don't penalize N/A controls
+                    (_, ControlEffectiveness::Ineffective) => 0.0,
+                    (_, ControlEffectiveness::NotTested) => 50.0, // Assume partial until tested
+                }
+            })
+            .sum();
 
         total_score / controls.len() as f64
     }
@@ -463,17 +462,18 @@ impl ComplianceChecker {
 
     pub async fn get_compliance_dashboard(&self) -> ComplianceDashboard {
         let reports = self.generate_comprehensive_report().await;
-        
-        let overall_score = reports.values()
-            .map(|report| report.overall_score)
-            .sum::<f64>() / reports.len() as f64;
 
-        let critical_findings = reports.values()
+        let overall_score =
+            reports.values().map(|report| report.overall_score).sum::<f64>() / reports.len() as f64;
+
+        let critical_findings = reports
+            .values()
             .flat_map(|report| &report.findings)
             .filter(|finding| matches!(finding.severity, FindingSeverity::Critical))
             .count();
 
-        let high_findings = reports.values()
+        let high_findings = reports
+            .values()
             .flat_map(|report| &report.findings)
             .filter(|finding| matches!(finding.severity, FindingSeverity::High))
             .count();
@@ -486,7 +486,8 @@ impl ComplianceChecker {
             last_assessment: Utc::now(),
             next_assessment: Utc::now() + Duration::days(90),
             compliance_trends: vec![], // Would be populated from historical data
-            framework_scores: reports.iter()
+            framework_scores: reports
+                .iter()
                 .map(|(name, report)| (name.clone(), report.overall_score))
                 .collect(),
         }

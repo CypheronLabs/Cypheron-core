@@ -1,8 +1,8 @@
 use secrecy::SecretBox;
-use zeroize::Zeroize;
 use std::fmt;
+use zeroize::Zeroize;
 
-#[derive(Clone, PartialEq, Eq)] 
+#[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey<const N: usize>(pub [u8; N]);
 
 impl<const N: usize> fmt::Debug for PublicKey<N> {
@@ -23,7 +23,7 @@ impl<const N: usize> fmt::Debug for SecretKey<N> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)] 
+#[derive(Clone, PartialEq, Eq)]
 pub struct Signature<const N: usize>(pub [u8; N]);
 impl<const N: usize> fmt::Debug for Signature<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -10,10 +10,10 @@ pub enum FalconErrors {
 
     #[error("Signing failed (falcon_sign_dyn returned error)")]
     SigningFailed,
-    
+
     #[error("Invalid input (falcon_input returned error)")]
     InvalidInput,
-    
+
     #[error("Internal consistency error (internal_error returned error")]
     InternalConsistencyError,
 }

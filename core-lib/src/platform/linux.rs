@@ -1,20 +1,18 @@
-/// Linux-specific implementations for PQ-Core
-
-use std::io::{Error, ErrorKind};
 use std::fs;
+/// Linux-specific implementations for PQ-Core
+use std::io::{Error, ErrorKind};
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     // Try getrandom syscall first (Linux 3.17+)
     if try_getrandom(buffer).is_ok() {
         return Ok(());
     }
-    
+
     // Fallback to /dev/urandom
     secure_random_bytes_dev_urandom(buffer)
 }
 
 fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
-    
     unsafe {
         let result = libc::syscall(
             libc::SYS_getrandom,
@@ -22,29 +20,23 @@ fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
             buffer.len(),
             0, // flags
         );
-        
+
         if result < 0 {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "getrandom syscall failed"
-            ));
+            return Err(Error::new(ErrorKind::Other, "getrandom syscall failed"));
         }
-        
+
         if result as usize != buffer.len() {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "getrandom returned insufficient bytes"
-            ));
+            return Err(Error::new(ErrorKind::Other, "getrandom returned insufficient bytes"));
         }
     }
-    
+
     Ok(())
 }
 
 pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     use std::fs::File;
     use std::io::Read;
-    
+
     let mut file = File::open("/dev/urandom")?;
     file.read_exact(buffer)?;
     Ok(())
@@ -53,10 +45,7 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
 pub fn secure_zero(buffer: &mut [u8]) {
     unsafe {
         if has_explicit_bzero() {
-            libc::explicit_bzero(
-                buffer.as_mut_ptr() as *mut libc::c_void,
-                buffer.len(),
-            );
+            libc::explicit_bzero(buffer.as_mut_ptr() as *mut libc::c_void, buffer.len());
         } else {
             secure_zero_fallback(buffer);
         }
@@ -74,27 +63,20 @@ fn secure_zero_fallback(buffer: &mut [u8]) {
 
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use libc::{mprotect, PROT_NONE, PROT_READ, PROT_WRITE};
-    
-    let protection = if protect {
-        PROT_NONE
-    } else {
-        PROT_READ | PROT_WRITE
-    };
-    
+
+    let protection = if protect { PROT_NONE } else { PROT_READ | PROT_WRITE };
+
     let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
     let addr = buffer.as_mut_ptr() as usize;
     let aligned_addr = addr & !(page_size - 1);
     let aligned_len = ((addr + buffer.len() + page_size - 1) & !(page_size - 1)) - aligned_addr;
-    
+
     unsafe {
         if mprotect(aligned_addr as *mut libc::c_void, aligned_len, protection) != 0 {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Failed to protect memory"
-            ));
+            return Err(Error::new(ErrorKind::Other, "Failed to protect memory"));
         }
     }
-    
+
     Ok(())
 }
 pub fn get_linux_distro() -> String {
@@ -106,7 +88,7 @@ pub fn get_linux_distro() -> String {
             }
         }
     }
-    
+
     if let Ok(content) = fs::read_to_string("/etc/lsb-release") {
         for line in content.lines() {
             if line.starts_with("DISTRIB_DESCRIPTION=") {
@@ -115,18 +97,17 @@ pub fn get_linux_distro() -> String {
             }
         }
     }
-    
+
     "Linux (distribution unknown)".to_string()
 }
 
 pub fn get_kernel_version() -> String {
-    
     if let Ok(version) = fs::read_to_string("/proc/version") {
         if let Some(end) = version.find(' ') {
             return version[..end].to_string();
         }
     }
-    
+
     "Unknown kernel".to_string()
 }
 
@@ -134,23 +115,23 @@ pub fn is_running_in_container() -> bool {
     if fs::metadata("/.dockerenv").is_ok() {
         return true;
     }
-    
+
     if let Ok(content) = fs::read_to_string("/proc/1/cgroup") {
         if content.contains("lxc") || content.contains("docker") {
             return true;
         }
     }
-    
+
     false
 }
 pub fn get_cpu_info() -> CpuInfo {
     use std::collections::HashMap;
-    
+
     let mut info = CpuInfo::default();
-    
+
     if let Ok(content) = fs::read_to_string("/proc/cpuinfo") {
         let mut properties = HashMap::new();
-        
+
         for line in content.lines() {
             if let Some(pos) = line.find(':') {
                 let key = line[..pos].trim();
@@ -158,23 +139,23 @@ pub fn get_cpu_info() -> CpuInfo {
                 properties.insert(key.to_string(), value.to_string());
             }
         }
-        
+
         if let Some(model) = properties.get("model name") {
             info.model_name = model.clone();
         }
-        
+
         if let Some(flags) = properties.get("flags") {
             info.has_aes = flags.contains("aes");
             info.has_avx2 = flags.contains("avx2");
             info.has_rdrand = flags.contains("rdrand");
             info.has_rdseed = flags.contains("rdseed");
         }
-        
+
         if let Some(cores) = properties.get("cpu cores") {
             info.cores = cores.parse().unwrap_or(1);
         }
     }
-    
+
     info
 }
 
@@ -189,40 +170,37 @@ pub struct CpuInfo {
 }
 pub fn optimize_for_crypto() -> Result<(), Error> {
     set_cpu_affinity()?;
-    
+
     unsafe {
         if libc::setpriority(libc::PRIO_PROCESS, 0, -5) != 0 {
             eprintln!("Warning: Could not set process priority");
         }
     }
-    
+
     Ok(())
 }
 fn set_cpu_affinity() -> Result<(), Error> {
     let cpu_count = num_cpus::get();
-    
+
     unsafe {
         let mut cpu_set: libc::cpu_set_t = std::mem::zeroed();
         libc::CPU_ZERO(&mut cpu_set);
-        
+
         for i in 0..cpu_count {
             libc::CPU_SET(i, &mut cpu_set);
         }
-        
+
         if libc::sched_setaffinity(0, std::mem::size_of::<libc::cpu_set_t>(), &cpu_set) != 0 {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Failed to set CPU affinity"
-            ));
+            return Err(Error::new(ErrorKind::Other, "Failed to set CPU affinity"));
         }
     }
-    
+
     Ok(())
 }
 
 pub fn check_security_features() -> SecurityFeatures {
     let cpu_info = get_cpu_info();
-    
+
     SecurityFeatures {
         has_hardware_rng: cpu_info.has_rdrand || cpu_info.has_rdseed,
         has_aes_ni: cpu_info.has_aes,
@@ -242,8 +220,9 @@ pub struct SecurityFeatures {
 }
 
 fn check_secure_boot() -> bool {
-    
-    if let Ok(content) = fs::read_to_string("/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c") {
+    if let Ok(content) = fs::read_to_string(
+        "/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c",
+    ) {
         content.len() > 4 && content.as_bytes()[4] == 1
     } else {
         false
@@ -251,6 +230,5 @@ fn check_secure_boot() -> bool {
 }
 
 fn check_tpm() -> bool {
-    
     fs::metadata("/dev/tpm0").is_ok() || fs::metadata("/dev/tpmrm0").is_ok()
 }

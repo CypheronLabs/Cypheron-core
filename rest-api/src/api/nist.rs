@@ -1,5 +1,5 @@
-use axum::{Router, routing::get};
 use crate::handlers::nist_compliance;
+use axum::{routing::get, Router};
 
 pub fn routes() -> Router {
     Router::new()

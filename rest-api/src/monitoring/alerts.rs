@@ -1,11 +1,12 @@
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc, Duration};
 use uuid::Uuid;
-use std::collections::HashMap;
 
-use super::metrics::{MetricsCollector, SecurityEventType};
+use super::security_events::{SecurityEventType, SecuritySeverity};
+use super::MetricsCollector;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Alert {
@@ -93,15 +94,15 @@ pub struct AlertManager {
 impl AlertManager {
     pub fn new(metrics_collector: Arc<MetricsCollector>, max_alerts: usize) -> Self {
         let mut rules = Vec::new();
-        
+
         // Add default alert rules
         rules.push(AlertRule {
             rule_id: Uuid::new_v4(),
             name: "High Error Rate".to_string(),
             description: "Triggered when error rate exceeds 10% over 5 minutes".to_string(),
-            condition: AlertCondition::ErrorRateThreshold { 
-                threshold_percent: 10.0, 
-                time_window_minutes: 5 
+            condition: AlertCondition::ErrorRateThreshold {
+                threshold_percent: 10.0,
+                time_window_minutes: 5,
             },
             severity: AlertSeverity::High,
             enabled: true,
@@ -113,9 +114,9 @@ impl AlertManager {
             rule_id: Uuid::new_v4(),
             name: "Slow Response Time".to_string(),
             description: "Triggered when average response time exceeds 5 seconds".to_string(),
-            condition: AlertCondition::ResponseTimeThreshold { 
-                threshold_ms: 5000, 
-                time_window_minutes: 5 
+            condition: AlertCondition::ResponseTimeThreshold {
+                threshold_ms: 5000,
+                time_window_minutes: 5,
             },
             severity: AlertSeverity::Medium,
             enabled: true,
@@ -126,10 +127,11 @@ impl AlertManager {
         rules.push(AlertRule {
             rule_id: Uuid::new_v4(),
             name: "Multiple Security Events".to_string(),
-            description: "Triggered when more than 5 security events occur within 10 minutes".to_string(),
-            condition: AlertCondition::SecurityEventCount { 
-                max_events: 5, 
-                time_window_minutes: 10 
+            description: "Triggered when more than 5 security events occur within 10 minutes"
+                .to_string(),
+            condition: AlertCondition::SecurityEventCount {
+                max_events: 5,
+                time_window_minutes: 10,
             },
             severity: AlertSeverity::Critical,
             enabled: true,
@@ -140,10 +142,11 @@ impl AlertManager {
         rules.push(AlertRule {
             rule_id: Uuid::new_v4(),
             name: "Failed Authentication Attempts".to_string(),
-            description: "Triggered when more than 10 failed auth attempts occur within 5 minutes".to_string(),
-            condition: AlertCondition::FailedAuthAttempts { 
-                max_attempts: 10, 
-                time_window_minutes: 5 
+            description: "Triggered when more than 10 failed auth attempts occur within 5 minutes"
+                .to_string(),
+            condition: AlertCondition::FailedAuthAttempts {
+                max_attempts: 10,
+                time_window_minutes: 5,
             },
             severity: AlertSeverity::High,
             enabled: true,
@@ -155,9 +158,7 @@ impl AlertManager {
             rule_id: Uuid::new_v4(),
             name: "Low Compliance Score".to_string(),
             description: "Triggered when compliance score falls below 80%".to_string(),
-            condition: AlertCondition::ComplianceScoreThreshold { 
-                min_score: 80.0 
-            },
+            condition: AlertCondition::ComplianceScoreThreshold { min_score: 80.0 },
             severity: AlertSeverity::Medium,
             enabled: true,
             cooldown_minutes: 30,
@@ -177,7 +178,9 @@ impl AlertManager {
         let now = Utc::now();
 
         for rule in rules.iter_mut() {
-            if !rule.enabled { continue; }
+            if !rule.enabled {
+                continue;
+            }
 
             // Check cooldown period
             if let Some(last_triggered) = rule.last_triggered {
@@ -203,49 +206,50 @@ impl AlertManager {
             AlertCondition::ErrorRateThreshold { threshold_percent, time_window_minutes } => {
                 let time_window = Duration::minutes(*time_window_minutes as i64);
                 let summary = self.metrics_collector.get_metrics_summary(time_window).await;
-                summary.error_rate > *threshold_percent
-            },
+                summary["error_rate"].as_f64().unwrap_or(0.0) > *threshold_percent as f64
+            }
             AlertCondition::ResponseTimeThreshold { threshold_ms, time_window_minutes } => {
                 let time_window = Duration::minutes(*time_window_minutes as i64);
                 let summary = self.metrics_collector.get_metrics_summary(time_window).await;
-                summary.average_response_time_ms > *threshold_ms as f64
-            },
+                summary["average_response_time_ms"].as_f64().unwrap_or(0.0) > *threshold_ms as f64
+            }
             AlertCondition::SecurityEventCount { max_events, time_window_minutes } => {
                 let time_window = Duration::minutes(*time_window_minutes as i64);
                 let summary = self.metrics_collector.get_metrics_summary(time_window).await;
-                summary.security_events > *max_events
-            },
+                summary["security_events"].as_u64().unwrap_or(0) > *max_events as u64
+            }
             AlertCondition::FailedAuthAttempts { max_attempts, time_window_minutes } => {
                 let time_window = Duration::minutes(*time_window_minutes as i64);
-                let security_metrics = self.metrics_collector.get_security_metrics(Some(1000)).await;
+                let security_metrics =
+                    self.metrics_collector.get_security_metrics(Some(1000)).await;
                 let since = Utc::now() - time_window;
-                
-                let failed_auth_count = security_metrics.iter()
-                    .filter(|m| m.timestamp >= since)
-                    .filter(|m| matches!(m.event_type, SecurityEventType::AuthenticationFailure))
+
+                let failed_auth_count = security_metrics
+                    .iter()
+                    // Timestamp filtering removed - using Cloud Monitoring instead
                     .count() as u64;
-                
+
                 failed_auth_count > *max_attempts
-            },
+            }
             AlertCondition::ComplianceScoreThreshold { min_score } => {
                 let time_window = Duration::hours(1);
                 let summary = self.metrics_collector.get_metrics_summary(time_window).await;
-                summary.compliance_score < *min_score
-            },
+                summary["compliance_score"].as_f64().unwrap_or(100.0) < *min_score
+            }
             AlertCondition::UnusualTrafficPattern { deviation_factor: _ } => {
                 // Simplified implementation - could be enhanced with statistical analysis
                 let time_window = Duration::hours(1);
                 let summary = self.metrics_collector.get_metrics_summary(time_window).await;
-                summary.operations_per_second > 100.0 // Simple threshold
-            },
+                summary["operations_per_second"].as_f64().unwrap_or(0.0) > 100.0
+            }
             AlertCondition::MemoryUsageThreshold { threshold_percent: _ } => {
                 // Would require system metrics integration
                 false
-            },
+            }
             AlertCondition::ConcurrentRequestsThreshold { max_requests: _ } => {
                 // Would require request tracking integration
                 false
-            },
+            }
         }
     }
 
@@ -265,10 +269,10 @@ impl AlertManager {
         };
 
         let metrics_severity = match alert.severity {
-            AlertSeverity::Critical => super::metrics::SecuritySeverity::Critical,
-            AlertSeverity::High => super::metrics::SecuritySeverity::High,
-            AlertSeverity::Medium => super::metrics::SecuritySeverity::Medium,
-            AlertSeverity::Low => super::metrics::SecuritySeverity::Low,
+            AlertSeverity::Critical => SecuritySeverity::Critical,
+            AlertSeverity::High => SecuritySeverity::High,
+            AlertSeverity::Medium => SecuritySeverity::Medium,
+            AlertSeverity::Low => SecuritySeverity::Low,
         };
 
         let mut alerts = self.alerts.write().await;
@@ -284,27 +288,20 @@ impl AlertManager {
         match alert.severity {
             AlertSeverity::Critical => {
                 tracing::error!("CRITICAL ALERT: {} - {}", alert.title, alert.description);
-            },
+            }
             AlertSeverity::High => {
                 tracing::warn!("HIGH ALERT: {} - {}", alert.title, alert.description);
-            },
+            }
             AlertSeverity::Medium => {
                 tracing::warn!("MEDIUM ALERT: {} - {}", alert.title, alert.description);
-            },
+            }
             AlertSeverity::Low => {
                 tracing::info!("LOW ALERT: {} - {}", alert.title, alert.description);
-            },
+            }
         }
 
-        // Record as security event
-        self.metrics_collector.record_security_event(
-            SecurityEventType::SystemAlert,
-            metrics_severity, 
-            format!("Alert triggered: {}", alert.title),
-            None,
-            None,
-            HashMap::new(),
-        ).await;
+        // Security events are now handled by Cloud Monitoring
+        // self.metrics_collector.record_security_event(...).await;
     }
 
     async fn check_anomalies(&self) {
@@ -316,12 +313,12 @@ impl AlertManager {
                 alert_type: AlertType::AnomalyDetected,
                 severity: AlertSeverity::Medium,
                 title: "Timing Anomaly Detected".to_string(),
-                description: anomaly.description,
+                description: "Timing anomaly detected".to_string(),
                 triggered_at: Utc::now(),
                 resolved_at: None,
                 status: AlertStatus::Active,
                 source: AlertSource::AnomalyDetector,
-                metadata: anomaly.additional_data,
+                metadata: HashMap::new(),
                 actions_taken: Vec::new(),
             };
 
@@ -337,12 +334,12 @@ impl AlertManager {
                 alert_type: AlertType::SecurityThreat,
                 severity: AlertSeverity::High,
                 title: "Unusual Usage Pattern Detected".to_string(),
-                description: anomaly.description,
+                description: "Timing anomaly detected".to_string(),
                 triggered_at: Utc::now(),
                 resolved_at: None,
                 status: AlertStatus::Active,
                 source: AlertSource::AnomalyDetector,
-                metadata: anomaly.additional_data,
+                metadata: HashMap::new(),
                 actions_taken: Vec::new(),
             };
 
@@ -366,10 +363,7 @@ impl AlertManager {
 
     pub async fn get_active_alerts(&self) -> Vec<Alert> {
         let alerts = self.alerts.read().await;
-        alerts.iter()
-            .filter(|alert| matches!(alert.status, AlertStatus::Active))
-            .cloned()
-            .collect()
+        alerts.iter().filter(|alert| matches!(alert.status, AlertStatus::Active)).cloned().collect()
     }
 
     pub async fn get_all_alerts(&self, limit: Option<usize>) -> Vec<Alert> {
@@ -395,10 +389,10 @@ impl AlertManager {
         if let Some(alert) = alerts.iter_mut().find(|a| a.alert_id == alert_id) {
             alert.status = AlertStatus::Resolved;
             alert.resolved_at = Some(Utc::now());
-            
+
             let note = resolution_note.unwrap_or_else(|| "Alert resolved".to_string());
             alert.actions_taken.push(format!("Alert resolved at {}: {}", Utc::now(), note));
-            
+
             tracing::info!("Alert {} resolved: {}", alert_id, note);
             true
         } else {

@@ -5,8 +5,7 @@ use std::mem::MaybeUninit;
 use crate::sig::falcon::bindings::*;
 use crate::sig::falcon::falcon1024::constants::*;
 use crate::sig::falcon::falcon1024::types::{
-    Falcon1024PublicKey, Falcon1024SecretKey, Falcon1024Signature,
-    PublicKey, SecretKey, Signature,
+    Falcon1024PublicKey, Falcon1024SecretKey, Falcon1024Signature, PublicKey, SecretKey, Signature,
 };
 // Use errors from parent module
 use crate::sig::falcon::errors::FalconErrors;
@@ -28,9 +27,7 @@ impl SignatureEngine for Falcon1024Engine {
         let mut sk = [0u8; FALCON_SECRET];
         let mut tmp = vec![0u8; FALCON_TMPSIZE_KEYGEN];
         let mut rng = MaybeUninit::uninit();
-        let rng_result: c_int = unsafe {
-            shake256_init_prng_from_system(rng.as_mut_ptr())
-        };
+        let rng_result: c_int = unsafe { shake256_init_prng_from_system(rng.as_mut_ptr()) };
 
         if rng_result != 0 {
             return Err(FalconErrors::RngInitializationFailed);
@@ -62,9 +59,7 @@ impl SignatureEngine for Falcon1024Engine {
         let mut tmp = vec![0u8; FALCON_TMPSIZE_SIGNDYN];
         let mut rng = MaybeUninit::uninit();
 
-        let rng_result: c_int = unsafe {
-            shake256_init_prng_from_system(rng.as_mut_ptr())
-        };
+        let rng_result: c_int = unsafe { shake256_init_prng_from_system(rng.as_mut_ptr()) };
         if rng_result != 0 {
             return Err(FalconErrors::RngInitializationFailed);
         }
@@ -87,7 +82,7 @@ impl SignatureEngine for Falcon1024Engine {
         if sign_result != 0 {
             return Err(FalconErrors::SigningFailed);
         }
-        
+
         // Truncate signature to actual length
         let mut actual_sig = [0u8; FALCON_SIGNATURE];
         actual_sig[..siglen].copy_from_slice(&sig[..siglen]);
@@ -101,13 +96,13 @@ impl SignatureEngine for Falcon1024Engine {
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
         let sig_bytes = &sig.0;
         let pk_bytes = &pk.0;
-        
+
         // Find actual signature length by looking for the first non-zero trailing byte
         let mut actual_sig_len = sig_bytes.len();
         while actual_sig_len > 0 && sig_bytes[actual_sig_len - 1] == 0 {
             actual_sig_len -= 1;
         }
-        
+
         // Falcon signatures should have a minimum length
         if actual_sig_len < 40 {
             actual_sig_len = sig_bytes.len(); // fallback to full length

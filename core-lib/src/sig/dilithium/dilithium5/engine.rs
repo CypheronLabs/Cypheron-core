@@ -21,25 +21,13 @@ impl SignatureEngine for Dilithium5Engine {
         let mut pk = [0u8; ML_DSA_87_PUBLIC];
         let mut sk = [0u8; ML_DSA_87_SECRET];
 
-        let result = unsafe {
-            pqcrystals_dilithium5_ref_keypair(
-                pk.as_mut_ptr(),
-                sk.as_mut_ptr(),
-            )
-        };
+        let result = unsafe { pqcrystals_dilithium5_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
         match result {
             0 => {
                 // C function succeeded, buffers are now properly initialized
-                Ok(
-                    (
-                        PublicKey(pk),
-                        SecretKey(SecretBox::new(sk.into())),
-                    ),
-                )
-            },
-            code => {
-                Err(DilithiumError::from_c_code(code, "keypair"))
+                Ok((PublicKey(pk), SecretKey(SecretBox::new(sk.into()))))
             }
+            code => Err(DilithiumError::from_c_code(code, "keypair")),
         }
     }
 
@@ -47,32 +35,30 @@ impl SignatureEngine for Dilithium5Engine {
         let mut sig = MaybeUninit::<[u8; ML_DSA_87_SIGNATURE]>::uninit();
         let mut siglen = 0usize;
         let sk_bytes = sk.0.expose_secret();
-        
+
         let result = unsafe {
             pqcrystals_dilithium5_ref_signature(
                 sig.as_mut_ptr() as *mut u8,
                 &mut siglen,
                 msg.as_ptr(),
                 msg.len(),
-                std::ptr::null(), 
-                0,                
+                std::ptr::null(),
+                0,
                 sk_bytes.as_ptr(),
             )
         };
         match result {
-            0 => { 
+            0 => {
                 let sig = unsafe { sig.assume_init() };
-                
+
                 Ok(Signature(sig))
             }
-            code => {
-                Err(DilithiumError::from_c_code(code, "sign"))
-            }
+            code => Err(DilithiumError::from_c_code(code, "sign")),
         }
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
-        let sig_len = sig.0.len(); 
+        let sig_len = sig.0.len();
         let result = unsafe {
             pqcrystals_dilithium5_ref_verify(
                 sig.0.as_ptr(),
@@ -80,7 +66,7 @@ impl SignatureEngine for Dilithium5Engine {
                 msg.as_ptr(),
                 msg.len(),
                 std::ptr::null(),
-                0,               
+                0,
                 pk.0.as_ptr(),
             )
         };

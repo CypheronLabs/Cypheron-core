@@ -1,20 +1,20 @@
 use super::bindings;
 use crate::sig::sphincs::errors::SphincsError;
-use zeroize::Zeroize;
-use std::fmt;
 use once_cell::sync::Lazy;
+use std::fmt;
+use zeroize::Zeroize;
 
-static PUBLIC_KEY_BYTES_USIZE: Lazy<usize> = Lazy::new(
-    || unsafe { bindings::robust_ffi::crypto_sign_publickeybytes() as usize });
-static SECRET_KEY_BYTES_USIZE: Lazy<usize> = Lazy::new(
-    || unsafe { bindings::robust_ffi::crypto_sign_secretkeybytes() as usize });
-static SIGNATURE_BYTES_USIZE: Lazy<usize> = Lazy::new(
-    || unsafe { bindings::robust_ffi::crypto_sign_bytes() as usize });
-static SEED_BYTES_USIZE: Lazy<usize> = Lazy::new(
-    || unsafe { bindings::robust_ffi::crypto_sign_seedbytes() as usize });
+static PUBLIC_KEY_BYTES_USIZE: Lazy<usize> =
+    Lazy::new(|| unsafe { bindings::robust_ffi::crypto_sign_publickeybytes() as usize });
+static SECRET_KEY_BYTES_USIZE: Lazy<usize> =
+    Lazy::new(|| unsafe { bindings::robust_ffi::crypto_sign_secretkeybytes() as usize });
+static SIGNATURE_BYTES_USIZE: Lazy<usize> =
+    Lazy::new(|| unsafe { bindings::robust_ffi::crypto_sign_bytes() as usize });
+static SEED_BYTES_USIZE: Lazy<usize> =
+    Lazy::new(|| unsafe { bindings::robust_ffi::crypto_sign_seedbytes() as usize });
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct PublicKey (Vec<u8>);
+pub struct PublicKey(Vec<u8>);
 
 impl PublicKey {
     pub(crate) fn new_uninitialized() -> Self {
@@ -47,7 +47,7 @@ impl PublicKey {
 
 impl fmt::Debug for PublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PublicKeyHaraka192f") 
+        f.debug_struct("PublicKeyHaraka192f")
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",
@@ -96,9 +96,7 @@ impl SecretKey {
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SecretKeyHaraka192f") 
-            .field("len", &Self::length())
-            .finish_non_exhaustive()
+        f.debug_struct("SecretKeyHaraka192f").field("len", &Self::length()).finish_non_exhaustive()
     }
 }
 
@@ -140,7 +138,7 @@ impl Signature {
 
 impl fmt::Debug for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SignatureHaraka192f") 
+        f.debug_struct("SignatureHaraka192f")
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",
@@ -181,8 +179,6 @@ impl Seed {
 
 impl fmt::Debug for Seed {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SeedHaraka192f") 
-            .field("len", &Self::length())
-            .finish_non_exhaustive()
+        f.debug_struct("SeedHaraka192f").field("len", &Self::length()).finish_non_exhaustive()
     }
 }

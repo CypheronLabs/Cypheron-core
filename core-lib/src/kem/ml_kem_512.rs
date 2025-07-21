@@ -44,7 +44,6 @@ pub enum MlKemError {
 #[deprecated(since = "0.2.0", note = "Use MlKemError instead for NIST FIPS 203 compliance")]
 pub type KyberError = MlKemError;
 
-
 pub struct MlKem512;
 
 #[deprecated(since = "0.2.0", note = "Use MlKem512 instead for NIST FIPS 203 compliance")]
@@ -54,7 +53,7 @@ impl MlKem512 {
     pub fn variant() -> KemVariant {
         KemVariant::MlKem512
     }
-    
+
     #[deprecated(since = "0.2.0", note = "Use variant() instead for NIST FIPS 203 compliance")]
     pub fn legacy_variant() -> KemVariant {
         #[allow(deprecated)]
@@ -76,52 +75,54 @@ impl Kem for MlKem512 {
     fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
         let mut pk = [0u8; sizes::ML_KEM_512_PUBLIC];
         let mut sk = [0u8; sizes::ML_KEM_512_SECRET];
-        
-        let result = unsafe {
-            pqcrystals_kyber512_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr())
-        };
-        
+
+        let result = unsafe { pqcrystals_kyber512_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
+
         if result != 0 {
             pk.zeroize();
             sk.zeroize();
             return Err(MlKemError::KeyGenerationFailed);
         }
-        
+
         Ok((MlKemPublicKey(pk), MlKemSecretKey(sk)))
     }
 
-    fn encapsulate(pk: &Self::PublicKey) -> Result<(Self::Ciphertext, Self::SharedSecret), Self::Error> {
+    fn encapsulate(
+        pk: &Self::PublicKey,
+    ) -> Result<(Self::Ciphertext, Self::SharedSecret), Self::Error> {
         if pk.0.len() != sizes::ML_KEM_512_PUBLIC {
             return Err(MlKemError::InvalidPublicKeyLength {
                 expected: sizes::ML_KEM_512_PUBLIC,
                 actual: pk.0.len(),
             });
         }
-        
+
         let mut ct = vec![0u8; sizes::ML_KEM_512_CIPHERTEXT];
         let mut ss = [0u8; sizes::ML_KEM_512_SHARED];
-        
-        let result = unsafe {
-            pqcrystals_kyber512_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr())
-        };
-        
+
+        let result =
+            unsafe { pqcrystals_kyber512_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr()) };
+
         if result != 0 {
             ss.zeroize();
             return Err(MlKemError::EncapsulationFailed);
         }
-        
+
         Ok((ct, SecretBox::new(ss.into())))
     }
 
-    fn decapsulate(ct: &Self::Ciphertext, sk: &Self::SecretKey) -> Result<Self::SharedSecret, Self::Error> {
+    fn decapsulate(
+        ct: &Self::Ciphertext,
+        sk: &Self::SecretKey,
+    ) -> Result<Self::SharedSecret, Self::Error> {
         if ct.len() != sizes::ML_KEM_512_CIPHERTEXT {
-            return Err(MlKemError::InvalidCiphertextLength {  
+            return Err(MlKemError::InvalidCiphertextLength {
                 expected: sizes::ML_KEM_512_CIPHERTEXT,
                 actual: ct.len(),
             });
         }
         if sk.0.len() != sizes::ML_KEM_512_SECRET {
-            return Err(MlKemError::InvalidSecretKeyLength { 
+            return Err(MlKemError::InvalidSecretKeyLength {
                 expected: sizes::ML_KEM_512_SECRET,
                 actual: sk.0.len(),
             });
@@ -129,17 +130,14 @@ impl Kem for MlKem512 {
 
         let mut ss = [0u8; sizes::ML_KEM_512_SHARED];
 
-        let result = unsafe {
-            pqcrystals_kyber512_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.as_ptr())
-        };
+        let result =
+            unsafe { pqcrystals_kyber512_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.as_ptr()) };
 
         if result != 0 {
             ss.zeroize();
-            return Err(MlKemError::DecapsulationFailed);  
+            return Err(MlKemError::DecapsulationFailed);
         }
 
-        Ok(SecretBox::new(ss.into()))  // WRAP IN Ok()
+        Ok(SecretBox::new(ss.into())) // WRAP IN Ok()
     }
-
 }
-

@@ -1,6 +1,6 @@
+use crate::error::AppError;
 use axum::Json;
 use serde_json::json;
-use crate::error::AppError;
 
 pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError> {
     let compliance_info = json!({
@@ -15,14 +15,14 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                     "endpoints": {
                         "ml_kem_512": {
                             "keygen": "/kem/ml-kem-512/keygen",
-                            "encapsulate": "/kem/ml-kem-512/encapsulate", 
+                            "encapsulate": "/kem/ml-kem-512/encapsulate",
                             "decapsulate": "/kem/ml-kem-512/decapsulate",
                             "info": "/kem/ml-kem-512/info"
                         },
                         "ml_kem_768": {
                             "keygen": "/kem/ml-kem-768/keygen",
                             "encapsulate": "/kem/ml-kem-768/encapsulate",
-                            "decapsulate": "/kem/ml-kem-768/decapsulate", 
+                            "decapsulate": "/kem/ml-kem-768/decapsulate",
                             "info": "/kem/ml-kem-768/info"
                         },
                         "ml_kem_1024": {
@@ -34,7 +34,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                     }
                 },
                 "fips_204": {
-                    "name": "Module-Lattice-Based Digital Signature Standard", 
+                    "name": "Module-Lattice-Based Digital Signature Standard",
                     "algorithms": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
                     "status": "Implemented",
                     "endpoints": {
@@ -44,13 +44,13 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                             "verify": "/sig/ml-dsa-44/verify"
                         },
                         "ml_dsa_65": {
-                            "keygen": "/sig/ml-dsa-65/keygen", 
+                            "keygen": "/sig/ml-dsa-65/keygen",
                             "sign": "/sig/ml-dsa-65/sign",
                             "verify": "/sig/ml-dsa-65/verify"
                         },
                         "ml_dsa_87": {
                             "keygen": "/sig/ml-dsa-87/keygen",
-                            "sign": "/sig/ml-dsa-87/sign", 
+                            "sign": "/sig/ml-dsa-87/sign",
                             "verify": "/sig/ml-dsa-87/verify"
                         }
                     }
@@ -67,7 +67,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                         },
                         "slh_dsa_sha2_256s": {
                             "keygen": "/sig/slh-dsa-sha2-256s/keygen",
-                            "sign": "/sig/slh-dsa-sha2-256s/sign", 
+                            "sign": "/sig/slh-dsa-sha2-256s/sign",
                             "verify": "/sig/slh-dsa-sha2-256s/verify"
                         },
                         "slh_dsa_shake_128f": {
@@ -82,7 +82,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                 "overview": "Cypheron API now supports NIST FIPS compliant algorithm names. Old names are deprecated but still supported for backward compatibility.",
                 "kem_migrations": {
                     "kyber512": "ml-kem-512",
-                    "kyber768": "ml-kem-768", 
+                    "kyber768": "ml-kem-768",
                     "kyber1024": "ml-kem-1024"
                 },
                 "signature_migrations": {
@@ -90,7 +90,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                     "dilithium3": "ml-dsa-65",
                     "dilithium5": "ml-dsa-87",
                     "haraka_192f": "slh-dsa-haraka-192f",
-                    "sha2_256s": "slh-dsa-sha2-256s", 
+                    "sha2_256s": "slh-dsa-sha2-256s",
                     "shake_128f": "slh-dsa-shake-128f"
                 },
                 "timeline": {
@@ -130,7 +130,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                         "verify": "/sig/falcon-512/verify"
                     },
                     "falcon_1024": {
-                        "keygen": "/sig/falcon-1024/keygen", 
+                        "keygen": "/sig/falcon-1024/keygen",
                         "sign": "/sig/falcon-1024/sign",
                         "verify": "/sig/falcon-1024/verify"
                     }
@@ -141,7 +141,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
             "description": "Post-quantum + classical cryptography for enhanced security",
             "algorithms": [
                 "ECDSA P-256 + ML-DSA-44",
-                "ECDSA P-256 + ML-DSA-65", 
+                "ECDSA P-256 + ML-DSA-65",
                 "ECDSA P-256 + ML-DSA-87",
                 "ECDSA P-256 + Falcon-512",
                 "ECDSA P-256 + Falcon-1024"
@@ -159,7 +159,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                 "description": "Example usage of NIST FIPS 203 compliant ML-KEM-512",
                 "endpoints": {
                     "1_generate_keypair": {
-                        "method": "POST", 
+                        "method": "POST",
                         "url": "/kem/ml-kem-512/keygen",
                         "response": {
                             "pk": "base64_encoded_public_key",
@@ -169,7 +169,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                     },
                     "2_encapsulate": {
                         "method": "POST",
-                        "url": "/kem/ml-kem-512/encapsulate", 
+                        "url": "/kem/ml-kem-512/encapsulate",
                         "payload": {
                             "pk": "base64_encoded_public_key",
                             "format": "base64"
@@ -184,7 +184,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                         "method": "POST",
                         "url": "/kem/ml-kem-512/decapsulate",
                         "payload": {
-                            "ct": "base64_encoded_ciphertext", 
+                            "ct": "base64_encoded_ciphertext",
                             "sk": "base64_encoded_secret_key",
                             "format": "base64"
                         },
@@ -207,7 +207,7 @@ pub async fn nist_compliance_info() -> Result<Json<serde_json::Value>, AppError>
                         }
                     },
                     "2_sign": {
-                        "method": "POST", 
+                        "method": "POST",
                         "url": "/sig/ml-dsa-44/sign",
                         "payload": {
                             "message": "Hello, NIST FIPS 204!",
@@ -250,14 +250,14 @@ pub async fn deprecation_warnings() -> Result<Json<serde_json::Value>, AppError>
                         "migration_url": "/nist/compliance"
                     },
                     "kyber768": {
-                        "deprecated_since": "v0.2.0", 
+                        "deprecated_since": "v0.2.0",
                         "replacement": "ml-kem-768",
                         "removal_version": "v1.0.0",
                         "migration_url": "/nist/compliance"
                     },
                     "kyber1024": {
                         "deprecated_since": "v0.2.0",
-                        "replacement": "ml-kem-1024", 
+                        "replacement": "ml-kem-1024",
                         "removal_version": "v1.0.0",
                         "migration_url": "/nist/compliance"
                     }
@@ -266,7 +266,7 @@ pub async fn deprecation_warnings() -> Result<Json<serde_json::Value>, AppError>
                     "dilithium2": {
                         "deprecated_since": "v0.2.0",
                         "replacement": "ml-dsa-44",
-                        "removal_version": "v1.0.0", 
+                        "removal_version": "v1.0.0",
                         "migration_url": "/nist/compliance"
                     },
                     "dilithium3": {
@@ -277,7 +277,7 @@ pub async fn deprecation_warnings() -> Result<Json<serde_json::Value>, AppError>
                     },
                     "dilithium5": {
                         "deprecated_since": "v0.2.0",
-                        "replacement": "ml-dsa-87", 
+                        "replacement": "ml-dsa-87",
                         "removal_version": "v1.0.0",
                         "migration_url": "/nist/compliance"
                     },
@@ -296,14 +296,14 @@ pub async fn deprecation_warnings() -> Result<Json<serde_json::Value>, AppError>
                     "shake_128f": {
                         "deprecated_since": "v0.2.0",
                         "replacement": "slh-dsa-shake-128f",
-                        "removal_version": "v1.0.0", 
+                        "removal_version": "v1.0.0",
                         "migration_url": "/nist/compliance"
                     }
                 }
             },
             "migration_checklist": [
                 "1. Update client code to use NIST compliant algorithm names",
-                "2. Test all endpoints with new naming conventions", 
+                "2. Test all endpoints with new naming conventions",
                 "3. Update documentation and configuration files",
                 "4. Plan for complete migration before v1.0.0 release",
                 "5. Monitor application logs for deprecation warnings"

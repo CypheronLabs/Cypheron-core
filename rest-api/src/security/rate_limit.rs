@@ -5,11 +5,11 @@ use axum::{
     response::Response,
     Json,
 };
+use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use serde::Serialize;
 
 #[derive(Debug, Clone)]
 pub struct RateLimitEntry {
@@ -33,23 +33,24 @@ impl RateLimiter {
             block_duration: Duration::from_secs(60), // 1 minute block
         }
     }
-    
+
     pub async fn check_rate_limit(&self, identifier: &str) -> Result<(), RateLimitError> {
         let now = Instant::now();
         let mut entries = self.entries.write().await;
-        
+
         let entry = entries.entry(identifier.to_string()).or_insert(RateLimitEntry {
             count: 0,
             window_start: now,
             blocked_until: None,
         });
-        
+
         // Check if currently blocked
         if let Some(blocked_until) = entry.blocked_until {
             if now < blocked_until {
                 return Err(RateLimitError {
                     error: "rate_limit_exceeded".to_string(),
-                    message: "Rate limit exceeded. Please wait before making more requests.".to_string(),
+                    message: "Rate limit exceeded. Please wait before making more requests."
+                        .to_string(),
                     retry_after: (blocked_until - now).as_secs(),
                     code: 429,
                 });
@@ -60,27 +61,27 @@ impl RateLimiter {
                 entry.window_start = now;
             }
         }
-        
+
         // Reset window if more than 1 minute has passed
         if now.duration_since(entry.window_start) >= Duration::from_secs(60) {
             entry.count = 0;
             entry.window_start = now;
         }
-        
+
         // Check rate limit
         if entry.count >= self.requests_per_minute {
             entry.blocked_until = Some(now + self.block_duration);
             return Err(RateLimitError {
                 error: "rate_limit_exceeded".to_string(),
                 message: format!(
-                    "Rate limit of {} requests per minute exceeded", 
+                    "Rate limit of {} requests per minute exceeded",
                     self.requests_per_minute
                 ),
                 retry_after: self.block_duration.as_secs(),
                 code: 429,
             });
         }
-        
+
         entry.count += 1;
         Ok(())
     }
@@ -106,11 +107,11 @@ pub async fn rate_limit_middleware(
         .and_then(|hv| hv.to_str().ok())
         .unwrap_or("unknown")
         .to_string();
-    
+
     rate_limiter
         .check_rate_limit(&identifier)
         .await
         .map_err(|e| (StatusCode::TOO_MANY_REQUESTS, Json(e)))?;
-    
+
     Ok(next.run(request).await)
 }

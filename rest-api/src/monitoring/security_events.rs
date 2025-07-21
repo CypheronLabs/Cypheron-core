@@ -1,9 +1,9 @@
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc, Duration};
 use uuid::Uuid;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityEvent {
@@ -30,31 +30,31 @@ pub enum SecurityEventType {
     AuthenticationFailure,
     AuthorizationFailure,
     PrivilegeEscalation,
-    
+
     // API Security Events
     RateLimitExceeded,
     InvalidApiKey,
     SuspiciousApiUsage,
     ApiAbuseDetected,
-    
+
     // Cryptographic Events
     CryptographicFailure,
     KeyGenerationRequest,
     SignatureVerificationFailure,
     EncryptionDecryptionFailure,
-    
+
     // Attack Indicators
     BruteForceAttack,
     TimingAttack,
     InjectionAttempt,
     DataExfiltrationAttempt,
-    
+
     // System Events
     SecurityPolicyViolation,
     ConfigurationChange,
     SystemIntegrityIssue,
     ComplianceViolation,
-    
+
     // Anomaly Detection
     UnusualTrafficPattern,
     GeographicAnomaly,
@@ -161,37 +161,53 @@ impl SecurityEventMonitor {
     pub async fn record_event(&self, mut event: SecurityEvent) {
         // Analyze the event for threat indicators
         self.analyze_event(&mut event).await;
-        
+
         // Apply automatic response if needed
         self.apply_automatic_response(&mut event).await;
-        
+
         // Store the event
         let mut events = self.events.write().await;
         events.push(event.clone());
-        
+
         // Keep only the most recent events
         if events.len() > self.max_events {
             let len = events.len();
             events.drain(0..len - self.max_events);
         }
-        
+
         // Log the event
         match event.severity {
             SecuritySeverity::Critical => {
-                tracing::error!("CRITICAL SECURITY EVENT: {:?} - {}", event.event_type, event.description);
-            },
+                tracing::error!(
+                    "CRITICAL SECURITY EVENT: {:?} - {}",
+                    event.event_type,
+                    event.description
+                );
+            }
             SecuritySeverity::High => {
-                tracing::warn!("HIGH SECURITY EVENT: {:?} - {}", event.event_type, event.description);
-            },
+                tracing::warn!(
+                    "HIGH SECURITY EVENT: {:?} - {}",
+                    event.event_type,
+                    event.description
+                );
+            }
             SecuritySeverity::Medium => {
-                tracing::warn!("MEDIUM SECURITY EVENT: {:?} - {}", event.event_type, event.description);
-            },
+                tracing::warn!(
+                    "MEDIUM SECURITY EVENT: {:?} - {}",
+                    event.event_type,
+                    event.description
+                );
+            }
             SecuritySeverity::Low => {
-                tracing::info!("LOW SECURITY EVENT: {:?} - {}", event.event_type, event.description);
-            },
+                tracing::info!(
+                    "LOW SECURITY EVENT: {:?} - {}",
+                    event.event_type,
+                    event.description
+                );
+            }
             SecuritySeverity::Info => {
                 tracing::info!("SECURITY INFO: {:?} - {}", event.event_type, event.description);
-            },
+            }
         }
     }
 
@@ -203,7 +219,8 @@ impl SecurityEventMonitor {
                 ip.clone(),
                 0.5, // Base confidence
                 event.timestamp,
-            ).await;
+            )
+            .await;
         }
 
         if let Some(user_agent) = &event.user_agent {
@@ -212,19 +229,22 @@ impl SecurityEventMonitor {
                 user_agent.clone(),
                 0.3,
                 event.timestamp,
-            ).await;
+            )
+            .await;
         }
 
         // Check for patterns that indicate attacks
         match event.event_type {
             SecurityEventType::AuthenticationFailure => {
                 if let Some(ip) = &event.client_ip {
-                    let recent_failures = self.count_recent_events_by_ip(
-                        ip,
-                        SecurityEventType::AuthenticationFailure,
-                        Duration::minutes(5),
-                    ).await;
-                    
+                    let recent_failures = self
+                        .count_recent_events_by_ip(
+                            ip,
+                            SecurityEventType::AuthenticationFailure,
+                            Duration::minutes(5),
+                        )
+                        .await;
+
                     if recent_failures >= 5 {
                         event.event_type = SecurityEventType::BruteForceAttack;
                         event.severity = SecuritySeverity::High;
@@ -234,22 +254,24 @@ impl SecurityEventMonitor {
                         );
                     }
                 }
-            },
+            }
             SecurityEventType::RateLimitExceeded => {
                 if let Some(ip) = &event.client_ip {
-                    let rate_limit_events = self.count_recent_events_by_ip(
-                        ip,
-                        SecurityEventType::RateLimitExceeded,
-                        Duration::minutes(10),
-                    ).await;
-                    
+                    let rate_limit_events = self
+                        .count_recent_events_by_ip(
+                            ip,
+                            SecurityEventType::RateLimitExceeded,
+                            Duration::minutes(10),
+                        )
+                        .await;
+
                     if rate_limit_events >= 3 {
                         event.event_type = SecurityEventType::ApiAbuseDetected;
                         event.severity = SecuritySeverity::High;
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
@@ -260,7 +282,10 @@ impl SecurityEventMonitor {
                     self.block_ip(ip.clone(), Duration::hours(1)).await;
                     Some(ResponseAction {
                         action_type: ActionType::Block,
-                        description: format!("IP {} blocked for 1 hour due to brute force attack", ip),
+                        description: format!(
+                            "IP {} blocked for 1 hour due to brute force attack",
+                            ip
+                        ),
                         applied_at: Utc::now(),
                         applied_by: "AutoResponseSystem".to_string(),
                         effective_until: Some(Utc::now() + Duration::hours(1)),
@@ -268,7 +293,7 @@ impl SecurityEventMonitor {
                 } else {
                     None
                 }
-            },
+            }
             (SecurityEventType::ApiAbuseDetected, SecuritySeverity::High) => {
                 if let Some(ip) = &event.client_ip {
                     self.block_ip(ip.clone(), Duration::minutes(30)).await;
@@ -282,25 +307,21 @@ impl SecurityEventMonitor {
                 } else {
                     None
                 }
-            },
-            (_, SecuritySeverity::Critical) => {
-                Some(ResponseAction {
-                    action_type: ActionType::Escalate,
-                    description: "Critical security event escalated to security team".to_string(),
-                    applied_at: Utc::now(),
-                    applied_by: "AutoResponseSystem".to_string(),
-                    effective_until: None,
-                })
-            },
-            _ => {
-                Some(ResponseAction {
-                    action_type: ActionType::Monitor,
-                    description: "Event logged for monitoring".to_string(),
-                    applied_at: Utc::now(),
-                    applied_by: "SecurityMonitor".to_string(),
-                    effective_until: None,
-                })
             }
+            (_, SecuritySeverity::Critical) => Some(ResponseAction {
+                action_type: ActionType::Escalate,
+                description: "Critical security event escalated to security team".to_string(),
+                applied_at: Utc::now(),
+                applied_by: "AutoResponseSystem".to_string(),
+                effective_until: None,
+            }),
+            _ => Some(ResponseAction {
+                action_type: ActionType::Monitor,
+                description: "Event logged for monitoring".to_string(),
+                applied_at: Utc::now(),
+                applied_by: "SecurityMonitor".to_string(),
+                effective_until: None,
+            }),
         };
 
         event.response_action = action;
@@ -315,14 +336,14 @@ impl SecurityEventMonitor {
     ) {
         let mut indicators = self.threat_indicators.write().await;
         let key = format!("{:?}:{}", indicator_type, value);
-        
+
         match indicators.get_mut(&key) {
             Some(indicator) => {
                 indicator.last_seen = timestamp;
                 indicator.count += 1;
                 // Increase confidence with repeated observations
                 indicator.confidence = (indicator.confidence + 0.1).min(1.0);
-            },
+            }
             None => {
                 let indicator = ThreatIndicator {
                     indicator_type,
@@ -345,11 +366,14 @@ impl SecurityEventMonitor {
     ) -> u64 {
         let events = self.events.read().await;
         let since = Utc::now() - time_window;
-        
-        events.iter()
+
+        events
+            .iter()
             .filter(|e| e.timestamp >= since)
             .filter(|e| e.client_ip.as_ref() == Some(&ip.to_string()))
-            .filter(|e| std::mem::discriminant(&e.event_type) == std::mem::discriminant(&event_type))
+            .filter(|e| {
+                std::mem::discriminant(&e.event_type) == std::mem::discriminant(&event_type)
+            })
             .count() as u64
     }
 
@@ -357,17 +381,17 @@ impl SecurityEventMonitor {
         let mut blocked_ips = self.blocked_ips.write().await;
         let unblock_time = Utc::now() + duration;
         blocked_ips.insert(ip.clone(), unblock_time);
-        
+
         tracing::warn!("IP {} blocked until {}", ip, unblock_time);
     }
 
     pub async fn is_ip_blocked(&self, ip: &str) -> bool {
         let mut blocked_ips = self.blocked_ips.write().await;
         let now = Utc::now();
-        
+
         // Clean up expired blocks
         blocked_ips.retain(|_, unblock_time| *unblock_time > now);
-        
+
         blocked_ips.contains_key(ip)
     }
 
@@ -377,23 +401,35 @@ impl SecurityEventMonitor {
         events.iter().rev().take(limit).cloned().collect()
     }
 
-    pub async fn get_events_by_type(&self, event_type: SecurityEventType, limit: Option<usize>) -> Vec<SecurityEvent> {
+    pub async fn get_events_by_type(
+        &self,
+        event_type: SecurityEventType,
+        limit: Option<usize>,
+    ) -> Vec<SecurityEvent> {
         let events = self.events.read().await;
         let limit = limit.unwrap_or(100);
-        
-        events.iter()
+
+        events
+            .iter()
             .rev()
-            .filter(|e| std::mem::discriminant(&e.event_type) == std::mem::discriminant(&event_type))
+            .filter(|e| {
+                std::mem::discriminant(&e.event_type) == std::mem::discriminant(&event_type)
+            })
             .take(limit)
             .cloned()
             .collect()
     }
 
-    pub async fn get_events_by_severity(&self, severity: SecuritySeverity, limit: Option<usize>) -> Vec<SecurityEvent> {
+    pub async fn get_events_by_severity(
+        &self,
+        severity: SecuritySeverity,
+        limit: Option<usize>,
+    ) -> Vec<SecurityEvent> {
         let events = self.events.read().await;
         let limit = limit.unwrap_or(100);
-        
-        events.iter()
+
+        events
+            .iter()
             .rev()
             .filter(|e| std::mem::discriminant(&e.severity) == std::mem::discriminant(&severity))
             .take(limit)
@@ -409,26 +445,27 @@ impl SecurityEventMonitor {
     pub async fn get_security_summary(&self, time_window: Duration) -> SecuritySummary {
         let events = self.events.read().await;
         let since = Utc::now() - time_window;
-        
-        let recent_events: Vec<_> = events.iter()
-            .filter(|e| e.timestamp >= since)
-            .collect();
+
+        let recent_events: Vec<_> = events.iter().filter(|e| e.timestamp >= since).collect();
 
         let total_events = recent_events.len() as u64;
-        
-        let critical_events = recent_events.iter()
+
+        let critical_events = recent_events
+            .iter()
             .filter(|e| matches!(e.severity, SecuritySeverity::Critical))
             .count() as u64;
-            
-        let high_events = recent_events.iter()
-            .filter(|e| matches!(e.severity, SecuritySeverity::High))
-            .count() as u64;
-            
-        let authentication_failures = recent_events.iter()
+
+        let high_events =
+            recent_events.iter().filter(|e| matches!(e.severity, SecuritySeverity::High)).count()
+                as u64;
+
+        let authentication_failures = recent_events
+            .iter()
             .filter(|e| matches!(e.event_type, SecurityEventType::AuthenticationFailure))
             .count() as u64;
-            
-        let rate_limit_violations = recent_events.iter()
+
+        let rate_limit_violations = recent_events
+            .iter()
             .filter(|e| matches!(e.event_type, SecurityEventType::RateLimitExceeded))
             .count() as u64;
 

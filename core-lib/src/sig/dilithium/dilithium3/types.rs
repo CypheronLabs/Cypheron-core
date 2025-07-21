@@ -1,7 +1,7 @@
 use crate::sig::dilithium::common::*;
 use secrecy::SecretBox;
-use zeroize::Zeroize;
 use std::fmt;
+use zeroize::Zeroize;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey(pub [u8; ML_DSA_65_PUBLIC]);

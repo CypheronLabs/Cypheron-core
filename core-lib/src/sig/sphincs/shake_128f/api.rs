@@ -1,6 +1,6 @@
+use super::bindings::robust_ffi as ffi;
 use super::engine;
-use super::bindings::robust_ffi as ffi; 
-use super::types::{PublicKey, SecretKey, Signature, Seed};
+use super::types::{PublicKey, SecretKey, Seed, Signature};
 use crate::sig::sphincs::errors::SphincsError;
 pub const ALGORITHM_NAME: &str = "SPHINCS+-SHAKE-192f-robust";
 

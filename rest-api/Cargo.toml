@@ -29,8 +29,6 @@ sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chron
 argon2 = "0.5"
 chacha20poly1305 = "0.10"
 zeroize = "1.7"
-google-cloud-firestore = "0.15"
-google-cloud-auth = "0.14"
 
 core-lib = { path = "../core-lib" }
 hyper = "1.6.0"

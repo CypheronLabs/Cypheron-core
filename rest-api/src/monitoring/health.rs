@@ -1,8 +1,8 @@
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc, Duration};
+use chrono::{DateTime, Duration, Utc};
+use secrecy::ExposeSecret;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
-use secrecy::ExposeSecret;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthStatus {
@@ -50,10 +50,7 @@ pub struct HealthChecker {
 
 impl HealthChecker {
     pub fn new(version: String) -> Self {
-        Self {
-            start_time: Utc::now(),
-            version,
-        }
+        Self { start_time: Utc::now(), version }
     }
 
     pub async fn get_health_status(&self) -> HealthStatus {
@@ -96,7 +93,7 @@ impl HealthChecker {
     async fn check_crypto_engine(&self) -> ServiceHealth {
         // Test basic crypto operations
         let start = std::time::Instant::now();
-        
+
         match self.test_crypto_operations().await {
             Ok(_) => ServiceHealth {
                 status: ServiceStatus::Healthy,
@@ -117,13 +114,16 @@ impl HealthChecker {
 
     async fn test_crypto_operations(&self) -> Result<(), String> {
         // Test ML-KEM-512 operation
-        use core_lib::kem::{MlKem512, Kem};
-        
-        let (pk, sk) = MlKem512::keypair().map_err(|e| format!("ML-KEM-512 keypair generation failed: {:?}", e))?;
-        
-        let (ct, ss1) = MlKem512::encapsulate(&pk).map_err(|e| format!("ML-KEM-512 encapsulation failed: {:?}", e))?;
-        
-        let ss2 = MlKem512::decapsulate(&ct, &sk).map_err(|e| format!("ML-KEM-512 decapsulation failed: {:?}", e))?;
+        use core_lib::kem::{Kem, MlKem512};
+
+        let (pk, sk) = MlKem512::keypair()
+            .map_err(|e| format!("ML-KEM-512 keypair generation failed: {:?}", e))?;
+
+        let (ct, ss1) = MlKem512::encapsulate(&pk)
+            .map_err(|e| format!("ML-KEM-512 encapsulation failed: {:?}", e))?;
+
+        let ss2 = MlKem512::decapsulate(&ct, &sk)
+            .map_err(|e| format!("ML-KEM-512 decapsulation failed: {:?}", e))?;
         if ss1.expose_secret() != ss2.expose_secret() {
             return Err("ML-KEM-512 shared secret mismatch".to_string());
         }
@@ -131,12 +131,14 @@ impl HealthChecker {
         // Test ML-DSA-44 operation (simplified)
         use core_lib::sig::dilithium::dilithium2::Dilithium2;
         use core_lib::sig::traits::SignatureEngine;
-        
-        let (pk, sk) = Dilithium2::keypair().map_err(|e| format!("ML-DSA-44 keypair generation failed: {:?}", e))?;
-        
+
+        let (pk, sk) = Dilithium2::keypair()
+            .map_err(|e| format!("ML-DSA-44 keypair generation failed: {:?}", e))?;
+
         let message = b"health check message";
-        let signature = Dilithium2::sign(message, &sk).map_err(|e| format!("ML-DSA-44 signing failed: {:?}", e))?;
-        
+        let signature = Dilithium2::sign(message, &sk)
+            .map_err(|e| format!("ML-DSA-44 signing failed: {:?}", e))?;
+
         let is_valid = Dilithium2::verify(message, &signature, &pk);
         if !is_valid {
             return Err("ML-DSA-44 signature verification failed".to_string());
@@ -191,13 +193,11 @@ impl HealthChecker {
     }
 
     fn determine_overall_status(&self, services: &HashMap<String, ServiceHealth>) -> ServiceStatus {
-        let unhealthy_count = services.values()
-            .filter(|s| matches!(s.status, ServiceStatus::Unhealthy))
-            .count();
-        
-        let degraded_count = services.values()
-            .filter(|s| matches!(s.status, ServiceStatus::Degraded))
-            .count();
+        let unhealthy_count =
+            services.values().filter(|s| matches!(s.status, ServiceStatus::Unhealthy)).count();
+
+        let degraded_count =
+            services.values().filter(|s| matches!(s.status, ServiceStatus::Degraded)).count();
 
         if unhealthy_count > 0 {
             ServiceStatus::Unhealthy

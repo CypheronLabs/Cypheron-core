@@ -1,20 +1,11 @@
+pub mod api;
 mod bindings;
 mod engine;
 pub mod types;
-pub mod api;
 
 pub use api::{
-    keypair,
-    keypair_from_seed,
-    sign_detached,
-    verify_detached,
-    sign_combined,
-    open_combined,
-    ALGORITHM_NAME,
-    public_key_bytes, 
-    secret_key_bytes,
-    signature_bytes,
-    seed_bytes,
+    keypair, keypair_from_seed, open_combined, public_key_bytes, secret_key_bytes, seed_bytes,
+    sign_combined, sign_detached, signature_bytes, verify_detached, ALGORITHM_NAME,
 };
 
-pub use types::{PublicKey, SecretKey, Signature, Seed};
+pub use types::{PublicKey, SecretKey, Seed, Signature};

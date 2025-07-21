@@ -1,11 +1,11 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use std::sync::Arc;
+use uuid::Uuid;
 
 /// SOC 2 Compliance framework implementation
-/// Addresses Trust Services Criteria: Security, Availability, Processing Integrity, 
+/// Addresses Trust Services Criteria: Security, Availability, Processing Integrity,
 /// Confidentiality, and Privacy
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,18 +29,18 @@ pub enum ComplianceEventType {
     AccessDenied,
     PrivilegeEscalation,
     SecurityViolation,
-    
+
     // System Operations (CC7.0)
     SystemAccess,
     DataAccess,
     ConfigurationChange,
     SystemError,
-    
+
     // Change Management (CC8.0)
     CodeDeployment,
     ConfigurationUpdate,
     SecurityPolicyChange,
-    
+
     // Data Processing (CC9.0)
     DataCreated,
     DataModified,
@@ -48,12 +48,12 @@ pub enum ComplianceEventType {
     DataExported,
     DataEncrypted,
     DataDecrypted,
-    
+
     // Monitoring (CC7.1)
     SecurityAlert,
     PerformanceAlert,
     CapacityAlert,
-    
+
     // Privacy (P1.0)
     PersonalDataAccessed,
     PersonalDataModified,
@@ -129,14 +129,19 @@ impl ComplianceManager {
     }
 
     /// Log compliance event asynchronously (SOC 2 CC7.1 - Monitoring)
-    pub async fn log_event(&self, event_type: ComplianceEventType, mut details: HashMap<String, String>, risk_level: RiskLevel) {
+    pub async fn log_event(
+        &self,
+        event_type: ComplianceEventType,
+        mut details: HashMap<String, String>,
+        risk_level: RiskLevel,
+    ) {
         // Apply privacy controls to sanitize sensitive data in details
         for (key, value) in details.iter_mut() {
             if key.contains("user") || key.contains("email") || key.contains("identifier") {
                 *value = self.sanitize_sensitive_data(value);
             }
         }
-        
+
         let event = ComplianceEvent {
             id: Uuid::new_v4(),
             timestamp: Utc::now(),
@@ -164,7 +169,12 @@ impl ComplianceManager {
     }
 
     /// Log compliance event in a non-blocking way (fire and forget)
-    pub fn log_event_async(&self, event_type: ComplianceEventType, details: HashMap<String, String>, risk_level: RiskLevel) {
+    pub fn log_event_async(
+        &self,
+        event_type: ComplianceEventType,
+        details: HashMap<String, String>,
+        risk_level: RiskLevel,
+    ) {
         let self_clone = self.clone();
         tokio::spawn(async move {
             self_clone.log_event(event_type, details, risk_level).await;
@@ -172,14 +182,21 @@ impl ComplianceManager {
     }
 
     /// Enhanced logging with user context and privacy controls
-    pub async fn log_event_with_user(&self, event_type: ComplianceEventType, mut details: HashMap<String, String>, risk_level: RiskLevel, user_id: Option<&str>, ip_address: Option<&str>) {
+    pub async fn log_event_with_user(
+        &self,
+        event_type: ComplianceEventType,
+        mut details: HashMap<String, String>,
+        risk_level: RiskLevel,
+        user_id: Option<&str>,
+        ip_address: Option<&str>,
+    ) {
         // Apply privacy controls to sanitize sensitive data
         for (key, value) in details.iter_mut() {
             if key.contains("user") || key.contains("email") || key.contains("identifier") {
                 *value = self.sanitize_sensitive_data(value);
             }
         }
-        
+
         let event = ComplianceEvent {
             id: Uuid::new_v4(),
             timestamp: Utc::now(),
@@ -207,7 +224,12 @@ impl ComplianceManager {
     }
 
     /// Record data processing activity (SOC 2 P1.0 - Privacy)
-    pub async fn record_data_processing(&self, operation: String, data_type: String, purpose: String) {
+    pub async fn record_data_processing(
+        &self,
+        operation: String,
+        data_type: String,
+        purpose: String,
+    ) {
         let record = DataProcessingRecord {
             id: Uuid::new_v4(),
             operation,
@@ -236,10 +258,10 @@ impl ComplianceManager {
                             return false;
                         }
                     }
-                    
+
                     // Check permissions
-                    access_control.permissions.contains(&required_permission.to_string()) ||
-                    access_control.permissions.contains(&"*".to_string())
+                    access_control.permissions.contains(&required_permission.to_string())
+                        || access_control.permissions.contains(&"*".to_string())
                 }
                 _ => false,
             }
@@ -249,31 +271,45 @@ impl ComplianceManager {
     }
 
     /// Generate compliance report (SOC 2 CC7.4 - Reporting)
-    pub async fn generate_compliance_report(&self, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> ComplianceReport {
+    pub async fn generate_compliance_report(
+        &self,
+        start_date: DateTime<Utc>,
+        end_date: DateTime<Utc>,
+    ) -> ComplianceReport {
         let events = self.events.read().await;
-        let events_in_period: Vec<&ComplianceEvent> = events.iter()
+        let events_in_period: Vec<&ComplianceEvent> = events
+            .iter()
             .filter(|e| e.timestamp >= start_date && e.timestamp <= end_date)
             .collect();
 
-        let security_events = events_in_period.iter()
-            .filter(|e| matches!(e.event_type, 
-                ComplianceEventType::Authentication |
-                ComplianceEventType::Authorization |
-                ComplianceEventType::SecurityViolation
-            ))
+        let security_events = events_in_period
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.event_type,
+                    ComplianceEventType::Authentication
+                        | ComplianceEventType::Authorization
+                        | ComplianceEventType::SecurityViolation
+                )
+            })
             .count();
 
-        let high_risk_events = events_in_period.iter()
+        let high_risk_events = events_in_period
+            .iter()
             .filter(|e| matches!(e.risk_level, RiskLevel::High | RiskLevel::Critical))
             .count();
 
-        let data_processing_events = events_in_period.iter()
-            .filter(|e| matches!(e.event_type,
-                ComplianceEventType::DataCreated |
-                ComplianceEventType::DataModified |
-                ComplianceEventType::DataDeleted |
-                ComplianceEventType::DataExported
-            ))
+        let data_processing_events = events_in_period
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.event_type,
+                    ComplianceEventType::DataCreated
+                        | ComplianceEventType::DataModified
+                        | ComplianceEventType::DataDeleted
+                        | ComplianceEventType::DataExported
+                )
+            })
             .count();
 
         ComplianceReport {
@@ -297,20 +333,22 @@ impl ComplianceManager {
 
     /// Clean up old events based on retention policy (SOC 2 P1.2 - Data Retention)
     pub async fn cleanup_old_events(&self) {
-        let cutoff_date = Utc::now() - chrono::Duration::days(self.retention_policy.compliance_retention_days as i64);
-        
+        let cutoff_date = Utc::now()
+            - chrono::Duration::days(self.retention_policy.compliance_retention_days as i64);
+
         {
             let mut events = self.events.write().await;
             events.retain(|event| event.timestamp >= cutoff_date);
         }
-        
+
         // Also cleanup data processing records
-        let data_cutoff_date = Utc::now() - chrono::Duration::days(self.retention_policy.default_retention_days as i64);
+        let data_cutoff_date = Utc::now()
+            - chrono::Duration::days(self.retention_policy.default_retention_days as i64);
         {
             let mut records = self.data_processing_records.write().await;
             records.retain(|record| record.timestamp >= data_cutoff_date);
         }
-        
+
         tracing::info!(
             "Compliance data cleanup completed. Removed events older than {} days and records older than {} days",
             self.retention_policy.compliance_retention_days,
@@ -388,7 +426,7 @@ impl Default for DataRetentionPolicy {
         Self {
             default_retention_days: 90,
             log_retention_days: 365,
-            audit_retention_days: 2555, // 7 years
+            audit_retention_days: 2555,      // 7 years
             compliance_retention_days: 2555, // 7 years
         }
     }
@@ -401,7 +439,7 @@ pub struct PrivacyControls;
 impl PrivacyControls {
     /// Pseudonymization for logging (GDPR/Privacy requirement)
     pub fn pseudonymize_identifier(identifier: &str) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let hash = Sha256::digest(identifier.as_bytes());
         format!("user_{:x}", &hash[..4].iter().fold(0u32, |acc, &b| acc << 8 | b as u32))
     }
@@ -411,7 +449,7 @@ impl PrivacyControls {
         // Remove or mask sensitive data patterns
         let patterns = [
             (r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "****-****-****-****"), // Credit cards
-            (r"\b\d{3}-\d{2}-\d{4}\b", "***-**-****"), // SSN
+            (r"\b\d{3}-\d{2}-\d{4}\b", "***-**-****"),                              // SSN
             (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL_REDACTED]"), // Email
         ];
 
@@ -422,13 +460,13 @@ impl PrivacyControls {
                 .replace_all(&sanitized, replacement)
                 .to_string();
         }
-        
+
         // Truncate to reasonable length
         if sanitized.len() > 200 {
             sanitized.truncate(197);
             sanitized.push_str("...");
         }
-        
+
         sanitized
     }
 }

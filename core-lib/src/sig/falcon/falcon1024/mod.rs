@@ -1,6 +1,6 @@
 pub mod api;
+pub mod constants;
 pub mod engine;
 pub mod types;
-pub mod constants;
 
 pub use api::Falcon1024;

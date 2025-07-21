@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct EncapsulateRequest {
@@ -8,7 +8,7 @@ pub struct EncapsulateRequest {
 }
 
 #[derive(Deserialize)]
-pub  struct DecapsulateRequest {
+pub struct DecapsulateRequest {
     pub ct: String,
     pub sk: String,
     #[serde(default = "default_format")]
@@ -21,9 +21,9 @@ pub struct KeypairResponse {
     pub sk: String,
     pub format: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub pk_hex: Option<String>,    // Alternative hex encoding
+    pub pk_hex: Option<String>, // Alternative hex encoding
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub sk_hex: Option<String>,    // Alternative hex encoding
+    pub sk_hex: Option<String>, // Alternative hex encoding
 }
 
 #[derive(Serialize)]

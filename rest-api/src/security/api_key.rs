@@ -5,14 +5,14 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use chrono::{DateTime, Utc, Duration};
-use sha2::{Sha256, Digest};
-use rand::{thread_rng, Rng};
+use chrono::{DateTime, Duration, Utc};
 use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use uuid::Uuid;
 
-use super::auth::{ApiKeyStore, ApiKey};
+use super::auth::{ApiKey, ApiKeyStore};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateApiKeyRequest {
@@ -55,12 +55,9 @@ pub struct ApiKeyManagementError {
 
 // Generate a secure API key
 fn generate_api_key() -> String {
-    let random_part: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(32)
-        .map(char::from)
-        .collect();
-    
+    let random_part: String =
+        thread_rng().sample_iter(&Alphanumeric).take(32).map(char::from).collect();
+
     format!("pq_live_{}", random_part)
 }
 
@@ -70,12 +67,19 @@ pub async fn create_api_key(
 ) -> Result<Json<CreateApiKeyResponse>, (StatusCode, Json<ApiKeyManagementError>)> {
     // Validate permissions
     let valid_permissions = [
-        "kem:*", "kem:keygen", "kem:encapsulate", "kem:decapsulate",
-        "sig:*", "sig:keygen", "sig:sign", "sig:verify",
-        "hybrid:*", "hybrid:sign",
-        "*" // Admin permission
+        "kem:*",
+        "kem:keygen",
+        "kem:encapsulate",
+        "kem:decapsulate",
+        "sig:*",
+        "sig:keygen",
+        "sig:sign",
+        "sig:verify",
+        "hybrid:*",
+        "hybrid:sign",
+        "*", // Admin permission
     ];
-    
+
     for permission in &request.permissions {
         if !valid_permissions.contains(&permission.as_str()) {
             return Err((
@@ -88,14 +92,13 @@ pub async fn create_api_key(
             ));
         }
     }
-    
+
     // Generate API key
     let api_key_raw = generate_api_key();
     let api_key_hash = format!("{:x}", Sha256::digest(api_key_raw.as_bytes()));
-    
-    let expires_at = request.expires_in_days
-        .map(|days| Utc::now() + Duration::days(days));
-    
+
+    let expires_at = request.expires_in_days.map(|days| Utc::now() + Duration::days(days));
+
     let api_key = ApiKey {
         id: Uuid::new_v4(),
         name: request.name,
@@ -108,7 +111,7 @@ pub async fn create_api_key(
         last_used: None,
         usage_count: 0,
     };
-    
+
     let key_info = ApiKeyInfo {
         id: api_key.id,
         name: api_key.name.clone(),
@@ -120,24 +123,19 @@ pub async fn create_api_key(
         last_used: api_key.last_used,
         usage_count: api_key.usage_count,
     };
-    
+
     // Store the API key
     let mut keys = api_store.fallback_keys.write().await;
     keys.insert(api_key_hash, api_key);
-    
+
     tracing::info!("Created new API key: {} ({})", key_info.name, key_info.id);
-    
-    Ok(Json(CreateApiKeyResponse {
-        api_key: api_key_raw,
-        key_info,
-    }))
+
+    Ok(Json(CreateApiKeyResponse { api_key: api_key_raw, key_info }))
 }
 
-pub async fn list_api_keys(
-    State(api_store): State<ApiKeyStore>,
-) -> Json<ApiKeyListResponse> {
+pub async fn list_api_keys(State(api_store): State<ApiKeyStore>) -> Json<ApiKeyListResponse> {
     let keys = api_store.fallback_keys.read().await;
-    
+
     let key_infos: Vec<ApiKeyInfo> = keys
         .values()
         .map(|key| ApiKeyInfo {
@@ -152,7 +150,7 @@ pub async fn list_api_keys(
             usage_count: key.usage_count,
         })
         .collect();
-    
+
     Json(ApiKeyListResponse { keys: key_infos })
 }
 
