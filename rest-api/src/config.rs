@@ -21,14 +21,14 @@ impl Default for SecurityConfig {
     fn default() -> Self {
         Self {
             api_key_expiry_days: 90,
-            max_request_size: 10 * 1024 * 1024, 
+            max_request_size: 10 * 1024 * 1024,
             rate_limit_per_minute: 60,
             session_timeout_minutes: 30,
             password_min_length: 12,
             failed_login_lockout_minutes: 15,
-            audit_log_retention_days: 2555, 
+            audit_log_retention_days: 2555,
             enable_request_logging: true,
-            enable_response_logging: false, 
+            enable_response_logging: false,
             log_sensitive_data: false,
             require_tls: true,
             allowed_origins: vec!["http://localhost:3000".to_string()],
@@ -56,12 +56,12 @@ impl Default for ComplianceConfig {
             enable_soc2_logging: true,
             enable_gdpr_privacy_controls: true,
             data_retention_days: 90,
-            audit_retention_days: 2555, 
+            audit_retention_days: 2555,
             enable_data_encryption: true,
             enable_pseudonymization: true,
             enable_access_reviews: true,
             access_review_interval_days: 90,
-            enable_vulnerability_scanning: false, 
+            enable_vulnerability_scanning: false,
             enable_security_monitoring: true,
         }
     }
@@ -117,18 +117,18 @@ impl Default for AppConfig {
 impl AppConfig {
     pub fn from_env() -> Self {
         let mut config = AppConfig::default();
-        
+
         // Server configuration from environment
         if let Ok(host) = env::var("PQ_HOST") {
             config.server.host = host;
         }
-        
+
         if let Ok(port) = env::var("PQ_PORT") {
             if let Ok(port_num) = port.parse::<u16>() {
                 config.server.port = port_num;
             }
         }
-        
+
         if let Ok(env_str) = env::var("PQ_ENVIRONMENT") {
             config.server.environment = match env_str.to_lowercase().as_str() {
                 "production" | "prod" => Environment::Production,
@@ -136,33 +136,33 @@ impl AppConfig {
                 _ => Environment::Development,
             };
         }
-        
+
         if let Ok(log_level) = env::var("PQ_LOG_LEVEL") {
             config.server.log_level = log_level;
         }
-        
+
         // Security configuration from environment
         if let Ok(rate_limit) = env::var("PQ_RATE_LIMIT") {
             if let Ok(rate) = rate_limit.parse::<u32>() {
                 config.security.rate_limit_per_minute = rate;
             }
         }
-        
+
         if let Ok(max_size) = env::var("PQ_MAX_REQUEST_SIZE") {
             if let Ok(size) = max_size.parse::<usize>() {
                 config.security.max_request_size = size;
             }
         }
-        
+
         // Compliance configuration from environment
         if let Ok(soc2) = env::var("PQ_ENABLE_SOC2") {
             config.compliance.enable_soc2_logging = soc2.to_lowercase() == "true";
         }
-        
+
         if let Ok(gdpr) = env::var("PQ_ENABLE_GDPR") {
             config.compliance.enable_gdpr_privacy_controls = gdpr.to_lowercase() == "true";
         }
-        
+
         // Production security hardening
         if matches!(config.server.environment, Environment::Production) {
             config.security.log_sensitive_data = false;
@@ -172,49 +172,49 @@ impl AppConfig {
             config.compliance.enable_soc2_logging = true;
             config.compliance.enable_gdpr_privacy_controls = true;
         }
-        
+
         config
     }
-    
+
     #[allow(dead_code)]
     pub fn validate(&self) -> Result<(), String> {
         // Validate server configuration
         if self.server.port == 0 {
             return Err("Invalid port number".to_string());
         }
-        
+
         if self.server.host.is_empty() {
             return Err("Host cannot be empty".to_string());
         }
-        
+
         // Validate security configuration
         if self.security.rate_limit_per_minute == 0 {
             return Err("Rate limit must be greater than 0".to_string());
         }
-        
+
         if self.security.max_request_size == 0 {
             return Err("Max request size must be greater than 0".to_string());
         }
-        
+
         if self.security.password_min_length < 8 {
             return Err("Password minimum length must be at least 8 characters".to_string());
         }
-        
+
         // Production environment validation
         if matches!(self.server.environment, Environment::Production) {
             if !self.security.require_tls {
                 return Err("TLS is required in production environment".to_string());
             }
-            
+
             if self.security.log_sensitive_data {
                 return Err("Sensitive data logging must be disabled in production".to_string());
             }
-            
+
             if !self.compliance.enable_soc2_logging {
                 return Err("SOC 2 logging must be enabled in production".to_string());
             }
         }
-        
+
         Ok(())
     }
 }
@@ -223,11 +223,11 @@ impl AppConfig {
 pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
     let config = AppConfig::from_env();
     config.validate().map_err(|e| format!("Configuration validation failed: {}", e))?;
-    
+
     tracing::info!("Configuration loaded successfully");
     tracing::debug!("Server config: {:?}", config.server);
     tracing::debug!("Security config: {:?}", config.security);
     tracing::debug!("Compliance config: {:?}", config.compliance);
-    
+
     Ok(config)
 }

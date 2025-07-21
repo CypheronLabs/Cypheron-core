@@ -1,4 +1,7 @@
-use axum::{http::StatusCode, response::{IntoResponse, Response}};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -34,22 +37,44 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (code, message) = match self {
-            AppError::Base64Decode(_) | AppError::InvalidLength => (StatusCode::BAD_REQUEST, "Invalid input format".to_string()),
-            AppError::InvalidVariant => (StatusCode::NOT_FOUND, "Algorithm variant not supported".to_string()),
-            AppError::KeyGenFailed => (StatusCode::INTERNAL_SERVER_ERROR, "Key generation failed".to_string()),
-            AppError::SigningFailed => (StatusCode::INTERNAL_SERVER_ERROR, "Signing operation failed".to_string()),
-            AppError::InvalidSecretKey => (StatusCode::BAD_REQUEST, "Invalid secret key".to_string()),
-            AppError::InvalidPublicKey => (StatusCode::BAD_REQUEST, "Invalid public key".to_string()),
-            AppError::InvalidBase64 => (StatusCode::BAD_REQUEST, "Invalid base64 encoding".to_string()),
-            AppError::InvalidSignature => (StatusCode::BAD_REQUEST, "Invalid signature".to_string()),
-            AppError::ValidationError(ref msg) => (StatusCode::BAD_REQUEST, format!("Validation failed: {}", msg)),
+            AppError::Base64Decode(_) | AppError::InvalidLength => {
+                (StatusCode::BAD_REQUEST, "Invalid input format".to_string())
+            }
+            AppError::InvalidVariant => {
+                (StatusCode::NOT_FOUND, "Algorithm variant not supported".to_string())
+            }
+            AppError::KeyGenFailed => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Key generation failed".to_string())
+            }
+            AppError::SigningFailed => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Signing operation failed".to_string())
+            }
+            AppError::InvalidSecretKey => {
+                (StatusCode::BAD_REQUEST, "Invalid secret key".to_string())
+            }
+            AppError::InvalidPublicKey => {
+                (StatusCode::BAD_REQUEST, "Invalid public key".to_string())
+            }
+            AppError::InvalidBase64 => {
+                (StatusCode::BAD_REQUEST, "Invalid base64 encoding".to_string())
+            }
+            AppError::InvalidSignature => {
+                (StatusCode::BAD_REQUEST, "Invalid signature".to_string())
+            }
+            AppError::ValidationError(ref msg) => {
+                (StatusCode::BAD_REQUEST, format!("Validation failed: {}", msg))
+            }
             AppError::NotFound => (StatusCode::NOT_FOUND, "Resource not found".to_string()),
-            AppError::EncapsulationFailed => (StatusCode::INTERNAL_SERVER_ERROR, "Encapsulation operation failed".to_string()),
-            AppError::DecapsulationFailed => (StatusCode::INTERNAL_SERVER_ERROR, "Decapsulation operation failed".to_string()),
+            AppError::EncapsulationFailed => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Encapsulation operation failed".to_string())
+            }
+            AppError::DecapsulationFailed => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Decapsulation operation failed".to_string())
+            }
         };
-        
+
         tracing::error!("API Error: {:?}", self);
-        
+
         (code, message).into_response()
     }
 }

@@ -1,15 +1,15 @@
 pub mod api;
+pub mod config;
+pub mod error;
 pub mod handlers;
 pub mod models;
-pub mod services;
-pub mod error;
-pub mod utils;
-pub mod security;
-pub mod validation;
-pub mod config;
 pub mod monitoring;
+pub mod security;
+pub mod services;
 pub mod state;
+pub mod utils;
+pub mod validation;
 
-pub use config::{AppConfig, load_config};
+pub use config::{load_config, AppConfig};
 pub use security::*;
 pub use validation::*;

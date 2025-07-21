@@ -1,3 +1,5 @@
+use super::compliance::{ComplianceEventType, ComplianceManager, RiskLevel};
+use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, StatusCode},
@@ -5,24 +7,22 @@ use axum::{
     response::Response,
     Json,
 };
+use base64::{engine::general_purpose, Engine as _};
+use chacha20poly1305::aead::Aead;
+use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, Nonce};
+use chrono::{DateTime, Duration, Utc};
+use core_lib::kem::{Kem, MlKem768};
+use core_lib::platform::secure_random_bytes;
+use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use sqlx::{PgPool, Row};
 use std::collections::HashMap;
 use std::sync::Arc;
-use secrecy::ExposeSecret;
+use subtle::ConstantTimeEq;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use chrono::{DateTime, Utc, Duration};
-use sha2::{Sha256, Digest};
-use subtle::ConstantTimeEq;
-use sqlx::{PgPool, Row};
-use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, KeyInit};
-use chacha20poly1305::aead::{Aead};
-use zeroize::{ZeroizeOnDrop};
-use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
-use core_lib::kem::{MlKem768, Kem};
-use core_lib::platform::secure_random_bytes;
-use base64::{Engine as _, engine::general_purpose};
-use super::compliance::{ComplianceManager, ComplianceEventType, RiskLevel};
+use zeroize::ZeroizeOnDrop;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiKey {
@@ -49,26 +49,27 @@ impl PostQuantumEncryption {
         secure_random_bytes(&mut key).expect("Failed to generate secure random bytes");
         Self { master_key: key }
     }
-    
+
     pub fn from_password(password: &str) -> Result<Self, AuthError> {
-        let salt = SaltString::from_b64("cypheron_api_key_salt_v1_2024").map_err(|_| AuthError {
-            error: "crypto_error".to_string(),
-            message: "Failed to create salt".to_string(),
-            code: 500,
-        })?;
-        
+        let salt =
+            SaltString::from_b64("cypheron_api_key_salt_v1_2024").map_err(|_| AuthError {
+                error: "crypto_error".to_string(),
+                message: "Failed to create salt".to_string(),
+                code: 500,
+            })?;
+
         let argon2 = Argon2::default();
         let hash = argon2.hash_password(password.as_bytes(), &salt).map_err(|_| AuthError {
             error: "crypto_error".to_string(),
             message: "Failed to derive key".to_string(),
             code: 500,
         })?;
-        
+
         let mut key = [0u8; 32];
         key.copy_from_slice(&hash.hash.unwrap().as_bytes()[..32]);
         Ok(Self { master_key: key })
     }
-    
+
     /// Encrypts data using post-quantum KEM + ChaCha20-Poly1305 hybrid encryption
     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, AuthError> {
         // Generate ML-KEM-768 keypair for this encryption operation
@@ -77,24 +78,25 @@ impl PostQuantumEncryption {
             message: "Failed to generate ML-KEM-768 keypair".to_string(),
             code: 500,
         })?;
-        
+
         // Encapsulate to get shared secret and ciphertext
-        let (kem_ciphertext, shared_secret) = MlKem768::encapsulate(&public_key).map_err(|_| AuthError {
-            error: "encapsulation_error".to_string(),
-            message: "Failed to encapsulate with ML-KEM-768".to_string(),
-            code: 500,
-        })?;
-        
+        let (kem_ciphertext, shared_secret) =
+            MlKem768::encapsulate(&public_key).map_err(|_| AuthError {
+                error: "encapsulation_error".to_string(),
+                message: "Failed to encapsulate with ML-KEM-768".to_string(),
+                code: 500,
+            })?;
+
         // Derive encryption key from shared secret and master key using HKDF-like approach
         let mut hasher = Sha256::new();
         hasher.update(&self.master_key);
         hasher.update(shared_secret.expose_secret());
         hasher.update(b"Cypheron-API-Key-Encryption-v1");
         let derived_key = hasher.finalize();
-        
+
         // Encrypt with ChaCha20-Poly1305
         let cipher = ChaCha20Poly1305::new(Key::from_slice(&derived_key));
-        
+
         let mut nonce_bytes = [0u8; 12];
         secure_random_bytes(&mut nonce_bytes).map_err(|_| AuthError {
             error: "random_error".to_string(),
@@ -102,52 +104,53 @@ impl PostQuantumEncryption {
             code: 500,
         })?;
         let nonce = Nonce::from_slice(&nonce_bytes);
-        
+
         let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|_| AuthError {
             error: "encryption_error".to_string(),
             message: "Failed to encrypt data with ChaCha20-Poly1305".to_string(),
             code: 500,
         })?;
-        
+
         // Serialize public key for storage (needed for decryption)
         let public_key_bytes = public_key.0.to_vec();
-        
+
         // Format: [4 bytes pub_key_len][pub_key][4 bytes kem_ct_len][kem_ciphertext][12 bytes nonce][ciphertext]
         let mut result = Vec::with_capacity(
-            4 + public_key_bytes.len() + 
-            4 + kem_ciphertext.len() + 
-            12 + ciphertext.len()
+            4 + public_key_bytes.len() + 4 + kem_ciphertext.len() + 12 + ciphertext.len(),
         );
-        
+
         result.extend_from_slice(&(public_key_bytes.len() as u32).to_le_bytes());
         result.extend_from_slice(&public_key_bytes);
         result.extend_from_slice(&(kem_ciphertext.len() as u32).to_le_bytes());
         result.extend_from_slice(&kem_ciphertext);
         result.extend_from_slice(&nonce_bytes);
         result.extend_from_slice(&ciphertext);
-        
+
         Ok(result)
     }
-    
+
     /// Decrypts data using post-quantum KEM + ChaCha20-Poly1305 hybrid decryption
     pub fn decrypt(&self, encrypted_data: &[u8]) -> Result<Vec<u8>, AuthError> {
-        if encrypted_data.len() < 20 { // Minimum: 4+4+12 = 20 bytes
+        if encrypted_data.len() < 20 {
+            // Minimum: 4+4+12 = 20 bytes
             return Err(AuthError {
                 error: "invalid_ciphertext".to_string(),
                 message: "Encrypted data too short".to_string(),
                 code: 400,
             });
         }
-        
+
         let mut offset = 0;
-        
+
         // Parse public key length and data
         let pub_key_len = u32::from_le_bytes([
-            encrypted_data[offset], encrypted_data[offset+1], 
-            encrypted_data[offset+2], encrypted_data[offset+3]
+            encrypted_data[offset],
+            encrypted_data[offset + 1],
+            encrypted_data[offset + 2],
+            encrypted_data[offset + 3],
         ]) as usize;
         offset += 4;
-        
+
         if offset + pub_key_len > encrypted_data.len() {
             return Err(AuthError {
                 error: "invalid_ciphertext".to_string(),
@@ -155,10 +158,10 @@ impl PostQuantumEncryption {
                 code: 400,
             });
         }
-        
+
         let public_key_bytes = &encrypted_data[offset..offset + pub_key_len];
         offset += pub_key_len;
-        
+
         // Parse KEM ciphertext length and data
         if offset + 4 > encrypted_data.len() {
             return Err(AuthError {
@@ -167,13 +170,15 @@ impl PostQuantumEncryption {
                 code: 400,
             });
         }
-        
+
         let kem_ct_len = u32::from_le_bytes([
-            encrypted_data[offset], encrypted_data[offset+1], 
-            encrypted_data[offset+2], encrypted_data[offset+3]
+            encrypted_data[offset],
+            encrypted_data[offset + 1],
+            encrypted_data[offset + 2],
+            encrypted_data[offset + 3],
         ]) as usize;
         offset += 4;
-        
+
         if offset + kem_ct_len > encrypted_data.len() {
             return Err(AuthError {
                 error: "invalid_ciphertext".to_string(),
@@ -181,10 +186,10 @@ impl PostQuantumEncryption {
                 code: 400,
             });
         }
-        
+
         let kem_ciphertext_bytes = &encrypted_data[offset..offset + kem_ct_len];
         offset += kem_ct_len;
-        
+
         // Parse nonce
         if offset + 12 > encrypted_data.len() {
             return Err(AuthError {
@@ -193,26 +198,28 @@ impl PostQuantumEncryption {
                 code: 400,
             });
         }
-        
+
         let nonce_bytes = &encrypted_data[offset..offset + 12];
         offset += 12;
-        
+
         // Remaining bytes are the ChaCha20-Poly1305 ciphertext
         let ciphertext = &encrypted_data[offset..];
-        
+
         // Reconstruct KEM objects
-        let _public_key = core_lib::kem::ml_kem_768::MlKemPublicKey(public_key_bytes.try_into().map_err(|_| AuthError {
-            error: "invalid_key_size".to_string(),
-            message: "Invalid public key size".to_string(),
-            code: 400,
-        })?);
+        let _public_key = core_lib::kem::ml_kem_768::MlKemPublicKey(
+            public_key_bytes.try_into().map_err(|_| AuthError {
+                error: "invalid_key_size".to_string(),
+                message: "Invalid public key size".to_string(),
+                code: 400,
+            })?,
+        );
         let _kem_ciphertext = kem_ciphertext_bytes;
-        
+
         // For decryption, we need to re-derive the shared secret
         // In a real implementation, we would store the secret key securely
         // For this demonstration, we'll generate a temporary keypair and use the stored public key
         // This is a limitation of this approach - we need a different design for practical use
-        
+
         // Alternative approach: Use a deterministic key derivation from master key
         let mut hasher = Sha256::new();
         hasher.update(&self.master_key);
@@ -220,11 +227,11 @@ impl PostQuantumEncryption {
         hasher.update(kem_ciphertext_bytes);
         hasher.update(b"Cypheron-API-Key-Decryption-Fallback-v1");
         let derived_key = hasher.finalize();
-        
+
         // Decrypt with ChaCha20-Poly1305
         let cipher = ChaCha20Poly1305::new(Key::from_slice(&derived_key));
         let nonce = Nonce::from_slice(nonce_bytes);
-        
+
         cipher.decrypt(nonce, ciphertext).map_err(|_| AuthError {
             error: "decryption_error".to_string(),
             message: "Failed to decrypt data with ChaCha20-Poly1305".to_string(),
@@ -247,7 +254,7 @@ impl ApiKeyStore {
             message: format!("Failed to connect to database: {}", e),
             code: 500,
         })?;
-        
+
         // Derive post-quantum encryption from environment or generate new one
         let encryption = if let Ok(password) = std::env::var("PQ_ENCRYPTION_PASSWORD") {
             PostQuantumEncryption::from_password(&password)?
@@ -255,13 +262,13 @@ impl ApiKeyStore {
             tracing::warn!("No encryption password set, using generated key (data will not persist across restarts)");
             PostQuantumEncryption::new()
         };
-        
+
         let mut fallback_keys = HashMap::new();
-        
+
         // Load test key if configured
         if let Ok(test_key) = std::env::var("PQ_TEST_API_KEY") {
             let test_key_hash = format!("{:x}", Sha256::digest(test_key.as_bytes()));
-            
+
             let api_key = ApiKey {
                 id: Uuid::new_v4(),
                 name: "Test Key".to_string(),
@@ -274,39 +281,38 @@ impl ApiKeyStore {
                     "admin:*".to_string(),
                     "nist:*".to_string(),
                 ],
-                rate_limit: 100, 
+                rate_limit: 100,
                 created_at: Utc::now(),
                 expires_at: Some(Utc::now() + Duration::days(30)),
                 is_active: true,
                 last_used: None,
                 usage_count: 0,
             };
-            
+
             // Try to store in database, fall back to memory if needed
             match store_api_key_in_db(&pool, &api_key, &encryption, &test_key).await {
                 Ok(_) => {
                     tracing::info!("Test API key stored in database with post-quantum encryption");
-                },
+                }
                 Err(e) => {
-                    tracing::warn!("Failed to store test key in database: {}, using fallback", e.message);
+                    tracing::warn!(
+                        "Failed to store test key in database: {}, using fallback",
+                        e.message
+                    );
                     fallback_keys.insert(test_key_hash, api_key);
                 }
             }
         }
-        
-        Ok(Self {
-            pool,
-            encryption,
-            fallback_keys: Arc::new(RwLock::new(fallback_keys)),
-        })
+
+        Ok(Self { pool, encryption, fallback_keys: Arc::new(RwLock::new(fallback_keys)) })
     }
-    
+
     pub fn new_in_memory() -> Self {
         let mut store = HashMap::new();
-        
+
         if let Ok(test_key) = std::env::var("PQ_TEST_API_KEY") {
             let test_key_hash = format!("{:x}", Sha256::digest(test_key.as_bytes()));
-            
+
             let api_key = ApiKey {
                 id: Uuid::new_v4(),
                 name: "Test Key".to_string(),
@@ -319,31 +325,31 @@ impl ApiKeyStore {
                     "admin:*".to_string(),
                     "nist:*".to_string(),
                 ],
-                rate_limit: 100, 
+                rate_limit: 100,
                 created_at: Utc::now(),
                 expires_at: Some(Utc::now() + Duration::days(30)),
                 is_active: true,
                 last_used: None,
                 usage_count: 0,
             };
-            
+
             store.insert(test_key_hash, api_key);
             tracing::info!("Test API key loaded in memory (fallback mode)");
         }
-        
+
         // Create a dummy pool connection for the fallback mode
         let pool = PgPool::connect_lazy("postgresql://localhost/dummy").unwrap();
-        
+
         Self {
             pool,
             encryption: PostQuantumEncryption::new(),
             fallback_keys: Arc::new(RwLock::new(store)),
         }
     }
-    
+
     pub async fn validate_key(&self, key: &str) -> Option<ApiKey> {
         let key_hash = format!("{:x}", Sha256::digest(key.as_bytes()));
-        
+
         // Try database first
         match self.validate_key_from_db(&key_hash).await {
             Ok(Some(api_key)) => {
@@ -354,52 +360,55 @@ impl ApiKeyStore {
                     api_key.usage_count
                 );
                 return Some(api_key);
-            },
+            }
             Ok(None) => {
                 // Key not found in database, check fallback
-            },
+            }
             Err(e) => {
                 tracing::warn!("Database validation failed: {}, falling back to memory", e.message);
             }
         }
-        
+
         // Fallback to in-memory validation
         self.validate_key_from_memory(&key_hash).await
     }
-    
+
     async fn validate_key_from_db(&self, key_hash: &str) -> Result<Option<ApiKey>, AuthError> {
         let query = r#"
             SELECT id, name, permissions, rate_limit, created_at, expires_at, is_active, last_used, usage_count, encrypted_key
             FROM api_mgmt.api_keys
             WHERE key_hash = $1
         "#;
-        
-        let row = sqlx::query(query)
-            .bind(key_hash)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| AuthError {
-                error: "database_error".to_string(),
-                message: format!("Failed to query database: {}", e),
-                code: 500,
+
+        let row =
+            sqlx::query(query).bind(key_hash).fetch_optional(&self.pool).await.map_err(|e| {
+                AuthError {
+                    error: "database_error".to_string(),
+                    message: format!("Failed to query database: {}", e),
+                    code: 500,
+                }
             })?;
-        
+
         if let Some(row) = row {
             // First, try to decrypt the stored key to verify it matches the provided key
-            let encrypted_key_b64: String = row.try_get("encrypted_key").map_err(|_| AuthError {
-                error: "database_error".to_string(),
-                message: "Failed to parse encrypted_key".to_string(),
-                code: 500,
-            })?;
-            
+            let encrypted_key_b64: String =
+                row.try_get("encrypted_key").map_err(|_| AuthError {
+                    error: "database_error".to_string(),
+                    message: "Failed to parse encrypted_key".to_string(),
+                    code: 500,
+                })?;
+
             // Decode and decrypt the stored key for validation
             if let Ok(encrypted_key_bytes) = general_purpose::STANDARD.decode(&encrypted_key_b64) {
                 if let Ok(decrypted_key_bytes) = self.encryption.decrypt(&encrypted_key_bytes) {
                     if let Ok(decrypted_key) = String::from_utf8(decrypted_key_bytes) {
                         // Verify that the decrypted key matches the hash
-                        let decrypted_hash = format!("{:x}", Sha256::digest(decrypted_key.as_bytes()));
+                        let decrypted_hash =
+                            format!("{:x}", Sha256::digest(decrypted_key.as_bytes()));
                         if decrypted_hash != key_hash {
-                            tracing::warn!("Post-quantum encrypted key validation failed - hash mismatch");
+                            tracing::warn!(
+                                "Post-quantum encrypted key validation failed - hash mismatch"
+                            );
                             return Ok(None);
                         }
                         tracing::debug!("Post-quantum encrypted key validation successful");
@@ -415,7 +424,7 @@ impl ApiKeyStore {
                 tracing::warn!("Failed to decode base64 encrypted key");
                 return Ok(None);
             }
-            
+
             let api_key = ApiKey {
                 id: row.try_get("id").map_err(|_| AuthError {
                     error: "database_error".to_string(),
@@ -428,12 +437,14 @@ impl ApiKeyStore {
                     code: 500,
                 })?,
                 key_hash: key_hash.to_string(),
-                permissions: row.try_get::<sqlx::types::Json<Vec<String>>, _>("permissions")
+                permissions: row
+                    .try_get::<sqlx::types::Json<Vec<String>>, _>("permissions")
                     .map_err(|_| AuthError {
                         error: "database_error".to_string(),
                         message: "Failed to parse permissions".to_string(),
                         code: 500,
-                    })?.0,
+                    })?
+                    .0,
                 rate_limit: row.try_get::<i32, _>("rate_limit").map_err(|_| AuthError {
                     error: "database_error".to_string(),
                     message: "Failed to parse rate limit".to_string(),
@@ -465,11 +476,11 @@ impl ApiKeyStore {
                     code: 500,
                 })? as u64,
             };
-            
+
             // Check if key is valid
-            let is_valid = api_key.is_active && 
-                api_key.expires_at.map(|exp| Utc::now() <= exp).unwrap_or(true);
-            
+            let is_valid = api_key.is_active
+                && api_key.expires_at.map(|exp| Utc::now() <= exp).unwrap_or(true);
+
             if is_valid {
                 // Update last_used and usage_count
                 let update_query = r#"
@@ -477,22 +488,20 @@ impl ApiKeyStore {
                     SET last_used = CURRENT_TIMESTAMP, usage_count = usage_count + 1
                     WHERE key_hash = $1
                 "#;
-                
-                sqlx::query(update_query)
-                    .bind(key_hash)
-                    .execute(&self.pool)
-                    .await
-                    .map_err(|e| AuthError {
+
+                sqlx::query(update_query).bind(key_hash).execute(&self.pool).await.map_err(
+                    |e| AuthError {
                         error: "database_error".to_string(),
                         message: format!("Failed to update key usage: {}", e),
                         code: 500,
-                    })?;
-                
+                    },
+                )?;
+
                 // Update the returned key with current timestamp
                 let mut updated_key = api_key;
                 updated_key.last_used = Some(Utc::now());
                 updated_key.usage_count += 1;
-                
+
                 Ok(Some(updated_key))
             } else {
                 if !api_key.is_active {
@@ -506,28 +515,27 @@ impl ApiKeyStore {
             Ok(None)
         }
     }
-    
+
     async fn validate_key_from_memory(&self, key_hash: &str) -> Option<ApiKey> {
         let mut keys = self.fallback_keys.write().await;
-        
+
         // Constant-time key validation to prevent timing attacks
         let mut found_key: Option<ApiKey> = None;
         let mut is_valid = false;
-        
+
         // Iterate through all keys to maintain constant time
         for (stored_hash, api_key) in keys.iter_mut() {
             // Constant-time comparison of hash
             let hash_matches = stored_hash.as_bytes().ct_eq(key_hash.as_bytes()).into();
-            
+
             if hash_matches {
                 // Perform all checks without early returns
                 let is_active = api_key.is_active;
-                let not_expired = api_key.expires_at
-                    .map(|expires_at| Utc::now() <= expires_at)
-                    .unwrap_or(true);
-                
+                let not_expired =
+                    api_key.expires_at.map(|expires_at| Utc::now() <= expires_at).unwrap_or(true);
+
                 is_valid = is_active && not_expired;
-                
+
                 if is_valid {
                     api_key.last_used = Some(Utc::now());
                     api_key.usage_count = api_key.usage_count.saturating_add(1);
@@ -542,34 +550,34 @@ impl ApiKeyStore {
                 }
             }
         }
-        
+
         if !is_valid && found_key.is_none() {
             tracing::warn!("Attempt to use unknown API key hash: {}", &key_hash[..8]);
         }
-        
+
         found_key
     }
-    
+
     pub async fn check_permission(&self, key: &str, resource: &str) -> bool {
         if let Some(api_key) = self.validate_key(key).await {
             // Constant-time permission checking
             let mut has_permission = false;
-            
+
             for permission in &api_key.permissions {
                 // Use constant-time string comparison
-                let exact_match = permission.as_bytes().ct_eq(b"*").into() ||
-                                 permission.as_bytes().ct_eq(resource.as_bytes()).into();
-                
+                let exact_match = permission.as_bytes().ct_eq(b"*").into()
+                    || permission.as_bytes().ct_eq(resource.as_bytes()).into();
+
                 let wildcard_match = if permission.ends_with(":*") {
-                    let prefix = &permission[..permission.len()-1];
+                    let prefix = &permission[..permission.len() - 1];
                     resource.starts_with(prefix)
                 } else {
                     false
                 };
-                
+
                 has_permission |= exact_match || wildcard_match;
             }
-            
+
             has_permission
         } else {
             false
@@ -586,7 +594,7 @@ async fn store_api_key_in_db(
 ) -> Result<(), AuthError> {
     let encrypted_key = encryption.encrypt(raw_key.as_bytes())?;
     let encrypted_key_b64 = general_purpose::STANDARD.encode(&encrypted_key);
-    
+
     let query = r#"
         INSERT INTO api_mgmt.api_keys (id, name, key_hash, encrypted_key, permissions, rate_limit, created_at, expires_at, is_active, last_used, usage_count)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -598,7 +606,7 @@ async fn store_api_key_in_db(
             expires_at = EXCLUDED.expires_at,
             is_active = EXCLUDED.is_active
     "#;
-    
+
     sqlx::query(query)
         .bind(api_key.id)
         .bind(&api_key.name)
@@ -618,7 +626,7 @@ async fn store_api_key_in_db(
             message: format!("Failed to store API key: {}", e),
             code: 500,
         })?;
-    
+
     Ok(())
 }
 
@@ -636,36 +644,35 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Result<Response, (StatusCode, Json<AuthError>)> {
     let api_key = extract_api_key(&headers)?;
-    
-    let validated_key = api_store.validate_key(&api_key).await
-        .ok_or_else(|| {
-            // Log compliance event for failed authentication
-            if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
-                let mut details = HashMap::new();
-                details.insert("error".to_string(), "invalid_api_key".to_string());
-                details.insert("path".to_string(), request.uri().path().to_string());
-                details.insert("method".to_string(), request.method().to_string());
-                
-                compliance_manager.log_event_async(
-                    ComplianceEventType::AccessDenied,
-                    details,
-                    RiskLevel::Medium,
-                );
-            }
-            
-            (
-                StatusCode::UNAUTHORIZED,
-                Json(AuthError {
-                    error: "invalid_api_key".to_string(),
-                    message: "Invalid or expired API key".to_string(),
-                    code: 401,
-                }),
-            )
-        })?;
-    
+
+    let validated_key = api_store.validate_key(&api_key).await.ok_or_else(|| {
+        // Log compliance event for failed authentication
+        if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
+            let mut details = HashMap::new();
+            details.insert("error".to_string(), "invalid_api_key".to_string());
+            details.insert("path".to_string(), request.uri().path().to_string());
+            details.insert("method".to_string(), request.method().to_string());
+
+            compliance_manager.log_event_async(
+                ComplianceEventType::AccessDenied,
+                details,
+                RiskLevel::Medium,
+            );
+        }
+
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(AuthError {
+                error: "invalid_api_key".to_string(),
+                message: "Invalid or expired API key".to_string(),
+                code: 401,
+            }),
+        )
+    })?;
+
     let path = request.uri().path();
     let resource = extract_resource_from_path(path);
-    
+
     if !api_store.check_permission(&api_key, &resource).await {
         // Log compliance event for permission failure
         if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
@@ -675,14 +682,14 @@ pub async fn auth_middleware(
             details.insert("api_key_id".to_string(), validated_key.id.to_string());
             details.insert("path".to_string(), request.uri().path().to_string());
             details.insert("method".to_string(), request.method().to_string());
-            
+
             compliance_manager.log_event_async(
                 ComplianceEventType::AccessDenied,
                 details,
                 RiskLevel::High,
             );
         }
-        
+
         return Err((
             StatusCode::FORBIDDEN,
             Json(AuthError {
@@ -692,14 +699,14 @@ pub async fn auth_middleware(
             }),
         ));
     }
-    
+
     tracing::info!(
         "API request authorized - key_id: {}, resource: {}, usage_count: {}",
         validated_key.id,
         resource,
         validated_key.usage_count
     );
-    
+
     // Log compliance event for successful authentication
     if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
         let mut details = HashMap::new();
@@ -707,14 +714,14 @@ pub async fn auth_middleware(
         details.insert("resource".to_string(), resource.clone());
         details.insert("method".to_string(), request.method().to_string());
         details.insert("path".to_string(), request.uri().path().to_string());
-        
+
         compliance_manager.log_event_async(
             ComplianceEventType::Authentication,
             details,
             RiskLevel::Low,
         );
     }
-    
+
     Ok(next.run(request).await)
 }
 
@@ -730,19 +737,18 @@ pub async fn compliance_middleware(
 
 fn extract_api_key(headers: &HeaderMap) -> Result<String, (StatusCode, Json<AuthError>)> {
     if let Some(api_key) = headers.get("x-api-key") {
-        return api_key
-            .to_str()
-            .map(|s| s.to_string())
-            .map_err(|_| (
+        return api_key.to_str().map(|s| s.to_string()).map_err(|_| {
+            (
                 StatusCode::BAD_REQUEST,
                 Json(AuthError {
                     error: "invalid_header".to_string(),
                     message: "Invalid X-API-Key header format".to_string(),
                     code: 400,
                 }),
-            ));
+            )
+        });
     }
-    
+
     if let Some(auth_header) = headers.get("authorization") {
         if let Ok(auth_str) = auth_header.to_str() {
             if auth_str.starts_with("Bearer ") {
@@ -750,12 +756,13 @@ fn extract_api_key(headers: &HeaderMap) -> Result<String, (StatusCode, Json<Auth
             }
         }
     }
-    
+
     Err((
         StatusCode::UNAUTHORIZED,
         Json(AuthError {
             error: "missing_api_key".to_string(),
-            message: "API key required. Use X-API-Key header or Authorization: Bearer <key>".to_string(),
+            message: "API key required. Use X-API-Key header or Authorization: Bearer <key>"
+                .to_string(),
             code: 401,
         }),
     ))
@@ -763,11 +770,11 @@ fn extract_api_key(headers: &HeaderMap) -> Result<String, (StatusCode, Json<Auth
 
 fn extract_resource_from_path(path: &str) -> String {
     let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
-    
+
     if segments.is_empty() {
         return "root".to_string();
     }
-    
+
     match segments[0] {
         "kem" => format!("kem:{}", segments.get(2).unwrap_or(&"*")),
         "sig" => format!("sig:{}", segments.get(2).unwrap_or(&"*")),

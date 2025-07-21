@@ -1,6 +1,6 @@
-pub mod kem;
 pub mod hybrid;
-pub mod sig;
-pub mod nist;
+pub mod kem;
 pub mod monitoring;
+pub mod nist;
 pub mod public;
+pub mod sig;

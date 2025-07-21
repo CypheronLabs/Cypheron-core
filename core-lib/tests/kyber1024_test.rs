@@ -16,10 +16,7 @@ fn test_variant_and_expose() {
     println!("Ciphertext generated successfully (len={})", ct.len());
     println!("Shared secrets match: {}", ss1.expose_secret() == ss2.expose_secret());
 
-    assert_eq!(
-        ss1.expose_secret(),
-        ss2.expose_secret()
-    );
+    assert_eq!(ss1.expose_secret(), ss2.expose_secret());
 }
 
 #[test]

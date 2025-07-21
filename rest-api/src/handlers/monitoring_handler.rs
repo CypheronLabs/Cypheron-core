@@ -1,12 +1,13 @@
-use axum::{extract::{Query, Path, State}, Json};
+use axum::{
+    extract::{Path, Query, State},
+    Json,
+};
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc, Duration};
 use uuid::Uuid;
 
 use crate::error::AppError;
-use crate::monitoring::{
-    MonitoringState, Alert, AlertRule, SecurityEvent
-};
+use crate::monitoring::{Alert, AlertRule, MonitoringState, SecurityEvent};
 
 #[derive(Debug, Deserialize)]
 pub struct MetricsQuery {
@@ -38,13 +39,13 @@ pub async fn get_monitoring_status(
 ) -> Result<Json<MonitoringStatus>, AppError> {
     let crypto_metrics = monitoring.metrics.get_crypto_metrics(Some(1)).await;
     let active_alerts = monitoring.alerts.get_active_alerts().await;
-    
+
     let status = MonitoringStatus {
         service: "Cypheron Security Monitoring".to_string(),
         status: "operational".to_string(),
         timestamp: Utc::now(),
         uptime_seconds: 3600, // Would track actual uptime
-        active_monitors: 5, // Number of monitoring components
+        active_monitors: 5,   // Number of monitoring components
         total_metrics: crypto_metrics.len() as u64,
         active_alerts: active_alerts.len() as u32,
     };
@@ -58,7 +59,7 @@ pub async fn get_metrics_summary(
 ) -> Result<Json<serde_json::Value>, AppError> {
     let hours = params.hours.unwrap_or(24);
     let time_window = Duration::hours(hours as i64);
-    
+
     let summary = monitoring.metrics.get_metrics_summary(time_window).await;
     Ok(Json(serde_json::to_value(summary).unwrap()))
 }
@@ -95,7 +96,7 @@ pub async fn get_alerts(
     State(monitoring): State<MonitoringState>,
 ) -> Result<Json<Vec<Alert>>, AppError> {
     let limit = params.limit.unwrap_or(50);
-    
+
     let alerts = if params.status.as_deref() == Some("active") {
         monitoring.alerts.get_active_alerts().await
     } else {
@@ -110,7 +111,7 @@ pub async fn acknowledge_alert(
     State(monitoring): State<MonitoringState>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let success = monitoring.alerts.acknowledge_alert(alert_id).await;
-    
+
     if success {
         Ok(Json(serde_json::json!({
             "success": true,
@@ -133,7 +134,7 @@ pub async fn resolve_alert(
     Json(request): Json<ResolveAlertRequest>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let success = monitoring.alerts.resolve_alert(alert_id, request.resolution_note).await;
-    
+
     if success {
         Ok(Json(serde_json::json!({
             "success": true,
@@ -157,7 +158,7 @@ pub async fn add_alert_rule(
     Json(rule): Json<AlertRule>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     monitoring.alerts.add_alert_rule(rule.clone()).await;
-    
+
     Ok(Json(serde_json::json!({
         "success": true,
         "message": "Alert rule added",
@@ -171,7 +172,7 @@ pub async fn update_alert_rule(
     Json(rule): Json<AlertRule>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let success = monitoring.alerts.update_alert_rule(rule_id, rule).await;
-    
+
     if success {
         Ok(Json(serde_json::json!({
             "success": true,
@@ -188,7 +189,7 @@ pub async fn delete_alert_rule(
     State(monitoring): State<MonitoringState>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let success = monitoring.alerts.delete_alert_rule(rule_id).await;
-    
+
     if success {
         Ok(Json(serde_json::json!({
             "success": true,
@@ -218,7 +219,7 @@ pub async fn get_readiness_check(
     State(monitoring): State<MonitoringState>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let ready = monitoring.health.get_readiness_status().await;
-    
+
     let status_code = if ready { 200 } else { 503 };
     Ok(Json(serde_json::json!({
         "ready": ready,
@@ -231,7 +232,7 @@ pub async fn get_liveness_check(
     State(monitoring): State<MonitoringState>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let alive = monitoring.health.get_liveness_status().await;
-    
+
     let status_code = if alive { 200 } else { 503 };
     Ok(Json(serde_json::json!({
         "alive": alive,
@@ -260,7 +261,7 @@ pub async fn get_security_summary(
 ) -> Result<Json<serde_json::Value>, AppError> {
     let hours = params.hours.unwrap_or(24);
     let time_window = Duration::hours(hours as i64);
-    
+
     let summary = monitoring.security_events.get_security_summary(time_window).await;
     Ok(Json(serde_json::to_value(summary).unwrap()))
 }
@@ -294,7 +295,7 @@ pub async fn assess_compliance_framework(
         "SOC_2" => monitoring.compliance.assess_soc2_compliance().await,
         _ => return Err(AppError::InvalidVariant),
     };
-    
+
     Ok(Json(serde_json::to_value(report).unwrap()))
 }
 
@@ -303,7 +304,7 @@ pub async fn get_anomaly_detection_results(
 ) -> Result<Json<serde_json::Value>, AppError> {
     let timing_anomalies = monitoring.metrics.detect_timing_anomalies().await;
     let usage_anomalies = monitoring.metrics.detect_usage_anomalies().await;
-    
+
     Ok(Json(serde_json::json!({
         "timing_anomalies": timing_anomalies,
         "usage_anomalies": usage_anomalies,
@@ -316,7 +317,7 @@ pub async fn trigger_manual_alert_check(
     State(monitoring): State<MonitoringState>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     monitoring.alerts.check_alert_conditions().await;
-    
+
     Ok(Json(serde_json::json!({
         "success": true,
         "message": "Manual alert condition check triggered",
@@ -344,10 +345,11 @@ pub async fn get_monitoring_dashboard(
     // Gather data from all monitoring components
     let health = monitoring.health.get_health_status().await;
     let active_alerts = monitoring.alerts.get_active_alerts().await;
-    let security_summary = monitoring.security_events.get_security_summary(Duration::hours(24)).await;
+    let security_summary =
+        monitoring.security_events.get_security_summary(Duration::hours(24)).await;
     let metrics_summary = monitoring.metrics.get_metrics_summary(Duration::hours(24)).await;
     let compliance_dashboard = monitoring.compliance.get_compliance_dashboard().await;
-    
+
     let dashboard = MonitoringDashboard {
         system_health: format!("{:?}", health.status),
         active_alerts: active_alerts.len() as u32,
@@ -355,9 +357,10 @@ pub async fn get_monitoring_dashboard(
         compliance_score: compliance_dashboard.overall_compliance_score,
         threat_level: format!("{:?}", security_summary.threat_level),
         uptime_percent: 99.9, // Would calculate from actual data
-        avg_response_time_ms: metrics_summary.average_response_time_ms,
-        requests_per_minute: metrics_summary.operations_per_second * 60.0,
-        error_rate_percent: metrics_summary.error_rate,
+        avg_response_time_ms: metrics_summary["average_response_time_ms"].as_f64().unwrap_or(0.0),
+        requests_per_minute: metrics_summary["operations_per_second"].as_f64().unwrap_or(0.0)
+            * 60.0,
+        error_rate_percent: metrics_summary["error_rate"].as_f64().unwrap_or(0.0),
         last_updated: Utc::now(),
     };
 

@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::security::{AuditLogger, ComplianceManager};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -9,10 +9,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(audit_logger: Arc<AuditLogger>, compliance_manager: Arc<ComplianceManager>) -> Self {
-        Self {
-            audit_logger,
-            compliance_manager,
-        }
+        Self { audit_logger, compliance_manager }
     }
 
     /// Convenience method to sanitize sensitive data using privacy controls
@@ -26,7 +23,16 @@ impl AppState {
     }
 
     /// Convenience method for enhanced compliance logging with user context
-    pub async fn log_compliance_with_user(&self, event_type: crate::security::ComplianceEventType, details: std::collections::HashMap<String, String>, risk_level: crate::security::RiskLevel, user_id: Option<&str>, ip_address: Option<&str>) {
-        self.compliance_manager.log_event_with_user(event_type, details, risk_level, user_id, ip_address).await;
+    pub async fn log_compliance_with_user(
+        &self,
+        event_type: crate::security::ComplianceEventType,
+        details: std::collections::HashMap<String, String>,
+        risk_level: crate::security::RiskLevel,
+        user_id: Option<&str>,
+        ip_address: Option<&str>,
+    ) {
+        self.compliance_manager
+            .log_event_with_user(event_type, details, risk_level, user_id, ip_address)
+            .await;
     }
 }

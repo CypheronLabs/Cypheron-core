@@ -20,8 +20,7 @@ WORKDIR /app
 # Copy everything (make sure `.dockerignore` doesn’t exclude submodules if needed)
 COPY . .
 
-# Ensure submodules are initialized and updated
-RUN git submodule update --init --recursive
+# Note: Submodules are handled by source upload for Cloud Run deployment
 
 # Add clippy and fmt tools
 RUN rustup component add clippy rustfmt

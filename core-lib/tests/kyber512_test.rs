@@ -25,7 +25,11 @@ fn test_decapsulate_with_wrong_secret_key() {
     let (_, sk2) = Kyber512::keypair().expect("Failed to generate second keypair");
     let (ct, ss1) = Kyber512::encapsulate(&pk1).expect("Failed to encapsulate");
     let ss_wrong = Kyber512::decapsulate(&ct, &sk2).expect("Failed to decapsulate");
-    assert_ne!(ss1.expose_secret(), ss_wrong.expose_secret(), "Decapsulation with wrong secret key should yield different shared secret");
+    assert_ne!(
+        ss1.expose_secret(),
+        ss_wrong.expose_secret(),
+        "Decapsulation with wrong secret key should yield different shared secret"
+    );
 }
 
 #[test]
@@ -33,8 +37,12 @@ fn test_decapsulate_with_corrupted_ciphertext() {
     let (pk, sk) = Kyber512::keypair().expect("Failed to generate keypair");
     let (mut ct, ss1) = Kyber512::encapsulate(&pk).expect("Failed to encapsulate");
     if !ct.is_empty() {
-        ct[0] ^= 0xFF; 
+        ct[0] ^= 0xFF;
     }
     let ss_corrupt = Kyber512::decapsulate(&ct, &sk).expect("Failed to decapsulate");
-    assert_ne!(ss1.expose_secret(), ss_corrupt.expose_secret(), "Decapsulation with corrupted ciphertext should yield different shared secret");
+    assert_ne!(
+        ss1.expose_secret(),
+        ss_corrupt.expose_secret(),
+        "Decapsulation with corrupted ciphertext should yield different shared secret"
+    );
 }

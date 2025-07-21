@@ -14,7 +14,7 @@ pub enum SphincsError {
     #[error("Signing operation failed. FFI call returned code: {0}")]
     SigningFailed(i32),
     #[error("Signature verification failed. The signature is invalid or does not match the message/public key.")]
-    VerificationFailed, 
+    VerificationFailed,
     #[error("Opening signed message failed. FFI call returned code: {0}")]
     OpenFailed(i32),
     #[error("An internal cryptographic error occurred in the FFI layer with code: {0}")]

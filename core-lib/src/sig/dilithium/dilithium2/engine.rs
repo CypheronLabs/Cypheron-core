@@ -20,25 +20,13 @@ impl SignatureEngine for Dilithium2Engine {
         let mut pk = [0u8; ML_DSA_44_PUBLIC];
         let mut sk = [0u8; ML_DSA_44_SECRET];
 
-        let result = unsafe {
-            pqcrystals_dilithium2_ref_keypair(
-                pk.as_mut_ptr(),
-                sk.as_mut_ptr(),
-            )
-        };
+        let result = unsafe { pqcrystals_dilithium2_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
         match result {
             0 => {
                 // C function succeeded, buffers are now properly initialized
-                Ok(
-                    (
-                        PublicKey(pk),
-                        SecretKey(SecretBox::new(sk.into())),
-                    ),
-                )
-            },
-            code => {
-                Err(DilithiumError::from_c_code(code, "keypair"))
+                Ok((PublicKey(pk), SecretKey(SecretBox::new(sk.into()))))
             }
+            code => Err(DilithiumError::from_c_code(code, "keypair")),
         }
     }
 
@@ -64,9 +52,7 @@ impl SignatureEngine for Dilithium2Engine {
 
                 Ok(Signature(sig))
             }
-            code => {
-                Err(DilithiumError::from_c_code(code, "sign"))
-            }
+            code => Err(DilithiumError::from_c_code(code, "sign")),
         }
     }
 

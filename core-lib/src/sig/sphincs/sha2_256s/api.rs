@@ -1,20 +1,20 @@
 use super::engine;
-use super::types::{PublicKey, SecretKey, Signature, Seed};
+use super::types::{PublicKey, SecretKey, Seed, Signature};
 use crate::sig::sphincs::errors::SphincsError;
 
 pub const ALGORITHM_NAME: &str = "SPHINCS+-SHA2-256s-robust";
 
-pub fn public_key_bytes() -> usize { 
-    engine::public_key_bytes() 
+pub fn public_key_bytes() -> usize {
+    engine::public_key_bytes()
 }
-pub fn secret_key_bytes() -> usize { 
-    engine::secret_key_bytes() 
+pub fn secret_key_bytes() -> usize {
+    engine::secret_key_bytes()
 }
-pub fn signature_bytes() -> usize { 
-    engine::signature_bytes() 
+pub fn signature_bytes() -> usize {
+    engine::signature_bytes()
 }
-pub fn seed_bytes() -> usize { 
-    engine::seed_bytes() 
+pub fn seed_bytes() -> usize {
+    engine::seed_bytes()
 }
 
 pub fn keypair_from_seed(seed_bytes: &[u8]) -> Result<(PublicKey, SecretKey), SphincsError> {

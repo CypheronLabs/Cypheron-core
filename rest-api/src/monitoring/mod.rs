@@ -1,19 +1,19 @@
-pub mod metrics;
 pub mod alerts;
 pub mod compliance;
-pub mod security_events;
 pub mod health;
+pub mod metrics;
+pub mod security_events;
 
 // Export key types with specific names to avoid conflicts
-pub use metrics::MetricsCollector;
-pub use alerts::{AlertManager, Alert, AlertRule};
+pub use alerts::{Alert, AlertManager, AlertRule};
 pub use compliance::{ComplianceChecker, ComplianceFramework};
-pub use security_events::{SecurityEventMonitor, SecurityEvent};
 pub use health::HealthChecker;
+pub use metrics::MetricsCollector;
+pub use security_events::{SecurityEvent, SecurityEventMonitor};
 
-use std::sync::Arc;
-use axum::extract::FromRef;
 use crate::security::{AuditLogger, ComplianceManager};
+use axum::extract::FromRef;
+use std::sync::Arc;
 
 /// Combined monitoring state for the API routes
 #[derive(Clone)]
@@ -38,18 +38,10 @@ impl MonitoringState {
         // Create audit logger with reasonable defaults
         let audit = Arc::new(AuditLogger::new(10000));
         let compliance_manager = Arc::new(ComplianceManager::new());
-        
-        Self {
-            metrics,
-            alerts,
-            compliance,
-            security_events,
-            health,
-            audit,
-            compliance_manager,
-        }
+
+        Self { metrics, alerts, compliance, security_events, health, audit, compliance_manager }
     }
-    
+
     pub fn new_with_audit(
         metrics: Arc<MetricsCollector>,
         alerts: Arc<AlertManager>,
@@ -59,16 +51,8 @@ impl MonitoringState {
         audit: Arc<AuditLogger>,
     ) -> Self {
         let compliance_manager = Arc::new(ComplianceManager::new());
-        
-        Self {
-            metrics,
-            alerts,
-            compliance,
-            security_events,
-            health,
-            audit,
-            compliance_manager,
-        }
+
+        Self { metrics, alerts, compliance, security_events, health, audit, compliance_manager }
     }
 }
 

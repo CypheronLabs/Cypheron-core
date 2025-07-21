@@ -1,6 +1,6 @@
 use secrecy::SecretBox;
-use zeroize::Zeroize;
 use std::fmt;
+use zeroize::Zeroize;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey<const N: usize>(pub [u8; N]);

@@ -1,6 +1,6 @@
-use zeroize::Zeroize; 
-use std::error::Error as StdError; 
+use std::error::Error as StdError;
 use std::fmt::Debug;
+use zeroize::Zeroize;
 pub trait SignatureEngine {
     type PublicKey: Clone + Debug + Send + Sync + 'static;
 

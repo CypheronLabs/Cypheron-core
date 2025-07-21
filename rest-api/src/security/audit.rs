@@ -44,25 +44,22 @@ pub struct AuditLogger {
 
 impl AuditLogger {
     pub fn new(max_events: usize) -> Self {
-        Self {
-            events: Arc::new(RwLock::new(VecDeque::with_capacity(max_events))),
-            max_events,
-        }
+        Self { events: Arc::new(RwLock::new(VecDeque::with_capacity(max_events))), max_events }
     }
 
     pub async fn log_event(&self, event: AuditEvent) {
         let mut events = self.events.write().await;
-        
+
         // Remove oldest event if at capacity
         if events.len() >= self.max_events {
             events.pop_front();
         }
-        
+
         // Log to tracing as well
         match event.event_type {
-            AuditEventType::AuthenticationFailed | 
-            AuditEventType::AuthorizationFailed |
-            AuditEventType::SuspiciousActivity => {
+            AuditEventType::AuthenticationFailed
+            | AuditEventType::AuthorizationFailed
+            | AuditEventType::SuspiciousActivity => {
                 tracing::warn!(
                     "Security event: {:?} - IP: {} - Path: {} - Status: {}",
                     event.event_type,
@@ -97,14 +94,14 @@ impl AuditLogger {
                 );
             }
         }
-        
+
         events.push_back(event);
     }
 
     pub async fn get_recent_events(&self, limit: Option<usize>) -> Vec<AuditEvent> {
         let events = self.events.read().await;
         let limit = limit.unwrap_or(100).min(events.len());
-        
+
         events
             .iter()
             .rev() // Most recent first
@@ -113,23 +110,33 @@ impl AuditLogger {
             .collect()
     }
 
-    pub async fn get_events_by_type(&self, event_type: AuditEventType, limit: Option<usize>) -> Vec<AuditEvent> {
+    pub async fn get_events_by_type(
+        &self,
+        event_type: AuditEventType,
+        limit: Option<usize>,
+    ) -> Vec<AuditEvent> {
         let events = self.events.read().await;
         let limit = limit.unwrap_or(100);
-        
+
         events
             .iter()
-            .filter(|e| std::mem::discriminant(&e.event_type) == std::mem::discriminant(&event_type))
+            .filter(|e| {
+                std::mem::discriminant(&e.event_type) == std::mem::discriminant(&event_type)
+            })
             .rev()
             .take(limit)
             .cloned()
             .collect()
     }
 
-    pub async fn get_events_by_api_key(&self, api_key_id: Uuid, limit: Option<usize>) -> Vec<AuditEvent> {
+    pub async fn get_events_by_api_key(
+        &self,
+        api_key_id: Uuid,
+        limit: Option<usize>,
+    ) -> Vec<AuditEvent> {
         let events = self.events.read().await;
         let limit = limit.unwrap_or(100);
-        
+
         events
             .iter()
             .filter(|e| e.api_key_id == Some(api_key_id))
@@ -142,16 +149,18 @@ impl AuditLogger {
     pub async fn get_security_events(&self, limit: Option<usize>) -> Vec<AuditEvent> {
         let events = self.events.read().await;
         let limit = limit.unwrap_or(100);
-        
+
         events
             .iter()
-            .filter(|e| matches!(
-                e.event_type,
-                AuditEventType::AuthenticationFailed |
-                AuditEventType::AuthorizationFailed |
-                AuditEventType::RateLimitExceeded |
-                AuditEventType::SuspiciousActivity
-            ))
+            .filter(|e| {
+                matches!(
+                    e.event_type,
+                    AuditEventType::AuthenticationFailed
+                        | AuditEventType::AuthorizationFailed
+                        | AuditEventType::RateLimitExceeded
+                        | AuditEventType::SuspiciousActivity
+                )
+            })
             .rev()
             .take(limit)
             .cloned()
@@ -162,11 +171,11 @@ impl AuditLogger {
     pub async fn cleanup_old_events(&self, retention_days: u32) {
         let cutoff_date = Utc::now() - chrono::Duration::days(retention_days as i64);
         let mut events = self.events.write().await;
-        
+
         let original_count = events.len();
         events.retain(|event| event.timestamp >= cutoff_date);
         let cleaned_count = original_count - events.len();
-        
+
         if cleaned_count > 0 {
             tracing::info!(
                 "Audit log cleanup completed. Removed {} events older than {} days",
@@ -250,16 +259,21 @@ pub async fn get_audit_logs(
     State(audit_logger): State<AuditLogger>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Json<AuditLogResponse> {
-    let limit = params
-        .get("limit")
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(100);
+    let limit = params.get("limit").and_then(|s| s.parse().ok()).unwrap_or(100);
 
     let events = if let Some(event_type_str) = params.get("type") {
         match event_type_str.as_str() {
             "security" => audit_logger.get_security_events(Some(limit)).await,
-            "auth_failed" => audit_logger.get_events_by_type(AuditEventType::AuthenticationFailed, Some(limit)).await,
-            "rate_limit" => audit_logger.get_events_by_type(AuditEventType::RateLimitExceeded, Some(limit)).await,
+            "auth_failed" => {
+                audit_logger
+                    .get_events_by_type(AuditEventType::AuthenticationFailed, Some(limit))
+                    .await
+            }
+            "rate_limit" => {
+                audit_logger
+                    .get_events_by_type(AuditEventType::RateLimitExceeded, Some(limit))
+                    .await
+            }
             _ => audit_logger.get_recent_events(Some(limit)).await,
         }
     } else {
@@ -277,14 +291,9 @@ pub async fn get_audit_logs(
         "error_occurred".to_string(),
     ];
 
-    Json(AuditLogResponse {
-        total_count: events.len(),
-        events,
-        event_types,
-    })
+    Json(AuditLogResponse { total_count: events.len(), events, event_types })
 }
 
 pub fn audit_routes() -> Router<AuditLogger> {
-    Router::new()
-        .route("/admin/audit-logs", get(get_audit_logs))
+    Router::new().route("/admin/audit-logs", get(get_audit_logs))
 }

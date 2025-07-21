@@ -17,28 +17,30 @@ pub struct SecurityError {
 }
 
 // Security headers middleware
-pub async fn security_headers_middleware(
-    request: Request,
-    next: Next,
-) -> Response {
+pub async fn security_headers_middleware(request: Request, next: Next) -> Response {
     let mut response = next.run(request).await;
     let headers = response.headers_mut();
-    
+
     // OWASP recommended security headers
     headers.insert("X-Content-Type-Options", HeaderValue::from_static("nosniff"));
     headers.insert("X-Frame-Options", HeaderValue::from_static("DENY"));
     headers.insert("X-XSS-Protection", HeaderValue::from_static("1; mode=block"));
     headers.insert("Referrer-Policy", HeaderValue::from_static("strict-origin-when-cross-origin"));
-    headers.insert("Permissions-Policy", HeaderValue::from_static("camera=(), microphone=(), geolocation=()"));
+    headers.insert(
+        "Permissions-Policy",
+        HeaderValue::from_static("camera=(), microphone=(), geolocation=()"),
+    );
     headers.insert(
         "Strict-Transport-Security",
         HeaderValue::from_static("max-age=31536000; includeSubDomains"),
     );
     headers.insert(
         "Content-Security-Policy",
-        HeaderValue::from_static("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"),
+        HeaderValue::from_static(
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'",
+        ),
     );
-    
+
     response
 }
 
@@ -49,7 +51,7 @@ pub async fn request_validation_middleware(
 ) -> Result<Response, (StatusCode, Json<SecurityError>)> {
     let method = request.method();
     let path = request.uri().path();
-    
+
     // Validate HTTP methods
     match method {
         &Method::GET | &Method::POST => {
@@ -66,7 +68,7 @@ pub async fn request_validation_middleware(
             ));
         }
     }
-    
+
     // Validate path characters
     if path.contains("..") || path.contains("//") {
         return Err((
@@ -78,14 +80,23 @@ pub async fn request_validation_middleware(
             }),
         ));
     }
-    
+
     // Check for suspicious patterns
     let suspicious_patterns = [
-        "<script", "javascript:", "onload=", "onerror=",
-        "SELECT", "UNION", "DROP", "INSERT", "UPDATE",
-        "eval(", "exec(", "system("
+        "<script",
+        "javascript:",
+        "onload=",
+        "onerror=",
+        "SELECT",
+        "UNION",
+        "DROP",
+        "INSERT",
+        "UPDATE",
+        "eval(",
+        "exec(",
+        "system(",
     ];
-    
+
     for pattern in &suspicious_patterns {
         if path.to_lowercase().contains(&pattern.to_lowercase()) {
             tracing::warn!("Suspicious pattern detected in path: {}", path);
@@ -99,24 +110,21 @@ pub async fn request_validation_middleware(
             ));
         }
     }
-    
+
     Ok(next.run(request).await)
 }
 
 // Request timing middleware for audit logs
-pub async fn timing_middleware(
-    request: Request,
-    next: Next,
-) -> Response {
+pub async fn timing_middleware(request: Request, next: Next) -> Response {
     let start_time = Instant::now();
     let method = request.method().clone();
     let path = request.uri().path().to_string();
-    
+
     let response = next.run(request).await;
-    
+
     let duration = start_time.elapsed();
     let status = response.status();
-    
+
     tracing::info!(
         "Request completed - {} {} - Status: {} - Duration: {:?}",
         method,
@@ -124,17 +132,12 @@ pub async fn timing_middleware(
         status,
         duration
     );
-    
+
     // Log slow requests (> 5 seconds)
     if duration.as_secs() > 5 {
-        tracing::warn!(
-            "Slow request detected - {} {} - Duration: {:?}",
-            method,
-            path,
-            duration
-        );
+        tracing::warn!("Slow request detected - {} {} - Duration: {:?}", method, path, duration);
     }
-    
+
     response
 }
 

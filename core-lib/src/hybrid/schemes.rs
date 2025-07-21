@@ -1,6 +1,8 @@
+use super::composite::{CompositePublicKey, CompositeSecretKey, CompositeSignature};
+use super::ecdsa::{
+    EcdsaError, EcdsaKeyPair, EcdsaPrivateKey, EcdsaPublicKey, EcdsaSignatureWrapper,
+};
 use super::traits::{HybridEngine, VerificationPolicy};
-use super::composite::{CompositeSignature, CompositePublicKey, CompositeSecretKey};
-use super::ecdsa::{EcdsaKeyPair, EcdsaPrivateKey, EcdsaPublicKey, EcdsaSignatureWrapper, EcdsaError};
 
 use crate::sig::traits::SignatureEngine;
 use crate::sig::Dilithium2;
@@ -54,17 +56,15 @@ impl HybridEngine for EccDilithium {
         // Generate ECDSA keypair with NIST FIPS 204 compliant domain separation
         let domain_separator = "CYPHERON_HYBRID_ML_DSA_44".to_string();
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
-        
+
         // Generate Dilithium2 keypair
-        let (dilithium_pk, dilithium_sk) = Dilithium2::keypair()
-            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let (dilithium_pk, dilithium_sk) =
+            Dilithium2::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         // Create composite keys with proper types
-        let composite_pk = CompositePublicKey {
-            classical: ecdsa_keypair.public_key,
-            post_quantum: dilithium_pk,
-        };
-        
+        let composite_pk =
+            CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: dilithium_pk };
+
         let composite_sk = CompositeSecretKey {
             classical: SecretBox::new(Box::new(ecdsa_keypair.private_key)),
             post_quantum: SecretBox::new(Box::new(dilithium_sk)),
@@ -73,21 +73,24 @@ impl HybridEngine for EccDilithium {
         Ok((composite_pk, composite_sk))
     }
 
-    fn sign(msg: &[u8], sk: &Self::CompositeSecretKey) -> Result<Self::CompositeSignature, Self::Error> {
+    fn sign(
+        msg: &[u8],
+        sk: &Self::CompositeSecretKey,
+    ) -> Result<Self::CompositeSignature, Self::Error> {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| HybridError::Classical(format!("Time error: {}", e)))?
             .as_secs();
-        
+
         let mut nonce = [0u8; 32];
         use rand::RngCore;
         rand::rng().fill_bytes(&mut nonce);
-        
+
         let mut message_with_timestamp = Vec::new();
         message_with_timestamp.extend_from_slice(&timestamp.to_be_bytes());
         message_with_timestamp.extend_from_slice(&nonce);
         message_with_timestamp.extend_from_slice(msg);
-        
+
         let ecc_sk = sk.classical.expose_secret();
         let ecc_signature = ecc_sk.sign(&message_with_timestamp)?;
 
@@ -108,30 +111,31 @@ impl HybridEngine for EccDilithium {
     }
 
     fn verify_with_policy(
-        msg: &[u8], 
-        sig: &Self::CompositeSignature, 
+        msg: &[u8],
+        sig: &Self::CompositeSignature,
         pk: &Self::CompositePublicKey,
-        policy: VerificationPolicy
+        policy: VerificationPolicy,
     ) -> bool {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        
+
         if sig.timestamp + 30 < current_time || sig.timestamp > current_time + 5 {
             return false;
         }
-        
+
         let mut message_with_timestamp = Vec::new();
         message_with_timestamp.extend_from_slice(&sig.timestamp.to_be_bytes());
         message_with_timestamp.extend_from_slice(&sig.nonce);
         message_with_timestamp.extend_from_slice(msg);
-        
-        let ecc_valid = pk.classical.verify(&message_with_timestamp, &sig.classical)
-            .unwrap_or(false);
-        
-        let dilithium_valid = Dilithium2::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
-        
+
+        let ecc_valid =
+            pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
+
+        let dilithium_valid =
+            Dilithium2::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
+
         match policy {
             VerificationPolicy::BothRequired => ecc_valid && dilithium_valid,
             VerificationPolicy::EitherValid => ecc_valid || dilithium_valid,
@@ -161,13 +165,11 @@ impl HybridEngine for EccFalcon {
         let domain_separator = "CYPHERON_HYBRID_FALCON_512".to_string();
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
-        let (falcon_pk, falcon_sk) = Falcon512::keypair()
-            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let (falcon_pk, falcon_sk) =
+            Falcon512::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
-        let composite_pk = CompositePublicKey {
-            classical: ecdsa_keypair.public_key,
-            post_quantum: falcon_pk,
-        };
+        let composite_pk =
+            CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: falcon_pk };
 
         let composite_sk = CompositeSecretKey {
             classical: SecretBox::new(Box::new(ecdsa_keypair.private_key)),
@@ -175,9 +177,11 @@ impl HybridEngine for EccFalcon {
         };
 
         Ok((composite_pk, composite_sk))
-
     }
-    fn sign(msg: &[u8], sk: &Self::CompositeSecretKey) -> Result<Self::CompositeSignature, Self::Error> {
+    fn sign(
+        msg: &[u8],
+        sk: &Self::CompositeSecretKey,
+    ) -> Result<Self::CompositeSignature, Self::Error> {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| HybridError::Classical(format!("Time error: {}", e)))?
@@ -213,7 +217,7 @@ impl HybridEngine for EccFalcon {
         msg: &[u8],
         sig: &Self::CompositeSignature,
         pk: &Self::CompositePublicKey,
-        policy: VerificationPolicy
+        policy: VerificationPolicy,
     ) -> bool {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -229,10 +233,11 @@ impl HybridEngine for EccFalcon {
         message_with_timestamp.extend_from_slice(&sig.nonce);
         message_with_timestamp.extend_from_slice(msg);
 
-        let ecc_valid = pk.classical.verify(&message_with_timestamp, &sig.classical)
-            .unwrap_or(false);
+        let ecc_valid =
+            pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
 
-        let falcon_valid = Falcon512::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
+        let falcon_valid =
+            Falcon512::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
 
         match policy {
             VerificationPolicy::BothRequired => ecc_valid && falcon_valid,
@@ -261,13 +266,11 @@ impl HybridEngine for EccSphincs {
         let domain_separator = "CYPHERON_HYBRID_SPHINCS_SHAKE_128F".to_string();
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
-        let (sphincs_pk, sphincs_sk) = shake_128f::keypair()
-            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let (sphincs_pk, sphincs_sk) =
+            shake_128f::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
-        let composite_pk = CompositePublicKey {
-            classical: ecdsa_keypair.public_key,
-            post_quantum: sphincs_pk,
-        };
+        let composite_pk =
+            CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: sphincs_pk };
 
         let composite_sk = CompositeSecretKey {
             classical: SecretBox::new(Box::new(ecdsa_keypair.private_key)),
@@ -276,7 +279,10 @@ impl HybridEngine for EccSphincs {
 
         Ok((composite_pk, composite_sk))
     }
-    fn sign(msg: &[u8], sk: &Self::CompositeSecretKey) -> Result<Self::CompositeSignature, Self::Error> {
+    fn sign(
+        msg: &[u8],
+        sk: &Self::CompositeSecretKey,
+    ) -> Result<Self::CompositeSignature, Self::Error> {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| HybridError::Classical(format!("Time error: {}", e)))?
@@ -295,8 +301,9 @@ impl HybridEngine for EccSphincs {
         let ecc_signature = ecc_sk.sign(&message_with_timestamp)?;
 
         let shake_128f_sk = sk.post_quantum.expose_secret();
-        let shake_128f_signature = shake_128f::sign_detached(&message_with_timestamp, shake_128f_sk)
-            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let shake_128f_signature =
+            shake_128f::sign_detached(&message_with_timestamp, shake_128f_sk)
+                .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         Ok(CompositeSignature {
             classical: ecc_signature,
@@ -309,35 +316,40 @@ impl HybridEngine for EccSphincs {
         Self::verify_with_policy(msg, sig, pk, VerificationPolicy::BothRequired)
     }
     fn verify_with_policy(
-            msg: &[u8],
-            sig: &Self::CompositeSignature,
-            pk: &Self::CompositePublicKey,
-            policy: VerificationPolicy
-        ) -> bool {
-            let current_time = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0);
+        msg: &[u8],
+        sig: &Self::CompositeSignature,
+        pk: &Self::CompositePublicKey,
+        policy: VerificationPolicy,
+    ) -> bool {
+        let current_time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
 
-            if sig.timestamp + 30 < current_time || sig.timestamp > current_time + 5 {
-                return false;
-            }
+        if sig.timestamp + 30 < current_time || sig.timestamp > current_time + 5 {
+            return false;
+        }
 
-            let mut message_with_timestamp = Vec::new();
-            message_with_timestamp.extend_from_slice(&sig.timestamp.to_be_bytes());
-            message_with_timestamp.extend_from_slice(&sig.nonce);
-            message_with_timestamp.extend_from_slice(msg);
+        let mut message_with_timestamp = Vec::new();
+        message_with_timestamp.extend_from_slice(&sig.timestamp.to_be_bytes());
+        message_with_timestamp.extend_from_slice(&sig.nonce);
+        message_with_timestamp.extend_from_slice(msg);
 
-            let ecc_valid = pk.classical.verify(&message_with_timestamp, &sig.classical)
-                .unwrap_or(false);
+        let ecc_valid =
+            pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
 
-            let shake_128f_valid = shake_128f::verify_detached(&sig.post_quantum, &message_with_timestamp, &pk.post_quantum).is_ok();
+        let shake_128f_valid = shake_128f::verify_detached(
+            &sig.post_quantum,
+            &message_with_timestamp,
+            &pk.post_quantum,
+        )
+        .is_ok();
 
-            match policy {
-                VerificationPolicy::BothRequired => ecc_valid && shake_128f_valid,
-                VerificationPolicy::EitherValid => ecc_valid || shake_128f_valid,
-                VerificationPolicy::ClassicalOnly => ecc_valid,
-                VerificationPolicy::PostQuantumOnly => shake_128f_valid,
-            }
+        match policy {
+            VerificationPolicy::BothRequired => ecc_valid && shake_128f_valid,
+            VerificationPolicy::EitherValid => ecc_valid || shake_128f_valid,
+            VerificationPolicy::ClassicalOnly => ecc_valid,
+            VerificationPolicy::PostQuantumOnly => shake_128f_valid,
         }
     }
+}

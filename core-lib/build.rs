@@ -33,14 +33,14 @@ fn verify_vendor_integrity(manifest_dir: &Path) {
     }
 
     let vendor_script = manifest_dir.parent().unwrap().join("scripts/vendor-integrity.sh");
-    
+
     if !vendor_script.exists() {
         println!("cargo:warning=Vendor integrity script not found, skipping verification");
         return;
     }
 
     println!("cargo:warning=Verifying vendor code integrity...");
-    
+
     let output = Command::new("bash")
         .arg(&vendor_script)
         .arg("verify")
@@ -71,10 +71,7 @@ fn build_kyber_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-assert!(
-    ref_dir.join("indcpa.c").exists(),
-    "[build.rs] Missing ML-KEM (Kyber) file: indcpa.c"
-);
+    assert!(ref_dir.join("indcpa.c").exists(), "[build.rs] Missing ML-KEM (Kyber) file: indcpa.c");
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
         // Use ML-KEM naming for NIST compliance while maintaining Kyber compatibility
         PQBuilder::new(format!("ml_kem_{}", variant), &ref_dir)
@@ -169,44 +166,45 @@ fn build_falcon_all(manifest_dir: &Path) {
         .build();
 }
 
-fn build_sphincsplus_all(sphincs_dir: &Path) {  
-    let ref_dir = sphincs_dir.join("ref");  
-       
-    let hash_functions = ["sha2", "shake", "haraka"];  
-    let security_levels = ["128", "192", "256"];  
-    let optimizations = ["f", "s"]; // f = fast, s = small  
-    let thash_variants = ["simple", "robust"];  
-      
-    let api_functions = vec![  
-        "crypto_sign_keypair".to_string(),  
-        "crypto_sign_seed_keypair".to_string(),  
-        "crypto_sign".to_string(),  
-        "crypto_sign_open".to_string(),  
-        "crypto_sign_signature".to_string(),  
-        "crypto_sign_verify".to_string(),  
-        "crypto_sign_bytes".to_string(),  
-        "crypto_sign_publickeybytes".to_string(),  
-        "crypto_sign_secretkeybytes".to_string(),  
-        "crypto_sign_seedbytes".to_string(),  
-    ];  
-    for &hash in &hash_functions {  
-        for &security in &security_levels {  
-            for &opt in &optimizations {  
-                for &thash in &thash_variants {  
-                    //let param_set = format!("sphincs-{}-{}{}", hash, security, opt);  
-                    let lib_name = format!("sphincsplus_sphincs_{}_{}{}_{}", hash, security, opt, thash);  
-                    
+fn build_sphincsplus_all(sphincs_dir: &Path) {
+    let ref_dir = sphincs_dir.join("ref");
+
+    let hash_functions = ["sha2", "shake", "haraka"];
+    let security_levels = ["128", "192", "256"];
+    let optimizations = ["f", "s"]; // f = fast, s = small
+    let thash_variants = ["simple", "robust"];
+
+    let api_functions = vec![
+        "crypto_sign_keypair".to_string(),
+        "crypto_sign_seed_keypair".to_string(),
+        "crypto_sign".to_string(),
+        "crypto_sign_open".to_string(),
+        "crypto_sign_signature".to_string(),
+        "crypto_sign_verify".to_string(),
+        "crypto_sign_bytes".to_string(),
+        "crypto_sign_publickeybytes".to_string(),
+        "crypto_sign_secretkeybytes".to_string(),
+        "crypto_sign_seedbytes".to_string(),
+    ];
+    for &hash in &hash_functions {
+        for &security in &security_levels {
+            for &opt in &optimizations {
+                for &thash in &thash_variants {
+                    //let param_set = format!("sphincs-{}-{}{}", hash, security, opt);
+                    let lib_name =
+                        format!("sphincsplus_sphincs_{}_{}{}_{}", hash, security, opt, thash);
+
                     let mut owned_files: Vec<String> = vec![];
                     let mut c_files: Vec<&str> = vec![
                         "address.c",
                         "fors.c",
-                        "merkle.c",      // <--- ADDED
+                        "merkle.c", // <--- ADDED
                         "sign.c",
                         "utils.c",
-                        "utilsx1.c",     // <--- ADDED
+                        "utilsx1.c", // <--- ADDED
                         "wots.c",
-                        "wotsx1.c",      // <--- ADDED
-                        "randombytes.c"
+                        "wotsx1.c", // <--- ADDED
+                        "randombytes.c",
                     ];
 
                     match hash {
@@ -215,126 +213,117 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                             c_files.push("sha2.c");
                             c_files.push("hash_sha2.c");
                             c_files.push(owned_files.last().unwrap());
-                        },
+                        }
                         "shake" => {
                             owned_files.push(format!("thash_shake_{}.c", thash));
                             c_files.push("fips202.c");
                             c_files.push("hash_shake.c");
                             c_files.push(owned_files.last().unwrap());
-                        },
+                        }
                         "haraka" => {
                             owned_files.push(format!("thash_haraka_{}.c", thash));
                             c_files.push("haraka.c");
                             c_files.push("hash_haraka.c");
                             c_files.push(owned_files.last().unwrap());
-                        },
+                        }
                         _ => panic!("Unsupported hash function"),
                     }
-                      
+
                     //let param_h = format!("params-{}.h", param_set);
                     //let param_file = format!("params-sphincs-{}-{}{}", hash, security, opt);
                     let thash_str = thash.to_string();
-                    
+
                     let param_file = format!("sphincs-{}-{}{}", hash, security, opt);
-                    let defines = vec![
-                        ("PARAMS", param_file.as_str()),
-                        ("THASH", thash_str.as_str()),
-];
-                       
-                    PQBuilder::new(lib_name, &ref_dir)  
-                        .files(c_files)  
-                        .defines(defines)  
-                        .header("api.h")  
-                        .allowlist(api_functions.clone())  
-                        .build();  
-                }  
-            }  
-        }  
-    }  
-    #[cfg(target_feature = "avx2")]  
-    build_avx2_variants(sphincs_dir, &api_functions);  
-      
-    #[cfg(target_feature = "aes")]  
-    build_aesni_variants(sphincs_dir, &api_functions);  
-      
-    println!("cargo:rerun-if-changed={}", sphincs_dir.display());  
-}  
-  
-#[cfg(target_feature = "avx2")]  
-fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {  
-    // Build AVX2-optimized variants for SHA2 and SHAKE  
-    let hash_functions = ["sha2", "shake"];  
-    let security_levels = ["128", "192", "256"];  
-    let optimizations = ["f", "s"];  
-    let thash_variants = ["simple", "robust"];  
-      
-    for &hash in &hash_functions {  
-        let avx2_dir = sphincs_dir.join(format!("{}-avx2", hash));  
-          
-        for &security in &security_levels {  
-            for &opt in &optimizations {  
-                for &thash in &thash_variants {  
-                    let param_set = format!("sphincs-{}-{}{}", hash, security, opt);  
-                    let lib_name = format!("sphincsplus_{}_avx2_{}_{}{}_{}",   
-                                          hash, hash, security, opt, thash);  
-                      
-                    // Core files  
-                    let mut c_files = vec![  
-                        "address.c",  
-                        "fors.c",  
-                        "sign.c",  
-                        "utils.c",  
-                        "wots.c",  
-                        "randombytes.c",  
-                    ];  
-                      
-                    // Add hash-specific files for AVX2  
-                    if hash == "sha2" {  
-                        c_files.extend(vec![  
-                            "sha2.c",  
-                            "sha2x8.c",  
-                            "hash_sha2.c",  
-                            &format!("thash_sha2_{}x8.c", thash),  
-                        ]);  
-                    } else if hash == "shake" {  
-                        c_files.extend(vec![  
-                            "fips202.c",  
-                            "fips202x4.c",  
-                            "hash_shake.c",  
-                            &format!("thash_shake_{}x4.c", thash),  
-                        ]);  
-                    }  
-                      
-                    let defines = vec![  
-                        ("PARAMS", &format!("params-{}.h", param_set)),  
-                        ("THASH", thash),  
-                    ];  
-                      
-                    PQBuilder::new(lib_name, &avx2_dir)  
-                        .files(c_files)  
-                        .defines(defines)  
-                        .header("api.h")  
-                        .allowlist(api_functions.clone())  
-                        .build();  
-                }  
-            }  
-        }  
-    }  
-}  
-  
-#[cfg(target_feature = "aes")]  
-fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {  
-    let aesni_dir = sphincs_dir.join("haraka-aesni");  
-    let security_levels = ["128", "192", "256"];  
-    let optimizations = ["f", "s"];  
-    let thash_variants = ["simple", "robust"];  
-      
-    for &security in &security_levels {  
-        for &opt in &optimizations {  
-            for &thash in &thash_variants {  
-                let param_set = format!("sphincs-haraka-{}{}", security, opt);  
-                let lib_name = format!("sphincsplus_haraka_aesni_haraka_{}{}_{}", security, opt, thash);  
-                  
+                    let defines =
+                        vec![("PARAMS", param_file.as_str()), ("THASH", thash_str.as_str())];
+
+                    PQBuilder::new(lib_name, &ref_dir)
+                        .files(c_files)
+                        .defines(defines)
+                        .header("api.h")
+                        .allowlist(api_functions.clone())
+                        .build();
+                }
+            }
+        }
+    }
+    #[cfg(target_feature = "avx2")]
+    build_avx2_variants(sphincs_dir, &api_functions);
+
+    #[cfg(target_feature = "aes")]
+    build_aesni_variants(sphincs_dir, &api_functions);
+
+    println!("cargo:rerun-if-changed={}", sphincs_dir.display());
+}
+
+#[cfg(target_feature = "avx2")]
+fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
+    // Build AVX2-optimized variants for SHA2 and SHAKE
+    let hash_functions = ["sha2", "shake"];
+    let security_levels = ["128", "192", "256"];
+    let optimizations = ["f", "s"];
+    let thash_variants = ["simple", "robust"];
+
+    for &hash in &hash_functions {
+        let avx2_dir = sphincs_dir.join(format!("{}-avx2", hash));
+
+        for &security in &security_levels {
+            for &opt in &optimizations {
+                for &thash in &thash_variants {
+                    let param_set = format!("sphincs-{}-{}{}", hash, security, opt);
+                    let lib_name =
+                        format!("sphincsplus_{}_avx2_{}_{}{}_{}", hash, hash, security, opt, thash);
+
+                    // Core files
+                    let mut c_files =
+                        vec!["address.c", "fors.c", "sign.c", "utils.c", "wots.c", "randombytes.c"];
+
+                    // Add hash-specific files for AVX2
+                    if hash == "sha2" {
+                        c_files.extend(vec![
+                            "sha2.c",
+                            "sha2x8.c",
+                            "hash_sha2.c",
+                            &format!("thash_sha2_{}x8.c", thash),
+                        ]);
+                    } else if hash == "shake" {
+                        c_files.extend(vec![
+                            "fips202.c",
+                            "fips202x4.c",
+                            "hash_shake.c",
+                            &format!("thash_shake_{}x4.c", thash),
+                        ]);
+                    }
+
+                    let defines =
+                        vec![("PARAMS", &format!("params-{}.h", param_set)), ("THASH", thash)];
+
+                    PQBuilder::new(lib_name, &avx2_dir)
+                        .files(c_files)
+                        .defines(defines)
+                        .header("api.h")
+                        .allowlist(api_functions.clone())
+                        .build();
+                }
+            }
+        }
+    }
+}
+
+#[cfg(target_feature = "aes")]
+fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
+    let aesni_dir = sphincs_dir.join("haraka-aesni");
+    let security_levels = ["128", "192", "256"];
+    let optimizations = ["f", "s"];
+    let thash_variants = ["simple", "robust"];
+
+    for &security in &security_levels {
+        for &opt in &optimizations {
+            for &thash in &thash_variants {
+                let param_set = format!("sphincs-haraka-{}{}", security, opt);
+                let lib_name =
+                    format!("sphincsplus_haraka_aesni_haraka_{}{}_{}", security, opt, thash);
+
                 let thash_filename = format!("thash_haraka_{}.c", thash);
 
                 let c_files = vec![
@@ -346,27 +335,24 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     "randombytes.c",
                     "haraka.c",
                     "hash_haraka.c",
-                    thash_filename.as_str(), 
-                ]; 
+                    thash_filename.as_str(),
+                ];
                 let param_h = format!("params-{}.h", param_set);
                 let thash_str = thash.to_string();
-                
-                let defines = vec![
-                    ("PARAMS", param_h.as_str()),
-                    ("THASH", thash_str.as_str()),
-                ];
-                  
-                PQBuilder::new(lib_name, &aesni_dir)  
-                    .files(c_files)  
-                    .defines(defines)  
-                    .header("api.h")  
-                    .allowlist(api_functions.to_vec())  
-                    .build();  
-                  
-                println!("Built SPHINCS+ AESNI variant: {}-{}", param_set, thash);  
-            }  
-        }  
-    }  
+
+                let defines = vec![("PARAMS", param_h.as_str()), ("THASH", thash_str.as_str())];
+
+                PQBuilder::new(lib_name, &aesni_dir)
+                    .files(c_files)
+                    .defines(defines)
+                    .header("api.h")
+                    .allowlist(api_functions.to_vec())
+                    .build();
+
+                println!("Built SPHINCS+ AESNI variant: {}-{}", param_set, thash);
+            }
+        }
+    }
 }
 struct PQBuilder<'a> {
     lib_name: String,
@@ -412,18 +398,18 @@ impl<'a> PQBuilder<'a> {
     fn build(self) {
         let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
         let out_bindings = out_dir.join(format!("{}_bindings.rs", self.lib_name));
-        
+
         let mut build = cc::Build::new();
         build.include(self.src_dir);
-        
+
         // Cross-platform compiler configuration
         self.configure_cross_platform(&mut build);
-        
+
         build.files(self.c_files.iter().map(|f| self.src_dir.join(f)));
-        
+
         // Platform-specific optimization flags
         self.add_optimization_flags(&mut build);
-        
+
         for (k, v) in &self.defines {
             build.define(k, Some(*v));
         }
@@ -463,10 +449,7 @@ impl<'a> PQBuilder<'a> {
                     .unwrap_or_else(|_| panic!("Couldn't write bindings for {}", self.lib_name));
             }
             Err(e) => {
-                eprintln!(
-                    "\n[build.rs] Failed to generate bindings for {}: {}",
-                    self.lib_name, e
-                );
+                eprintln!("\n[build.rs] Failed to generate bindings for {}: {}", self.lib_name, e);
                 eprintln!("Make sure libclang is installed and visible.");
                 eprintln!("Try: `sudo apt install libclang-dev`");
                 eprintln!("Or set the environment variable: `LIBCLANG_PATH=/path/to/libclang.so`");
@@ -484,7 +467,7 @@ impl<'a> PQBuilder<'a> {
             build.flag_if_supported("/std:c11");
             build.define("_CRT_SECURE_NO_WARNINGS", None);
             build.define("WIN32_LEAN_AND_MEAN", None);
-            
+
             // Windows-specific crypto APIs
             if self.lib_name.contains("sphincs") || self.lib_name.contains("kyber") {
                 build.define("USE_WINDOWS_CRYPTO", None);
@@ -496,11 +479,11 @@ impl<'a> PQBuilder<'a> {
         {
             build.flag_if_supported("-std=c99");
             build.flag_if_supported("-Wno-unused-function");
-            
+
             // macOS Security Framework for random number generation
             println!("cargo:rustc-link-lib=framework=Security");
             println!("cargo:rustc-link-lib=framework=CoreFoundation");
-            
+
             // Apple Silicon optimization
             if std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default() == "aarch64" {
                 build.flag_if_supported("-mcpu=apple-m1");
@@ -514,7 +497,7 @@ impl<'a> PQBuilder<'a> {
             build.flag_if_supported("-Wno-unused-function");
             build.flag_if_supported("-Wno-implicit-function-declaration");
             build.define("_GNU_SOURCE", None);
-            
+
             // Link with pthread for random number generation
             println!("cargo:rustc-link-lib=pthread");
         }
@@ -539,7 +522,7 @@ impl<'a> PQBuilder<'a> {
             build.flag_if_supported("-O3");
             build.flag_if_supported("-fomit-frame-pointer");
             build.flag_if_supported("-march=native");
-            
+
             if std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default().contains("avx2") {
                 build.flag_if_supported("-mavx2");
             }

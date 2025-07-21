@@ -1,12 +1,12 @@
-pub mod kem;
-pub mod sig;
 pub mod hybrid;
+pub mod kem;
 pub mod platform;
+pub mod sig;
 
 // Re-export platform utilities for convenience
-pub use platform::{secure_random_bytes, secure_zero, get_platform_info, PlatformInfo};
+pub use platform::{get_platform_info, secure_random_bytes, secure_zero, PlatformInfo};
 
 // Re-export commonly used types for convenience
-pub use kem::{MlKem512, MlKem768, MlKem1024, KemVariant};
-pub use sig::traits::{SignatureEngine, SignatureScheme};
 pub use hybrid::traits::{HybridEngine, VerificationPolicy};
+pub use kem::{KemVariant, MlKem1024, MlKem512, MlKem768};
+pub use sig::traits::{SignatureEngine, SignatureScheme};

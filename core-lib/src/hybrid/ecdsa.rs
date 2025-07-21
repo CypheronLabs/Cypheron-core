@@ -1,12 +1,15 @@
 use p256::{
-    ecdsa::{Signature as EcdsaSignature, SigningKey, VerifyingKey, signature::{Signer, Verifier}},
+    ecdsa::{
+        signature::{Signer, Verifier},
+        Signature as EcdsaSignature, SigningKey, VerifyingKey,
+    },
     elliptic_curve::rand_core::OsRng,
-    EncodedPoint, FieldBytes
+    EncodedPoint, FieldBytes,
 };
-use sha2::{Sha256, Digest};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use thiserror::Error;
 use zeroize::Zeroize;
-use serde::{Serialize, Deserialize};
 
 #[derive(Error, Debug)]
 pub enum EcdsaError {
@@ -66,27 +69,21 @@ impl EcdsaPrivateKey {
     /// Generate a new ECDSA private key with domain separation
     pub fn generate(domain_separator: String) -> Result<Self, EcdsaError> {
         let inner = SigningKey::random(&mut OsRng);
-        Ok(Self {
-            inner,
-            domain_separator,
-        })
+        Ok(Self { inner, domain_separator })
     }
 
     /// Create from raw bytes with domain separation
     pub fn from_bytes(bytes: &FieldBytes, domain_separator: String) -> Result<Self, EcdsaError> {
         let inner = SigningKey::from_bytes(bytes)
             .map_err(|e| EcdsaError::InvalidPrivateKey(format!("Invalid key bytes: {}", e)))?;
-        Ok(Self {
-            inner,
-            domain_separator,
-        })
+        Ok(Self { inner, domain_separator })
     }
 
     /// Get the corresponding public key
     pub fn public_key(&self) -> EcdsaPublicKey {
         let verifying_key = VerifyingKey::from(&self.inner);
         let encoded_point = verifying_key.to_encoded_point(true); // Compressed format
-        
+
         EcdsaPublicKey {
             encoded_point: encoded_point.as_bytes().to_vec(),
             domain_separator: self.domain_separator.clone(),
@@ -97,10 +94,10 @@ impl EcdsaPrivateKey {
     pub fn sign(&self, message: &[u8]) -> Result<EcdsaSignatureWrapper, EcdsaError> {
         // Create domain-separated message hash
         let domain_separated_hash = self.create_domain_separated_hash(message);
-        
+
         // Sign the hash
         let signature: EcdsaSignature = self.inner.sign(&domain_separated_hash);
-        
+
         Ok(EcdsaSignatureWrapper {
             signature: signature.to_bytes().to_vec(),
             domain_separator: self.domain_separator.clone(),
@@ -130,19 +127,20 @@ impl EcdsaPublicKey {
         // Validate the encoded point
         let encoded_point = EncodedPoint::from_bytes(bytes)
             .map_err(|e| EcdsaError::InvalidPublicKey(format!("Invalid encoded point: {}", e)))?;
-        
+
         // Verify it's a valid point on the curve
         VerifyingKey::from_encoded_point(&encoded_point)
             .map_err(|e| EcdsaError::InvalidPublicKey(format!("Invalid curve point: {}", e)))?;
-        
-        Ok(Self {
-            encoded_point: bytes.to_vec(),
-            domain_separator,
-        })
+
+        Ok(Self { encoded_point: bytes.to_vec(), domain_separator })
     }
 
     /// Verify a signature with domain separation
-    pub fn verify(&self, message: &[u8], signature: &EcdsaSignatureWrapper) -> Result<bool, EcdsaError> {
+    pub fn verify(
+        &self,
+        message: &[u8],
+        signature: &EcdsaSignatureWrapper,
+    ) -> Result<bool, EcdsaError> {
         // Check domain separator match
         if signature.domain_separator != self.domain_separator {
             return Ok(false);
@@ -150,7 +148,7 @@ impl EcdsaPublicKey {
 
         // Recreate the expected hash
         let expected_hash = self.create_domain_separated_hash(message);
-        
+
         // Verify the message hash matches (prevents signature mixing)
         if signature.message_hash != expected_hash {
             return Ok(false);
@@ -159,7 +157,7 @@ impl EcdsaPublicKey {
         // Reconstruct the verifying key
         let encoded_point = EncodedPoint::from_bytes(&self.encoded_point)
             .map_err(|e| EcdsaError::InvalidPublicKey(format!("Invalid stored point: {}", e)))?;
-        
+
         let verifying_key = VerifyingKey::from_encoded_point(&encoded_point)
             .map_err(|e| EcdsaError::InvalidPublicKey(format!("Invalid verifying key: {}", e)))?;
 
@@ -208,11 +206,8 @@ impl EcdsaKeyPair {
     pub fn generate(domain_separator: String) -> Result<Self, EcdsaError> {
         let private_key = EcdsaPrivateKey::generate(domain_separator)?;
         let public_key = private_key.public_key();
-        
-        Ok(Self {
-            private_key,
-            public_key,
-        })
+
+        Ok(Self { private_key, public_key })
     }
 }
 
@@ -245,11 +240,11 @@ pub mod validation {
         // Validate the encoded point
         let encoded_point = EncodedPoint::from_bytes(&key.encoded_point)
             .map_err(|e| EcdsaError::InvalidPublicKey(format!("Invalid encoded point: {}", e)))?;
-        
+
         // Verify it's a valid point on the curve
         VerifyingKey::from_encoded_point(&encoded_point)
             .map_err(|e| EcdsaError::InvalidPublicKey(format!("Invalid curve point: {}", e)))?;
-        
+
         Ok(())
     }
 }
@@ -273,12 +268,12 @@ mod tests {
     #[test]
     fn test_domain_separation() {
         let message = b"test message";
-        
+
         let keypair1 = EcdsaKeyPair::generate("domain1".to_string()).unwrap();
         let keypair2 = EcdsaKeyPair::generate("domain2".to_string()).unwrap();
 
         let signature1 = keypair1.private_key.sign(message).unwrap();
-        
+
         // Signature from domain1 should not verify with domain2 key
         let is_valid = keypair2.public_key.verify(message, &signature1).unwrap();
         assert!(!is_valid);
@@ -291,7 +286,7 @@ mod tests {
         let message2 = b"different message";
 
         let signature = keypair.private_key.sign(message1).unwrap();
-        
+
         // Signature should not verify for different message
         let is_valid = keypair.public_key.verify(message2, &signature).unwrap();
         assert!(!is_valid);

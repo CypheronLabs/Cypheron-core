@@ -1,5 +1,3 @@
-
-
 #[cfg(target_os = "windows")]
 pub mod windows;
 
@@ -14,13 +12,13 @@ use std::io::Error;
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     #[cfg(target_os = "windows")]
     return windows::secure_random_bytes(buffer);
-    
+
     #[cfg(target_os = "macos")]
     return macos::secure_random_bytes(buffer);
-    
+
     #[cfg(target_os = "linux")]
     return linux::secure_random_bytes(buffer);
-    
+
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
         // Fallback for other platforms
@@ -34,13 +32,13 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
 pub fn secure_zero(buffer: &mut [u8]) {
     #[cfg(target_os = "windows")]
     windows::secure_zero(buffer);
-    
+
     #[cfg(target_os = "macos")]
     macos::secure_zero(buffer);
-    
+
     #[cfg(target_os = "linux")]
     linux::secure_zero(buffer);
-    
+
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
         // Fallback using zeroize
@@ -73,20 +71,20 @@ pub struct PlatformInfo {
 fn get_os_name() -> &'static str {
     #[cfg(target_os = "windows")]
     return "Windows";
-    
+
     #[cfg(target_os = "macos")]
     return "macOS";
-    
+
     #[cfg(target_os = "linux")]
     return "Linux";
-    
+
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     return "Unknown";
 }
 
 fn get_cpu_features() -> Vec<String> {
     let mut features = Vec::new();
-    
+
     #[cfg(target_arch = "x86_64")]
     {
         if is_x86_feature_detected!("aes") {
@@ -102,11 +100,11 @@ fn get_cpu_features() -> Vec<String> {
             features.push("RDSEED".to_string());
         }
     }
-    
+
     #[cfg(target_arch = "aarch64")]
     {
         features.push("ARM64".to_string());
-        
+
         #[cfg(target_os = "macos")]
         {
             features.push("Apple Silicon".to_string());
@@ -120,7 +118,7 @@ fn get_cpu_features() -> Vec<String> {
                 features.push("ARM64-SHA3".to_string());
             }
         }
-        
+
         #[cfg(not(target_os = "macos"))]
         {
             if std::arch::is_aarch64_feature_detected!("aes") {
@@ -134,17 +132,17 @@ fn get_cpu_features() -> Vec<String> {
             }
         }
     }
-    
+
     features
 }
 
 fn has_hardware_rng() -> bool {
     #[cfg(target_arch = "x86_64")]
     return is_x86_feature_detected!("rdrand") || is_x86_feature_detected!("rdseed");
-    
+
     #[cfg(target_arch = "aarch64")]
     return std::arch::is_aarch64_feature_detected!("rand");
-    
+
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     return false;
 }
@@ -152,10 +150,10 @@ fn has_hardware_rng() -> bool {
 fn has_aes_ni() -> bool {
     #[cfg(target_arch = "x86_64")]
     return is_x86_feature_detected!("aes");
-    
+
     #[cfg(target_arch = "aarch64")]
     return std::arch::is_aarch64_feature_detected!("aes");
-    
+
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     return false;
 }
@@ -163,7 +161,7 @@ fn has_aes_ni() -> bool {
 fn has_avx2() -> bool {
     #[cfg(target_arch = "x86_64")]
     return is_x86_feature_detected!("avx2");
-    
+
     #[cfg(not(target_arch = "x86_64"))]
     return false;
 }

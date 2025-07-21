@@ -7,9 +7,9 @@ use crate::sig::traits::{SignatureEngine, SignatureScheme};
 pub struct Dilithium5;
 
 impl SignatureEngine for Dilithium5 {
-    type PublicKey = PublicKey; 
-    type SecretKey = SecretKey; 
-    type Signature = Signature; 
+    type PublicKey = PublicKey;
+    type SecretKey = SecretKey;
+    type Signature = Signature;
     type Error = DilithiumError;
 
     fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
