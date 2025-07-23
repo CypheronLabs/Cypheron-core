@@ -30,6 +30,10 @@ argon2 = "0.5"
 chacha20poly1305 = "0.10"
 zeroize = "1.7"
 
+# Future Firestore integration for Cloud Run
+# firestore-rs = "0.x" # Add when ready to implement
+reqwest = { version = "0.11", features = ["json"] } # For HTTP-based Firestore REST API
+
 core-lib = { workspace = true }
 hyper = "1.6.0"
 p256 = "0.13.2"

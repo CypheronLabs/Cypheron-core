@@ -14,13 +14,21 @@ pub async fn keygen(
     Path(variant): Path<String>,
     State(app_state): State<AppState>,
 ) -> Result<Json<KeypairResponse>, AppError> {
+    let handler_start = std::time::Instant::now();
+    eprintln!("DEBUG: Handler entry at {:?}", handler_start.elapsed());
+
     validation::validate_path_parameter(&variant)?;
+    eprintln!("DEBUG: Path validation completed at {:?}", handler_start.elapsed());
+
     let variant = parse_variant(&variant)?;
+    eprintln!("DEBUG: Variant parsed at {:?}", handler_start.elapsed());
 
     let start_time = std::time::Instant::now();
     tracing::info!("KEM keygen operation: variant={:?}", variant);
+    eprintln!("DEBUG: About to call KemService::generate_keypair at {:?}", handler_start.elapsed());
 
     let (pk, sk) = KemService::generate_keypair(variant)?;
+    eprintln!("DEBUG: KemService::generate_keypair completed at {:?}", handler_start.elapsed());
 
     // Log audit event
     let response_time = start_time.elapsed().as_millis() as u64;
@@ -42,7 +50,9 @@ pub async fn keygen(
         }
     }));
 
+    eprintln!("DEBUG: About to log audit event at {:?}", handler_start.elapsed());
     app_state.audit_logger.log_event(audit_event).await;
+    eprintln!("DEBUG: Audit event logged at {:?}", handler_start.elapsed());
 
     // Log compliance event for data processing with privacy controls
     let mut details = HashMap::new();
@@ -69,7 +79,9 @@ pub async fn keygen(
             None, // Could extract IP from request headers if needed
         )
         .await;
+    eprintln!("DEBUG: Compliance logging completed at {:?}", handler_start.elapsed());
 
+    eprintln!("DEBUG: Creating response at {:?}", handler_start.elapsed());
     Ok(Json(KeypairResponse {
         pk: pk.clone(),
         sk: sk.clone(),

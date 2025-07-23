@@ -27,17 +27,34 @@ impl KemService {
         }
     }
     pub fn generate_keypair(variant: KemVariant) -> Result<(String, String), AppError> {
+        let service_start = std::time::Instant::now();
+        eprintln!(
+            "DEBUG: KemService::generate_keypair entry for {:?} at {:?}",
+            variant,
+            service_start.elapsed()
+        );
+
         match variant {
             // NIST FIPS 203 compliant variants (primary implementations)
             KemVariant::MlKem512 => {
+                eprintln!(
+                    "DEBUG: About to call MlKem512::keypair at {:?}",
+                    service_start.elapsed()
+                );
                 let (pk, sk) = MlKem512::keypair().map_err(|_| AppError::KeyGenFailed)?;
+                eprintln!("DEBUG: MlKem512::keypair completed at {:?}", service_start.elapsed());
                 Ok((
                     general_purpose::STANDARD.encode(&pk.0),
                     general_purpose::STANDARD.encode(&sk.0),
                 ))
             }
             KemVariant::MlKem768 => {
+                eprintln!(
+                    "DEBUG: About to call MlKem768::keypair at {:?}",
+                    service_start.elapsed()
+                );
                 let (pk, sk) = MlKem768::keypair().map_err(|_| AppError::KeyGenFailed)?;
+                eprintln!("DEBUG: MlKem768::keypair completed at {:?}", service_start.elapsed());
                 Ok((
                     general_purpose::STANDARD.encode(&pk.0),
                     general_purpose::STANDARD.encode(&sk.0),
