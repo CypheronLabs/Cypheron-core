@@ -19,8 +19,8 @@ WORKDIR /app
 # Copy entire workspace to ensure proper module resolution
 COPY . .
 
-# Build with security optimizations
-# ENV RUSTFLAGS="-C target-feature=+crt-static -C link-arg=-s"
+# Build with security and performance optimizations
+ENV RUSTFLAGS="-C link-arg=-s -C opt-level=3"
 RUN SKIP_VENDOR_INTEGRITY=1 cargo build --release --bin rest-api
 
 # Runtime stage - using distroless for minimal attack surface
