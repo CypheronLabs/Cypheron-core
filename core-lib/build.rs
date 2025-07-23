@@ -405,7 +405,9 @@ impl<'a> PQBuilder<'a> {
         // Cross-platform compiler configuration
         self.configure_cross_platform(&mut build);
 
-        build.files(self.c_files.iter().map(|f| self.src_dir.join(f)));
+        // Add the source files
+        let files_to_build = self.get_files();
+        build.files(files_to_build);
 
         // Platform-specific optimization flags
         self.add_optimization_flags(&mut build);
@@ -527,5 +529,10 @@ impl<'a> PQBuilder<'a> {
                 build.flag_if_supported("-mavx2");
             }
         }
+    }
+
+    /// Get the files to compile for this library
+    fn get_files(&self) -> Vec<PathBuf> {
+        self.c_files.iter().map(|file| self.src_dir.join(file)).collect()
     }
 }

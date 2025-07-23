@@ -128,22 +128,45 @@ impl HealthChecker {
             return Err("ML-KEM-512 shared secret mismatch".to_string());
         }
 
-        // Test ML-DSA-44 operation (simplified)
-        use core_lib::sig::dilithium::dilithium2::Dilithium2;
+        // Test ML-DSA-44 operation with detailed debugging
         use core_lib::sig::traits::SignatureEngine;
+        use core_lib::sig::MlDsa44;
 
-        let (pk, sk) = Dilithium2::keypair()
-            .map_err(|e| format!("ML-DSA-44 keypair generation failed: {:?}", e))?;
+        tracing::debug!("Starting ML-DSA-44 health check");
+
+        let (pk, sk) = MlDsa44::keypair().map_err(|e| {
+            tracing::error!("ML-DSA-44 keypair generation failed: {:?}", e);
+            format!("ML-DSA-44 keypair generation failed: {:?}", e)
+        })?;
+
+        tracing::debug!(
+            "ML-DSA-44 keypair generated successfully, pk_len={}, sk_len={}",
+            pk.0.len(),
+            sk.0.len()
+        );
 
         let message = b"health check message";
-        let signature = Dilithium2::sign(message, &sk)
-            .map_err(|e| format!("ML-DSA-44 signing failed: {:?}", e))?;
+        let signature = MlDsa44::sign(message, &sk).map_err(|e| {
+            tracing::error!("ML-DSA-44 signing failed: {:?}", e);
+            format!("ML-DSA-44 signing failed: {:?}", e)
+        })?;
 
-        let is_valid = Dilithium2::verify(message, &signature, &pk);
+        tracing::debug!(
+            "ML-DSA-44 signature generated successfully, sig_len={}",
+            signature.0.len()
+        );
+
+        let is_valid = MlDsa44::verify(message, &signature, &pk);
+        tracing::debug!("ML-DSA-44 verification result: {}", is_valid);
+
         if !is_valid {
+            tracing::error!("ML-DSA-44 signature verification failed - this indicates a bug in the implementation");
+            tracing::debug!("Signature bytes: {:02x?}", &signature.0[0..16.min(signature.0.len())]);
+            tracing::debug!("Public key bytes: {:02x?}", &pk.0[0..16.min(pk.0.len())]);
             return Err("ML-DSA-44 signature verification failed".to_string());
         }
 
+        tracing::debug!("ML-DSA-44 health check passed");
         Ok(())
     }
 

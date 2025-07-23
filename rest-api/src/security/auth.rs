@@ -13,6 +13,7 @@ use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, Nonce};
 use chrono::{DateTime, Duration, Utc};
 use core_lib::kem::{Kem, MlKem768};
 use core_lib::platform::secure_random_bytes;
+// use firestore::*; // TODO: Add when implementing Firestore integration
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -242,7 +243,9 @@ impl PostQuantumEncryption {
 
 #[derive(Debug, Clone)]
 pub struct ApiKeyStore {
-    pub pool: PgPool,
+    pub pool: Option<PgPool>,
+    pub firestore_project_id: Option<String>,
+    pub firestore_collection: String,
     pub encryption: PostQuantumEncryption,
     pub fallback_keys: Arc<RwLock<HashMap<String, ApiKey>>>,
 }
@@ -304,7 +307,13 @@ impl ApiKeyStore {
             }
         }
 
-        Ok(Self { pool, encryption, fallback_keys: Arc::new(RwLock::new(fallback_keys)) })
+        Ok(Self {
+            pool: Some(pool),
+            firestore_project_id: None,
+            firestore_collection: String::new(),
+            encryption,
+            fallback_keys: Arc::new(RwLock::new(fallback_keys)),
+        })
     }
 
     pub fn new_in_memory() -> Self {
@@ -337,39 +346,95 @@ impl ApiKeyStore {
             tracing::info!("Test API key loaded in memory (fallback mode)");
         }
 
-        // Create a dummy pool connection for the fallback mode
-        let pool = PgPool::connect_lazy("postgresql://localhost/dummy").unwrap();
-
         Self {
-            pool,
+            pool: None, // No database pool for in-memory mode
+            firestore_project_id: None,
+            firestore_collection: String::new(),
             encryption: PostQuantumEncryption::new(),
             fallback_keys: Arc::new(RwLock::new(store)),
         }
     }
 
+    pub async fn new_with_firestore(project_id: &str) -> Result<Self, AuthError> {
+        // TODO: Implement actual Firestore integration
+        // For now, this is a placeholder that stores the project ID for future implementation
+
+        let collection_name =
+            std::env::var("FIRESTORE_COLLECTION").unwrap_or_else(|_| "api_keys".to_string());
+
+        let mut fallback_keys = HashMap::new();
+
+        // Load test key for fallback
+        if let Ok(test_key) = std::env::var("PQ_TEST_API_KEY") {
+            let test_key_hash = format!("{:x}", Sha256::digest(test_key.as_bytes()));
+            let api_key = ApiKey {
+                id: Uuid::new_v4(),
+                name: "Test Key".to_string(),
+                key_hash: test_key_hash.clone(),
+                permissions: vec![
+                    "kem:*".to_string(),
+                    "sig:*".to_string(),
+                    "hybrid:*".to_string(),
+                    "monitoring:*".to_string(),
+                    "admin:*".to_string(),
+                    "nist:*".to_string(),
+                ],
+                rate_limit: 100,
+                created_at: Utc::now(),
+                expires_at: Some(Utc::now() + Duration::days(30)),
+                is_active: true,
+                last_used: None,
+                usage_count: 0,
+            };
+            fallback_keys.insert(test_key_hash, api_key);
+            tracing::info!("Test API key loaded for Firestore mode (using in-memory fallback)");
+        }
+
+        Ok(Self {
+            pool: None,
+            firestore_project_id: Some(project_id.to_string()),
+            firestore_collection: collection_name,
+            encryption: PostQuantumEncryption::new(),
+            fallback_keys: Arc::new(RwLock::new(fallback_keys)),
+        })
+    }
+
     pub async fn validate_key(&self, key: &str) -> Option<ApiKey> {
         let key_hash = format!("{:x}", Sha256::digest(key.as_bytes()));
 
-        // Try database first
-        match self.validate_key_from_db(&key_hash).await {
-            Ok(Some(api_key)) => {
-                // Log successful validation
-                tracing::info!(
-                    "API key validated from database - key_id: {}, usage_count: {}",
-                    api_key.id,
-                    api_key.usage_count
-                );
-                return Some(api_key);
-            }
-            Ok(None) => {
-                // Key not found in database, check fallback
-            }
-            Err(e) => {
-                tracing::warn!("Database validation failed: {}, falling back to memory", e.message);
+        // TODO: Implement Firestore validation when ready
+        if let Some(project_id) = &self.firestore_project_id {
+            tracing::debug!(
+                "Firestore mode configured for project: {}, but using in-memory fallback for now",
+                project_id
+            );
+            // Future: Call validate_key_from_firestore here
+        }
+
+        // Try database, but only if we have a database pool
+        if let Some(_) = &self.pool {
+            match self.validate_key_from_db(&key_hash).await {
+                Ok(Some(api_key)) => {
+                    tracing::info!(
+                        "API key validated from database - key_id: {}, usage_count: {}",
+                        api_key.id,
+                        api_key.usage_count
+                    );
+                    return Some(api_key);
+                }
+                Ok(None) => {
+                    // Key not found in database, check fallback
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "Database validation failed: {}, falling back to memory",
+                        e.message
+                    );
+                }
             }
         }
 
-        // Fallback to in-memory validation
+        // Final fallback to in-memory validation
         self.validate_key_from_memory(&key_hash).await
     }
 
@@ -380,14 +445,19 @@ impl ApiKeyStore {
             WHERE key_hash = $1
         "#;
 
-        let row =
-            sqlx::query(query).bind(key_hash).fetch_optional(&self.pool).await.map_err(|e| {
-                AuthError {
-                    error: "database_error".to_string(),
-                    message: format!("Failed to query database: {}", e),
-                    code: 500,
-                }
-            })?;
+        let pool = self.pool.as_ref().ok_or_else(|| AuthError {
+            error: "no_database".to_string(),
+            message: "No database pool configured".to_string(),
+            code: 500,
+        })?;
+
+        let row = sqlx::query(query).bind(key_hash).fetch_optional(pool).await.map_err(|e| {
+            AuthError {
+                error: "database_error".to_string(),
+                message: format!("Failed to query database: {}", e),
+                code: 500,
+            }
+        })?;
 
         if let Some(row) = row {
             // First, try to decrypt the stored key to verify it matches the provided key
@@ -489,13 +559,15 @@ impl ApiKeyStore {
                     WHERE key_hash = $1
                 "#;
 
-                sqlx::query(update_query).bind(key_hash).execute(&self.pool).await.map_err(
-                    |e| AuthError {
-                        error: "database_error".to_string(),
-                        message: format!("Failed to update key usage: {}", e),
-                        code: 500,
-                    },
-                )?;
+                if let Some(pool) = &self.pool {
+                    sqlx::query(update_query).bind(key_hash).execute(pool).await.map_err(|e| {
+                        AuthError {
+                            error: "database_error".to_string(),
+                            message: format!("Failed to update key usage: {}", e),
+                            code: 500,
+                        }
+                    })?;
+                }
 
                 // Update the returned key with current timestamp
                 let mut updated_key = api_key;
@@ -514,6 +586,16 @@ impl ApiKeyStore {
         } else {
             Ok(None)
         }
+    }
+
+    async fn validate_key_from_firestore(
+        &self,
+        _key_hash: &str,
+    ) -> Result<Option<ApiKey>, AuthError> {
+        // TODO: Implement actual Firestore integration using REST API
+        // For now, always return None to fall back to in-memory
+        tracing::debug!("Firestore validation not yet implemented, falling back to in-memory");
+        Ok(None)
     }
 
     async fn validate_key_from_memory(&self, key_hash: &str) -> Option<ApiKey> {

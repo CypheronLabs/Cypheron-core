@@ -37,8 +37,13 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     use std::fs::File;
     use std::io::Read;
 
-    let mut file = File::open("/dev/urandom")?;
-    file.read_exact(buffer)?;
+    let mut file = File::open("/dev/urandom")
+        .map_err(|e| Error::new(ErrorKind::Other, format!("Failed to open /dev/urandom: {}", e)))?;
+
+    file.read_exact(buffer).map_err(|e| {
+        Error::new(ErrorKind::Other, format!("Failed to read from /dev/urandom: {}", e))
+    })?;
+
     Ok(())
 }
 
@@ -111,19 +116,6 @@ pub fn get_kernel_version() -> String {
     "Unknown kernel".to_string()
 }
 
-pub fn is_running_in_container() -> bool {
-    if fs::metadata("/.dockerenv").is_ok() {
-        return true;
-    }
-
-    if let Ok(content) = fs::read_to_string("/proc/1/cgroup") {
-        if content.contains("lxc") || content.contains("docker") {
-            return true;
-        }
-    }
-
-    false
-}
 pub fn get_cpu_info() -> CpuInfo {
     use std::collections::HashMap;
 
