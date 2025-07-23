@@ -14,7 +14,6 @@ fn falcon1024_test_keypair_generation_lengths() {
     assert!(result.is_ok(), "Falcon-1024: Keypair generation failed: {:?}", result.err());
     let (pk, sk) = result.unwrap();
 
-    // Safe debug output - no secret material exposed
     println!("Falcon-1024 Public Key generated successfully (len={})", pk.0.len());
     println!("Falcon-1024 Secret Key generated successfully (len={})", sk.0.expose_secret().len());
 
@@ -46,7 +45,6 @@ fn falcon1024_test_sign_verify_roundtrip() {
     );
     println!("Falcon-1024 Signature (len={}): {:02x?}", signature.0.len(), &signature.0[..32]);
 
-    // Find actual signature length
     let mut actual_sig_len = signature.0.len();
     while actual_sig_len > 0 && signature.0[actual_sig_len - 1] == 0 {
         actual_sig_len -= 1;

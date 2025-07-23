@@ -16,14 +16,12 @@ use bindings::*;
 
 pub struct MlKemSecretKey(pub [u8; sizes::ML_KEM_768_SECRET]);
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemSecretKey instead for NIST FIPS 203 compliance")]
 pub type KyberSecretKey = MlKemSecretKey;
 
 #[derive(Clone)]
 pub struct MlKemPublicKey(pub [u8; sizes::ML_KEM_768_PUBLIC]);
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemPublicKey instead for NIST FIPS 203 compliance")]
 pub type KyberPublicKey = MlKemPublicKey;
 
@@ -43,23 +41,19 @@ pub enum MlKemError {
     InvalidSecretKeyLength { expected: usize, actual: usize },
 }
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemError instead for NIST FIPS 203 compliance")]
 pub type KyberError = MlKemError;
 
 pub struct MlKem768;
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKem768 instead for NIST FIPS 203 compliance")]
 pub type Kyber768 = MlKem768;
 
 impl MlKem768 {
-    /// Returns the NIST FIPS 203 compliant variant (ML-KEM-768)
     pub fn variant() -> KemVariant {
         KemVariant::MlKem768
     }
 
-    /// Returns the deprecated variant for backward compatibility
     #[deprecated(since = "0.2.0", note = "Use variant() instead for NIST FIPS 203 compliance")]
     pub fn legacy_variant() -> KemVariant {
         #[allow(deprecated)]
@@ -147,5 +141,3 @@ impl Kem for MlKem768 {
         Ok(SecretBox::new(ss.into()))
     }
 }
-
-// Note: Kyber768 is a type alias for MlKem768, so it automatically inherits the Kem implementation

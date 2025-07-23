@@ -21,7 +21,6 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
-        // Fallback for other platforms
         use rand::RngCore;
         let mut rng = rand::thread_rng();
         rng.fill_bytes(buffer);
@@ -41,7 +40,6 @@ pub fn secure_zero(buffer: &mut [u8]) {
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
-        // Fallback using zeroize
         use zeroize::Zeroize;
         buffer.zeroize();
     }

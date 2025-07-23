@@ -40,8 +40,6 @@ where
 {
 }
 
-/// Composite keypair helper
-#[derive(Debug)]
 pub struct CompositeKeypair<C, P>
 where
     C: Zeroize,

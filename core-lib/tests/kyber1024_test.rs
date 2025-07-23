@@ -10,7 +10,6 @@ fn test_variant_and_expose() {
     let (ct, ss1) = Kyber1024::encapsulate(&pk).expect("Failed to encapsulate");
     let ss2 = Kyber1024::decapsulate(&ct, &sk).expect("Failed to decapsulate");
 
-    // Safe debug output - no secret material exposed
     println!("Public Key generated successfully (len={})", pk.0.len());
     println!("Secret Key generated successfully (len={})", sk.0.len());
     println!("Ciphertext generated successfully (len={})", ct.len());

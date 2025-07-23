@@ -23,7 +23,6 @@ impl SignatureEngine for Dilithium2Engine {
         let result = unsafe { pqcrystals_dilithium2_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
         match result {
             0 => {
-                // C function succeeded, buffers are now properly initialized
                 Ok((PublicKey(pk), SecretKey(SecretBox::new(sk.into()))))
             }
             code => Err(DilithiumError::from_c_code(code, "keypair")),

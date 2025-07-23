@@ -1,7 +1,5 @@
-// src/sig/dilithium/errors.rs (MUST EXIST)
 use thiserror::Error;
 
-/// Represents errors that can occur during Dilithium operations.
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum DilithiumError {
     #[error("Random number generation failed during key generation")]
@@ -23,7 +21,6 @@ pub enum DilithiumError {
 }
 
 impl DilithiumError {
-    /// Maps C library error codes to specific Rust error types
     pub fn from_c_code(code: i32, operation: &str) -> Self {
         match code {
             0 => panic!("Should not map success code 0 to error"),

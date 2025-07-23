@@ -17,14 +17,12 @@ impl SignatureEngine for Dilithium3Engine {
     type Error = DilithiumError;
 
     fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
-        // Initialize buffers to zero before passing to C functions for safety
         let mut pk = [0u8; ML_DSA_65_PUBLIC];
         let mut sk = [0u8; ML_DSA_65_SECRET];
 
         let result = unsafe { pqcrystals_dilithium3_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
         match result {
             0 => {
-                // C function succeeded, buffers are now properly initialized
                 Ok((PublicKey(pk), SecretKey(SecretBox::new(sk.into()))))
             }
             code => Err(DilithiumError::from_c_code(code, "keypair")),

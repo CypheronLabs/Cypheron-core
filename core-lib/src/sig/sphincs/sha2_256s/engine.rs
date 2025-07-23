@@ -132,7 +132,6 @@ pub fn sign_combined_create(message: &[u8], sk: &SecretKey) -> Result<Vec<u8>, S
         });
     }
 
-    // Validate message length to prevent integer overflow
     if message.len() > u64::MAX as usize {
         return Err(SphincsError::MessageTooLarge);
     }
@@ -151,7 +150,6 @@ pub fn sign_combined_create(message: &[u8], sk: &SecretKey) -> Result<Vec<u8>, S
     };
 
     if ret_code == 0 {
-        // Safely convert u64 back to usize, checking for overflow
         let written_len = signed_msg_len_written as usize;
         if signed_msg_len_written > usize::MAX as u64 {
             return Err(SphincsError::IntegerOverflow);
@@ -174,7 +172,6 @@ pub fn open_combined_verify(
         });
     }
 
-    // Validate signed message length to prevent integer overflow
     if signed_message.len() > u64::MAX as usize {
         return Err(SphincsError::MessageTooLarge);
     }
@@ -193,7 +190,6 @@ pub fn open_combined_verify(
     };
 
     if ret_code == 0 {
-        // Safely convert u64 back to usize, checking for overflow
         if original_msg_len_written > usize::MAX as u64 {
             return Err(SphincsError::IntegerOverflow);
         }
