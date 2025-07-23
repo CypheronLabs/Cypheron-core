@@ -45,7 +45,7 @@ impl PublicKey {
 
 impl fmt::Debug for PublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PublicKeySha2_256fRobust") // <--- Optional: Specific debug name
+        f.debug_struct("PublicKeySha2_256fRobust")
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",

@@ -1,7 +1,5 @@
-/// macOS-specific implementations for PQ-Core
 use std::io::{Error, ErrorKind};
 
-/// macOS secure random number generation using Security Framework
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     use core_foundation::base::{CFType, TCFType};
     use security_framework::random::SecRandom;
@@ -14,7 +12,6 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     }
 }
 
-/// Alternative implementation using /dev/urandom
 pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     use std::fs::File;
     use std::io::Read;
@@ -24,23 +21,18 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     Ok(())
 }
 
-/// macOS secure memory zeroing using memset_s
 pub fn secure_zero(buffer: &mut [u8]) {
     unsafe {
-        // Use memset_s which is available on macOS
         libc::memset_s(buffer.as_mut_ptr() as *mut libc::c_void, buffer.len(), 0, buffer.len());
     }
 }
 
-/// Alternative secure zeroing using explicit_bzero (BSD extension)
 pub fn secure_zero_bzero(buffer: &mut [u8]) {
     unsafe {
-        // explicit_bzero is available on macOS/BSD
         libc::explicit_bzero(buffer.as_mut_ptr() as *mut libc::c_void, buffer.len());
     }
 }
 
-/// macOS memory protection using mprotect
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use libc::{mprotect, PROT_NONE, PROT_READ, PROT_WRITE};
 
@@ -60,7 +52,6 @@ pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     Ok(())
 }
 
-/// Get macOS version information
 pub fn get_macos_version() -> String {
     use std::process::Command;
 
@@ -73,12 +64,10 @@ pub fn get_macos_version() -> String {
     "macOS (version unknown)".to_string()
 }
 
-/// Check if running on Apple Silicon
 pub fn is_apple_silicon() -> bool {
     std::env::consts::ARCH == "aarch64"
 }
 
-/// Get Apple Silicon specific information
 pub fn get_apple_silicon_info() -> Option<AppleSiliconInfo> {
     if !is_apple_silicon() {
         return None;
@@ -99,8 +88,8 @@ pub fn get_apple_silicon_info() -> Option<AppleSiliconInfo> {
 
     Some(AppleSiliconInfo {
         chip_name,
-        has_crypto_extensions: true, // ARM64 crypto extensions
-        has_sve: false,              // SVE not available on Apple Silicon
+        has_crypto_extensions: true,
+        has_sve: false,
         performance_cores: get_performance_core_count(),
         efficiency_cores: get_efficiency_core_count(),
     })
@@ -135,16 +124,13 @@ fn get_efficiency_core_count() -> Option<u32> {
     }
 }
 
-/// macOS-specific performance optimizations
 pub fn optimize_for_apple_silicon() -> Result<(), Error> {
     if !is_apple_silicon() {
         return Ok(());
     }
 
-    // Set process priority for crypto operations
     unsafe {
         if libc::setpriority(libc::PRIO_PROCESS, 0, -5) != 0 {
-            // Non-fatal error, continue
             eprintln!("Warning: Could not set process priority");
         }
     }
@@ -152,7 +138,6 @@ pub fn optimize_for_apple_silicon() -> Result<(), Error> {
     Ok(())
 }
 
-/// Check for Rosetta 2 (x86_64 emulation on Apple Silicon)
 pub fn is_running_under_rosetta() -> bool {
     use std::process::Command;
 

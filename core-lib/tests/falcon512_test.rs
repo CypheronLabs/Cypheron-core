@@ -12,7 +12,6 @@ fn falcon512_test_keypair_generation_lengths() {
     assert!(result.is_ok(), "Falcon-512: Keypair generation failed: {:?}", result.err());
     let (pk, sk) = result.unwrap();
 
-    // Safe debug output - no secret material exposed
     println!("Falcon-512 Public Key generated successfully (len={})", pk.0.len());
     println!("Falcon-512 Secret Key generated successfully (len={})", sk.0.expose_secret().len());
 
@@ -40,7 +39,6 @@ fn falcon512_test_sign_verify_roundtrip() {
     );
     println!("Falcon-512 Signature (len={}): {:02x?}", signature.0.len(), &signature.0[..32]);
 
-    // Find actual signature length
     let mut actual_sig_len = signature.0.len();
     while actual_sig_len > 0 && signature.0[actual_sig_len - 1] == 0 {
         actual_sig_len -= 1;
@@ -124,7 +122,7 @@ fn falcon512_test_verify_failure_corrupted_signature() {
     let mut signature_array: [u8; FALCON_SIGNATURE] = signature_instance.0;
 
     if FALCON_SIGNATURE > 0 {
-        signature_array[0] ^= 0x01; // Flip a bit
+        signature_array[0] ^= 0x01;
     } else {
         panic!("Falcon-512: FALCON_SIGNATURE constant is 0, cannot corrupt meaningfully");
     }

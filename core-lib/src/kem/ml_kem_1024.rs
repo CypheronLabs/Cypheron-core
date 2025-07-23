@@ -16,14 +16,12 @@ use bindings::*;
 
 pub struct MlKemSecretKey(pub [u8; sizes::ML_KEM_1024_SECRET]);
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemSecretKey instead for NIST FIPS 203 compliance")]
 pub type KyberSecretKey = MlKemSecretKey;
 
 #[derive(Clone)]
 pub struct MlKemPublicKey(pub [u8; sizes::ML_KEM_1024_PUBLIC]);
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemPublicKey instead for NIST FIPS 203 compliance")]
 pub type KyberPublicKey = MlKemPublicKey;
 
@@ -43,23 +41,19 @@ pub enum MlKemError {
     InvalidSecretKeyLength { expected: usize, actual: usize },
 }
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKemError instead for NIST FIPS 203 compliance")]
 pub type KyberError = MlKemError;
 
 pub struct MlKem1024;
 
-// Deprecated alias for backward compatibility
 #[deprecated(since = "0.2.0", note = "Use MlKem1024 instead for NIST FIPS 203 compliance")]
 pub type Kyber1024 = MlKem1024;
 
 impl MlKem1024 {
-    /// Returns the NIST FIPS 203 compliant variant (ML-KEM-1024)
     pub fn variant() -> KemVariant {
         KemVariant::MlKem1024
     }
 
-    /// Returns the deprecated variant for backward compatibility
     #[deprecated(since = "0.2.0", note = "Use variant() instead for NIST FIPS 203 compliance")]
     pub fn legacy_variant() -> KemVariant {
         #[allow(deprecated)]
@@ -106,9 +100,7 @@ impl Kem for MlKem1024 {
         let mut ct = vec![0u8; sizes::ML_KEM_1024_CIPHERTEXT];
         let mut ss = [0u8; sizes::ML_KEM_1024_SHARED];
 
-        let result = unsafe {
-            pqcrystals_kyber1024_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr())
-        };
+        let result = unsafe { pqcrystals_kyber1024_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr()) };
 
         if result != 0 {
             ss.zeroize();
@@ -148,5 +140,3 @@ impl Kem for MlKem1024 {
         Ok(SecretBox::new(ss.into()))
     }
 }
-
-// Note: Kyber1024 is a type alias for MlKem1024, so it automatically inherits the Kem implementation

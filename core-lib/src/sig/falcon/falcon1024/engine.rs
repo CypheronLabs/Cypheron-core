@@ -7,9 +7,7 @@ use crate::sig::falcon::falcon1024::constants::*;
 use crate::sig::falcon::falcon1024::types::{
     Falcon1024PublicKey, Falcon1024SecretKey, Falcon1024Signature, PublicKey, SecretKey, Signature,
 };
-// Use errors from parent module
 use crate::sig::falcon::errors::FalconErrors;
-// Use the trait
 use crate::sig::traits::SignatureEngine;
 use libc::c_int;
 
@@ -83,11 +81,9 @@ impl SignatureEngine for Falcon1024Engine {
             return Err(FalconErrors::SigningFailed);
         }
 
-        // Truncate signature to actual length
         let mut actual_sig = [0u8; FALCON_SIGNATURE];
         actual_sig[..siglen].copy_from_slice(&sig[..siglen]);
         if siglen < FALCON_SIGNATURE {
-            // Zero out unused bytes
             actual_sig[siglen..].fill(0);
         }
         Ok(Signature(actual_sig))
@@ -97,20 +93,17 @@ impl SignatureEngine for Falcon1024Engine {
         let sig_bytes = &sig.0;
         let pk_bytes = &pk.0;
 
-        // Find actual signature length by looking for the first non-zero trailing byte
         let mut actual_sig_len = sig_bytes.len();
         while actual_sig_len > 0 && sig_bytes[actual_sig_len - 1] == 0 {
             actual_sig_len -= 1;
         }
 
-        // Falcon signatures should have a minimum length
         if actual_sig_len < 40 {
-            actual_sig_len = sig_bytes.len(); // fallback to full length
+            actual_sig_len = sig_bytes.len();
         }
 
         let mut tmp = vec![0u8; FALCON_TMPSIZE_VERIFY];
 
-        // Check return code directly
         let verify_result: c_int = unsafe {
             falcon_verify(
                 sig_bytes.as_ptr() as *const c_void,

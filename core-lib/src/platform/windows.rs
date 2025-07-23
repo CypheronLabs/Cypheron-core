@@ -1,7 +1,7 @@
-/// Windows-specific implementations for PQ-Core
+
 use std::io::{Error, ErrorKind};
 
-/// Windows secure random number generation using CryptGenRandom
+
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     use windows::Win32::Security::Cryptography::{
         CryptAcquireContextW, CryptGenRandom, CryptReleaseContext, CRYPT_VERIFYCONTEXT, HCRYPTPROV,
@@ -33,7 +33,7 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     }
 }
 
-/// Windows secure memory zeroing using SecureZeroMemory
+
 pub fn secure_zero(buffer: &mut [u8]) {
     use windows::Win32::System::Memory::RtlSecureZeroMemory;
 
@@ -42,7 +42,7 @@ pub fn secure_zero(buffer: &mut [u8]) {
     }
 }
 
-/// Windows-specific memory protection
+
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use windows::Win32::System::Memory::{VirtualProtect, PAGE_NOACCESS, PAGE_READWRITE};
 
@@ -66,7 +66,7 @@ pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     Ok(())
 }
 
-/// Get Windows version information
+
 pub fn get_windows_version() -> String {
     use windows::Win32::System::SystemInformation::GetVersionExW;
     use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
@@ -88,7 +88,7 @@ pub fn get_windows_version() -> String {
     }
 }
 
-/// Check if running on Windows 10/11 (for modern crypto APIs)
+
 pub fn is_modern_windows() -> bool {
     use windows::Win32::System::SystemInformation::GetVersionExW;
     use windows::Win32::System::SystemInformation::OSVERSIONINFOW;

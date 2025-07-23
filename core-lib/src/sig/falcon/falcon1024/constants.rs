@@ -1,5 +1,3 @@
-// core-lib/src/sig/falcon/falcon1024/constants.rs
-
 pub const FALCON_LOGN: usize = 10;
 
 pub const FALCON_PUBLIC: usize = 1793;

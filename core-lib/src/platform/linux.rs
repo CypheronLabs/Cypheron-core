@@ -1,14 +1,11 @@
 use std::fs;
-/// Linux-specific implementations for PQ-Core
 use std::io::{Error, ErrorKind};
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
-    // Try getrandom syscall first (Linux 3.17+)
     if try_getrandom(buffer).is_ok() {
         return Ok(());
     }
 
-    // Fallback to /dev/urandom
     secure_random_bytes_dev_urandom(buffer)
 }
 
@@ -18,7 +15,7 @@ fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
             libc::SYS_getrandom,
             buffer.as_mut_ptr(),
             buffer.len(),
-            0, // flags
+            0,
         );
 
         if result < 0 {

@@ -104,11 +104,9 @@ impl SignatureEngine for Falcon512Engine {
             return Err(FalconErrors::SigningFailed);
         }
 
-        // Truncate signature to actual length
         let mut actual_sig = [0u8; FALCON_SIGNATURE];
         actual_sig[..siglen].copy_from_slice(&sig_buf[..siglen]);
         if siglen < FALCON_SIGNATURE {
-            // Zero out unused bytes
             actual_sig[siglen..].fill(0);
         }
         Ok(Signature(actual_sig))
@@ -118,8 +116,6 @@ impl SignatureEngine for Falcon512Engine {
         let sig_bytes = &sig.0;
         let pk_bytes = &pk.0;
 
-        // Use fixed signature length to prevent timing attacks
-        // Variable-time signature length detection removed for security
         let actual_sig_len = sig_bytes.len();
 
         let mut tmp = vec![0u8; FALCON_TMPSIZE_VERIFY];

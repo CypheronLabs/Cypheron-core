@@ -13,7 +13,6 @@ fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let sphincs_dir = manifest_dir.join("vendor/sphincsplus");
 
-    // Verify vendor code integrity before building
     verify_vendor_integrity(&manifest_dir);
 
     build_kyber_all(&manifest_dir);
@@ -24,9 +23,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 }
 
-/// Verify vendor code integrity before building
 fn verify_vendor_integrity(manifest_dir: &Path) {
-    // Only verify integrity if SKIP_VENDOR_INTEGRITY is not set
     if env::var("SKIP_VENDOR_INTEGRITY").is_ok() {
         println!("cargo:warning=Skipping vendor integrity verification");
         return;
@@ -73,7 +70,6 @@ fn build_kyber_all(manifest_dir: &Path) {
 
     assert!(ref_dir.join("indcpa.c").exists(), "[build.rs] Missing ML-KEM (Kyber) file: indcpa.c");
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
-        // Use ML-KEM naming for NIST compliance while maintaining Kyber compatibility
         PQBuilder::new(format!("ml_kem_{}", variant), &ref_dir)
             .files(vec![
                 "indcpa.c",
@@ -91,7 +87,6 @@ fn build_kyber_all(manifest_dir: &Path) {
             .defines(vec![("KYBER_K", k_val)])
             .header("api.h")
             .allowlist(vec![
-                // Keep original function names for compatibility with C implementation
                 format!("pqcrystals_kyber{}_ref_keypair", variant),
                 format!("pqcrystals_kyber{}_ref_enc", variant),
                 format!("pqcrystals_kyber{}_ref_dec", variant),
@@ -104,8 +99,7 @@ fn build_dilithium_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    for level in &["2", "3", "5"] {
-        // Use ML-DSA naming for NIST compliance while maintaining Dilithium compatibility
+    for level in &[ "2", "3", "5"] {
         PQBuilder::new(format!("ml_dsa_{}", level), &ref_dir)
             .files(vec![
                 "sign.c",
@@ -122,7 +116,6 @@ fn build_dilithium_all(manifest_dir: &Path) {
             .defines(vec![("DILITHIUM_MODE", level)])
             .header("api.h")
             .allowlist(vec![
-                // Keep original function names for compatibility with C implementation
                 format!("pqcrystals_dilithium{}_ref_keypair", level),
                 format!("pqcrystals_dilithium{}_ref_signature", level),
                 format!("pqcrystals_dilithium{}_ref_verify", level),
@@ -171,7 +164,7 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
 
     let hash_functions = ["sha2", "shake", "haraka"];
     let security_levels = ["128", "192", "256"];
-    let optimizations = ["f", "s"]; // f = fast, s = small
+    let optimizations = ["f", "s"];
     let thash_variants = ["simple", "robust"];
 
     let api_functions = vec![
@@ -190,7 +183,6 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
         for &security in &security_levels {
             for &opt in &optimizations {
                 for &thash in &thash_variants {
-                    //let param_set = format!("sphincs-{}-{}{}", hash, security, opt);
                     let lib_name =
                         format!("sphincsplus_sphincs_{}_{}{}_{}", hash, security, opt, thash);
 
@@ -198,12 +190,12 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                     let mut c_files: Vec<&str> = vec![
                         "address.c",
                         "fors.c",
-                        "merkle.c", // <--- ADDED
+                        "merkle.c",
                         "sign.c",
                         "utils.c",
-                        "utilsx1.c", // <--- ADDED
+                        "utilsx1.c",
                         "wots.c",
-                        "wotsx1.c", // <--- ADDED
+                        "wotsx1.c",
                         "randombytes.c",
                     ];
 
@@ -229,8 +221,6 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                         _ => panic!("Unsupported hash function"),
                     }
 
-                    //let param_h = format!("params-{}.h", param_set);
-                    //let param_file = format!("params-sphincs-{}-{}{}", hash, security, opt);
                     let thash_str = thash.to_string();
 
                     let param_file = format!("sphincs-{}-{}{}", hash, security, opt);
@@ -258,7 +248,6 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
 
 #[cfg(target_feature = "avx2")]
 fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
-    // Build AVX2-optimized variants for SHA2 and SHAKE
     let hash_functions = ["sha2", "shake"];
     let security_levels = ["128", "192", "256"];
     let optimizations = ["f", "s"];
@@ -274,11 +263,9 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     let lib_name =
                         format!("sphincsplus_{}_avx2_{}_{}{}_{}", hash, hash, security, opt, thash);
 
-                    // Core files
                     let mut c_files =
                         vec!["address.c", "fors.c", "sign.c", "utils.c", "wots.c", "randombytes.c"];
 
-                    // Add hash-specific files for AVX2
                     if hash == "sha2" {
                         c_files.extend(vec![
                             "sha2.c",
@@ -402,14 +389,11 @@ impl<'a> PQBuilder<'a> {
         let mut build = cc::Build::new();
         build.include(self.src_dir);
 
-        // Cross-platform compiler configuration
         self.configure_cross_platform(&mut build);
 
-        // Add the source files
         let files_to_build = self.get_files();
         build.files(files_to_build);
 
-        // Platform-specific optimization flags
         self.add_optimization_flags(&mut build);
 
         for (k, v) in &self.defines {
@@ -460,39 +444,31 @@ impl<'a> PQBuilder<'a> {
         }
     }
 
-    // Cross-platform compiler configuration
     fn configure_cross_platform(&self, build: &mut cc::Build) {
-        // Windows-specific configuration
         #[cfg(target_os = "windows")]
         {
-            // Use MSVC on Windows
             build.flag_if_supported("/std:c11");
             build.define("_CRT_SECURE_NO_WARNINGS", None);
             build.define("WIN32_LEAN_AND_MEAN", None);
 
-            // Windows-specific crypto APIs
             if self.lib_name.contains("sphincs") || self.lib_name.contains("kyber") {
                 build.define("USE_WINDOWS_CRYPTO", None);
             }
         }
 
-        // macOS-specific configuration
         #[cfg(target_os = "macos")]
         {
             build.flag_if_supported("-std=c99");
             build.flag_if_supported("-Wno-unused-function");
 
-            // macOS Security Framework for random number generation
             println!("cargo:rustc-link-lib=framework=Security");
             println!("cargo:rustc-link-lib=framework=CoreFoundation");
 
-            // Apple Silicon optimization
             if std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default() == "aarch64" {
                 build.flag_if_supported("-mcpu=apple-m1");
             }
         }
 
-        // Linux-specific configuration (existing)
         #[cfg(target_os = "linux")]
         {
             build.flag_if_supported("-std=c99");
@@ -500,7 +476,6 @@ impl<'a> PQBuilder<'a> {
             build.flag_if_supported("-Wno-implicit-function-declaration");
             build.define("_GNU_SOURCE", None);
 
-            // Link with pthread for random number generation
             println!("cargo:rustc-link-lib=pthread");
         }
 
@@ -515,8 +490,8 @@ impl<'a> PQBuilder<'a> {
         #[cfg(target_os = "windows")]
         {
             build.flag_if_supported("/O2");
-            build.flag_if_supported("/Oi"); // Enable intrinsic functions
-            build.flag_if_supported("/GL"); // Whole program optimization
+            build.flag_if_supported("/Oi");
+            build.flag_if_supported("/GL");
         }
 
         #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -531,7 +506,6 @@ impl<'a> PQBuilder<'a> {
         }
     }
 
-    /// Get the files to compile for this library
     fn get_files(&self) -> Vec<PathBuf> {
         self.c_files.iter().map(|file| self.src_dir.join(file)).collect()
     }

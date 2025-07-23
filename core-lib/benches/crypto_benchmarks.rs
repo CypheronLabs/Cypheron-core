@@ -1,21 +1,12 @@
-/*!
- * Comprehensive Cryptographic Performance Benchmarks
- *
- * This module provides detailed performance benchmarks for all cryptographic
- * operations to detect performance regressions and optimize implementations.
- */
-
 use core_lib::hybrid::{EccDilithium, HybridEngine};
 use core_lib::kem::{Kem, MlKem1024, MlKem512, MlKem768};
 use core_lib::sig::traits::SignatureEngine;
 use core_lib::sig::{MlDsa44, MlDsa65, MlDsa87};
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
-/// ML-KEM Performance Benchmarks
 fn benchmark_ml_kem_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("ML-KEM Operations");
 
-    // ML-KEM-512 Benchmarks
     group.bench_function("ML-KEM-512 Keypair Generation", |b| {
         b.iter(|| {
             let (pk, sk) = MlKem512::keypair().expect("Failed to generate keypair");
@@ -41,7 +32,6 @@ fn benchmark_ml_kem_operations(c: &mut Criterion) {
         })
     });
 
-    // ML-KEM-768 Benchmarks
     group.bench_function("ML-KEM-768 Keypair Generation", |b| {
         b.iter(|| {
             let (pk, sk) = MlKem768::keypair().expect("Failed to generate keypair");
@@ -67,7 +57,6 @@ fn benchmark_ml_kem_operations(c: &mut Criterion) {
         })
     });
 
-    // ML-KEM-1024 Benchmarks
     group.bench_function("ML-KEM-1024 Keypair Generation", |b| {
         b.iter(|| {
             let (pk, sk) = MlKem1024::keypair().expect("Failed to generate keypair");
@@ -96,13 +85,11 @@ fn benchmark_ml_kem_operations(c: &mut Criterion) {
     group.finish();
 }
 
-/// ML-DSA Performance Benchmarks
 fn benchmark_ml_dsa_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("ML-DSA Operations");
 
-    let test_message = vec![0x42u8; 1024]; // 1KB test message
+    let test_message = vec![0x42u8; 1024];
 
-    // ML-DSA-44 Benchmarks
     group.bench_function("ML-DSA-44 Keypair Generation", |b| {
         b.iter(|| {
             let (pk, sk) = MlDsa44::keypair().expect("Key generation failed");
@@ -131,7 +118,6 @@ fn benchmark_ml_dsa_operations(c: &mut Criterion) {
         })
     });
 
-    // ML-DSA-65 Benchmarks
     group.bench_function("ML-DSA-65 Keypair Generation", |b| {
         b.iter(|| {
             let (pk, sk) = MlDsa65::keypair().expect("Key generation failed");
@@ -160,7 +146,6 @@ fn benchmark_ml_dsa_operations(c: &mut Criterion) {
         })
     });
 
-    // ML-DSA-87 Benchmarks
     group.bench_function("ML-DSA-87 Keypair Generation", |b| {
         b.iter(|| {
             let (pk, sk) = MlDsa87::keypair().expect("Key generation failed");
@@ -192,11 +177,10 @@ fn benchmark_ml_dsa_operations(c: &mut Criterion) {
     group.finish();
 }
 
-/// Hybrid Cryptographic Scheme Benchmarks
 fn benchmark_hybrid_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("Hybrid Operations");
 
-    let test_message = vec![0x5Au8; 512]; // 512 byte test message
+    let test_message = vec![0x5Au8; 512];
 
     group.bench_function("Hybrid ECC+Dilithium Keypair Generation", |b| {
         b.iter(|| {
@@ -228,7 +212,6 @@ fn benchmark_hybrid_operations(c: &mut Criterion) {
         })
     });
 
-    // Test different verification policies
     use core_lib::hybrid::traits::VerificationPolicy;
 
     group.bench_function("Hybrid Verification - BothRequired", |b| {
@@ -270,13 +253,11 @@ fn benchmark_hybrid_operations(c: &mut Criterion) {
     group.finish();
 }
 
-/// Message Size Throughput Benchmarks
 fn benchmark_message_sizes(c: &mut Criterion) {
     let mut group = c.benchmark_group("Message Size Throughput");
 
     let (pk, sk) = MlDsa44::keypair().expect("Key generation failed");
 
-    // Test different message sizes to analyze throughput
     for size in [64, 256, 1024, 4096, 16384, 65536].iter() {
         let message = vec![0x7Fu8; *size];
 
@@ -306,15 +287,11 @@ fn benchmark_message_sizes(c: &mut Criterion) {
     group.finish();
 }
 
-/// Security Parameter Comparison Benchmarks
 fn benchmark_security_levels(c: &mut Criterion) {
     let mut group = c.benchmark_group("Security Level Comparison");
 
     let test_message = vec![0x99u8; 1024];
 
-    // Compare performance across different security levels
-
-    // KEM Security Levels
     group.bench_function("ML-KEM-512 (Security Level 1)", |b| {
         b.iter(|| {
             let (pk, sk) = MlKem512::keypair().expect("Failed to generate keypair");
@@ -342,7 +319,6 @@ fn benchmark_security_levels(c: &mut Criterion) {
         })
     });
 
-    // Signature Security Levels
     group.bench_function("ML-DSA-44 (Security Level 2)", |b| {
         b.iter(|| {
             let (pk, sk) = MlDsa44::keypair().expect("Key generation failed");
@@ -373,11 +349,9 @@ fn benchmark_security_levels(c: &mut Criterion) {
     group.finish();
 }
 
-/// Regression Detection Benchmarks
 fn benchmark_regression_detection(c: &mut Criterion) {
     let mut group = c.benchmark_group("Regression Detection");
 
-    // Baseline performance tests that should be consistent
     group.bench_function("Baseline ML-KEM-512 Full Operation", |b| {
         b.iter(|| {
             let (pk, sk) = MlKem512::keypair().expect("Failed to generate keypair");

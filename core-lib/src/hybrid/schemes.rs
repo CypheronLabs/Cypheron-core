@@ -1,36 +1,3 @@
-use super::composite::{CompositePublicKey, CompositeSecretKey, CompositeSignature};
-use super::ecdsa::{
-    EcdsaError, EcdsaKeyPair, EcdsaPrivateKey, EcdsaPublicKey, EcdsaSignatureWrapper,
-};
-use super::traits::{HybridEngine, VerificationPolicy};
-
-use crate::sig::traits::SignatureEngine;
-use crate::sig::Dilithium2;
-
-use crate::sig::falcon::falcon512::api::Falcon512;
-
-use crate::sig::sphincs::shake_128f;
-
-use secrecy::{ExposeSecret, SecretBox};
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum HybridError {
-    #[error("Classical signature operation failed: {0}")]
-    Classical(String),
-    #[error("Post-quantum signature operation failed: {0}")]
-    PostQuantum(String),
-    #[error("Verification failed according to policy")]
-    VerificationFailed,
-    #[error("ECDSA error: {0}")]
-    EcdsaError(#[from] EcdsaError),
-    #[error("Message integrity check failed")]
-    MessageIntegrityFailed,
-    #[error("Replay attack detected: {0}")]
-    ReplayAttack(String),
-}
-
-/// ECDSA P-256 + Dilithium2 hybrid scheme
 pub struct EccDilithium;
 
 type EccPublicKey = EcdsaPublicKey;
@@ -53,15 +20,12 @@ impl HybridEngine for EccDilithium {
     type Error = HybridError;
 
     fn keypair() -> Result<(Self::CompositePublicKey, Self::CompositeSecretKey), Self::Error> {
-        // Generate ECDSA keypair with NIST FIPS 204 compliant domain separation
         let domain_separator = "CYPHERON_HYBRID_ML_DSA_44".to_string();
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
-        // Generate Dilithium2 keypair
         let (dilithium_pk, dilithium_sk) =
             Dilithium2::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
-        // Create composite keys with proper types
         let composite_pk =
             CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: dilithium_pk };
 
