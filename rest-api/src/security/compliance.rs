@@ -128,14 +128,12 @@ impl ComplianceManager {
         }
     }
 
-    /// Log compliance event asynchronously (SOC 2 CC7.1 - Monitoring)
     pub async fn log_event(
         &self,
         event_type: ComplianceEventType,
         mut details: HashMap<String, String>,
         risk_level: RiskLevel,
     ) {
-        // Apply privacy controls to sanitize sensitive data in details
         for (key, value) in details.iter_mut() {
             if key.contains("user") || key.contains("email") || key.contains("identifier") {
                 *value = self.sanitize_sensitive_data(value);
@@ -153,13 +151,11 @@ impl ComplianceManager {
             risk_level,
         };
 
-        // Add to events collection
         {
             let mut events = self.events.write().await;
             events.push(event.clone());
         }
 
-        // Log to structured logging system
         match event.risk_level {
             RiskLevel::Critical => tracing::error!("COMPLIANCE_CRITICAL: {:?}", event),
             RiskLevel::High => tracing::warn!("COMPLIANCE_HIGH: {:?}", event),
@@ -168,7 +164,6 @@ impl ComplianceManager {
         }
     }
 
-    /// Log compliance event in a non-blocking way (fire and forget)
     pub fn log_event_async(
         &self,
         event_type: ComplianceEventType,
@@ -181,7 +176,6 @@ impl ComplianceManager {
         });
     }
 
-    /// Enhanced logging with user context and privacy controls
     pub async fn log_event_with_user(
         &self,
         event_type: ComplianceEventType,
@@ -190,7 +184,6 @@ impl ComplianceManager {
         user_id: Option<&str>,
         ip_address: Option<&str>,
     ) {
-        // Apply privacy controls to sanitize sensitive data
         for (key, value) in details.iter_mut() {
             if key.contains("user") || key.contains("email") || key.contains("identifier") {
                 *value = self.sanitize_sensitive_data(value);
@@ -208,13 +201,11 @@ impl ComplianceManager {
             risk_level,
         };
 
-        // Add to events collection
         {
             let mut events = self.events.write().await;
             events.push(event.clone());
         }
 
-        // Log to structured logging system
         match event.risk_level {
             RiskLevel::Critical => tracing::error!("COMPLIANCE_CRITICAL: {:?}", event),
             RiskLevel::High => tracing::warn!("COMPLIANCE_HIGH: {:?}", event),
@@ -223,7 +214,6 @@ impl ComplianceManager {
         }
     }
 
-    /// Record data processing activity (SOC 2 P1.0 - Privacy)
     pub async fn record_data_processing(
         &self,
         operation: String,
@@ -238,7 +228,7 @@ impl ComplianceManager {
             legal_basis: "Legitimate Interest - Cryptographic Services".to_string(),
             timestamp: Utc::now(),
             user_id: None,
-            retention_period: Some(90), // 90 days default retention
+            retention_period: Some(90),
             encryption_status: EncryptionStatus::Both,
         };
 
@@ -246,20 +236,17 @@ impl ComplianceManager {
         records.push(record);
     }
 
-    /// Validate access controls (SOC 2 CC6.2 - Logical Access)
     pub async fn validate_access(&self, user_id: &str, required_permission: &str) -> bool {
         let access_controls = self.access_controls.read().await;
         if let Some(access_control) = access_controls.get(user_id) {
             match access_control.status {
                 AccessStatus::Active => {
-                    // Check expiration
                     if let Some(expires_at) = access_control.expires_at {
                         if Utc::now() > expires_at {
                             return false;
                         }
                     }
 
-                    // Check permissions
                     access_control.permissions.contains(&required_permission.to_string())
                         || access_control.permissions.contains(&"*".to_string())
                 }
@@ -270,7 +257,6 @@ impl ComplianceManager {
         }
     }
 
-    /// Generate compliance report (SOC 2 CC7.4 - Reporting)
     pub async fn generate_compliance_report(
         &self,
         start_date: DateTime<Utc>,
@@ -319,19 +305,17 @@ impl ComplianceManager {
             security_events,
             high_risk_events,
             data_processing_events,
-            availability_uptime: 99.99, // This would be calculated from monitoring data
-            encryption_compliance: 100.0, // All data encrypted
+            availability_uptime: 99.99,
+            encryption_compliance: 100.0,
             access_reviews_completed: self.count_access_reviews(start_date, end_date),
             generated_at: Utc::now(),
         }
     }
 
     fn count_access_reviews(&self, _start_date: DateTime<Utc>, _end_date: DateTime<Utc>) -> u32 {
-        // Implementation would count access reviews performed in period
         0
     }
 
-    /// Clean up old events based on retention policy (SOC 2 P1.2 - Data Retention)
     pub async fn cleanup_old_events(&self) {
         let cutoff_date = Utc::now()
             - chrono::Duration::days(self.retention_policy.compliance_retention_days as i64);
@@ -341,7 +325,6 @@ impl ComplianceManager {
             events.retain(|event| event.timestamp >= cutoff_date);
         }
 
-        // Also cleanup data processing records
         let data_cutoff_date = Utc::now()
             - chrono::Duration::days(self.retention_policy.default_retention_days as i64);
         {
@@ -356,31 +339,27 @@ impl ComplianceManager {
         );
     }
 
-    /// Get retention policy for external use
     pub fn get_retention_policy(&self) -> &DataRetentionPolicy {
         &self.retention_policy
     }
 
-    /// Apply privacy controls to sensitive data before logging
     pub fn sanitize_sensitive_data(&self, data: &str) -> String {
         PrivacyControls::sanitize_for_compliance_log(data)
     }
 
-    /// Pseudonymize user identifier for privacy compliance
     pub fn pseudonymize_user_id(&self, user_id: &str) -> String {
         PrivacyControls::pseudonymize_identifier(user_id)
     }
 
-    /// Perform security control validation (SOC 2 CC6.0)
     pub fn validate_security_controls(&self) -> SecurityControlStatus {
         SecurityControlStatus {
             access_controls_enabled: true,
             encryption_enabled: true,
             monitoring_enabled: true,
             audit_logging_enabled: true,
-            vulnerability_scanning_enabled: false, // Would need external integration
+            vulnerability_scanning_enabled: false,
             incident_response_plan_active: true,
-            backup_procedures_active: false, // Would need backup system integration
+            backup_procedures_active: false,
             last_validated: Utc::now(),
         }
     }

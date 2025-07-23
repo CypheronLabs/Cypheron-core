@@ -50,12 +50,10 @@ impl AuditLogger {
     pub async fn log_event(&self, event: AuditEvent) {
         let mut events = self.events.write().await;
 
-        // Remove oldest event if at capacity
         if events.len() >= self.max_events {
             events.pop_front();
         }
 
-        // Log to tracing as well
         match event.event_type {
             AuditEventType::AuthenticationFailed
             | AuditEventType::AuthorizationFailed
@@ -104,7 +102,7 @@ impl AuditLogger {
 
         events
             .iter()
-            .rev() // Most recent first
+            .rev()
             .take(limit)
             .cloned()
             .collect()
@@ -167,7 +165,6 @@ impl AuditLogger {
             .collect()
     }
 
-    /// Clean up old audit events based on retention policy
     pub async fn cleanup_old_events(&self, retention_days: u32) {
         let cutoff_date = Utc::now() - chrono::Duration::days(retention_days as i64);
         let mut events = self.events.write().await;

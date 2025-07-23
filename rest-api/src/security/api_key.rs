@@ -24,7 +24,7 @@ pub struct CreateApiKeyRequest {
 
 #[derive(Debug, Serialize)]
 pub struct CreateApiKeyResponse {
-    pub api_key: String, // This is the only time the raw key is shown
+    pub api_key: String,
     pub key_info: ApiKeyInfo,
 }
 
@@ -53,7 +53,6 @@ pub struct ApiKeyManagementError {
     pub code: u16,
 }
 
-// Generate a secure API key
 fn generate_api_key() -> String {
     let random_part: String =
         thread_rng().sample_iter(&Alphanumeric).take(32).map(char::from).collect();
@@ -65,7 +64,6 @@ pub async fn create_api_key(
     State(api_store): State<ApiKeyStore>,
     Json(request): Json<CreateApiKeyRequest>,
 ) -> Result<Json<CreateApiKeyResponse>, (StatusCode, Json<ApiKeyManagementError>)> {
-    // Validate permissions
     let valid_permissions = [
         "kem:*",
         "kem:keygen",
@@ -77,7 +75,7 @@ pub async fn create_api_key(
         "sig:verify",
         "hybrid:*",
         "hybrid:sign",
-        "*", // Admin permission
+        "*",
     ];
 
     for permission in &request.permissions {
@@ -93,7 +91,6 @@ pub async fn create_api_key(
         }
     }
 
-    // Generate API key
     let api_key_raw = generate_api_key();
     let api_key_hash = format!("{:x}", Sha256::digest(api_key_raw.as_bytes()));
 
@@ -104,7 +101,7 @@ pub async fn create_api_key(
         name: request.name,
         key_hash: api_key_hash.clone(),
         permissions: request.permissions,
-        rate_limit: request.rate_limit.unwrap_or(60), // Default 60 req/min
+        rate_limit: request.rate_limit.unwrap_or(60),
         created_at: Utc::now(),
         expires_at,
         is_active: true,
@@ -124,7 +121,6 @@ pub async fn create_api_key(
         usage_count: api_key.usage_count,
     };
 
-    // Store the API key
     let mut keys = api_store.fallback_keys.write().await;
     keys.insert(api_key_hash, api_key);
 
@@ -156,9 +152,7 @@ pub async fn list_api_keys(State(api_store): State<ApiKeyStore>) -> Json<ApiKeyL
 
 pub async fn get_api_key_info(
     State(_api_store): State<ApiKeyStore>,
-    // This would need path parameter extraction in real implementation
 ) -> Result<Json<ApiKeyInfo>, (StatusCode, Json<ApiKeyManagementError>)> {
-    // Placeholder - would extract key ID from path
     Err((
         StatusCode::NOT_IMPLEMENTED,
         Json(ApiKeyManagementError {

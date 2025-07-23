@@ -159,23 +159,18 @@ impl SecurityEventMonitor {
     }
 
     pub async fn record_event(&self, mut event: SecurityEvent) {
-        // Analyze the event for threat indicators
         self.analyze_event(&mut event).await;
 
-        // Apply automatic response if needed
         self.apply_automatic_response(&mut event).await;
 
-        // Store the event
         let mut events = self.events.write().await;
         events.push(event.clone());
 
-        // Keep only the most recent events
         if events.len() > self.max_events {
             let len = events.len();
             events.drain(0..len - self.max_events);
         }
 
-        // Log the event
         match event.severity {
             SecuritySeverity::Critical => {
                 tracing::error!(
