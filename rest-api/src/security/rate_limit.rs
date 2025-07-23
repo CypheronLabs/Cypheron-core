@@ -100,7 +100,6 @@ pub async fn rate_limit_middleware(
     request: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<RateLimitError>)> {
-    // Use IP address as identifier (in production, could use API key)
     let identifier = request
         .headers()
         .get("x-forwarded-for")

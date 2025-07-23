@@ -30,7 +30,6 @@ pub struct SigService;
 impl SigService {
     pub fn generate_keypair(variant: SigVariant) -> Result<KeypairResponse, AppError> {
         match variant {
-            // NIST FIPS 204 compliant variants (ML-DSA)
             SigVariant::MlDsa44 => {
                 let (pk, sk) = Dilithium2::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok(KeypairResponse {
@@ -87,7 +86,6 @@ impl SigService {
                     sk: general_purpose::STANDARD.encode(sk.as_bytes()),
                 })
             }
-            // Handle deprecated variants by forwarding to new implementations
             #[allow(deprecated)]
             SigVariant::Dilithium2 => {
                 let (pk, sk) = Dilithium2::keypair().map_err(|_| AppError::KeyGenFailed)?;

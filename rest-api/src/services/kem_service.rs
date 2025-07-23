@@ -29,7 +29,6 @@ impl KemService {
     pub fn generate_keypair(variant: KemVariant) -> Result<(String, String), AppError> {
 
         match variant {
-            // NIST FIPS 203 compliant variants (primary implementations)
             KemVariant::MlKem512 => {
                 let (pk, sk) = MlKem512::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok((
@@ -51,10 +50,9 @@ impl KemService {
                     general_purpose::STANDARD.encode(&sk.0),
                 ))
             }
-            // Backward compatibility for deprecated variants
             #[allow(deprecated)]
             KemVariant::Kyber512 => {
-                let (pk, sk) = MlKem512::keypair().map_err(|_| AppError::KeyGenFailed)?; // Forward to NIST implementation
+                let (pk, sk) = MlKem512::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok((
                     general_purpose::STANDARD.encode(&pk.0),
                     general_purpose::STANDARD.encode(&sk.0),
@@ -62,7 +60,7 @@ impl KemService {
             }
             #[allow(deprecated)]
             KemVariant::Kyber768 => {
-                let (pk, sk) = MlKem768::keypair().map_err(|_| AppError::KeyGenFailed)?; // Forward to NIST implementation
+                let (pk, sk) = MlKem768::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok((
                     general_purpose::STANDARD.encode(&pk.0),
                     general_purpose::STANDARD.encode(&sk.0),
@@ -70,7 +68,7 @@ impl KemService {
             }
             #[allow(deprecated)]
             KemVariant::Kyber1024 => {
-                let (pk, sk) = MlKem1024::keypair().map_err(|_| AppError::KeyGenFailed)?; // Forward to NIST implementation
+                let (pk, sk) = MlKem1024::keypair().map_err(|_| AppError::KeyGenFailed)?;
                 Ok((
                     general_purpose::STANDARD.encode(&pk.0),
                     general_purpose::STANDARD.encode(&sk.0),

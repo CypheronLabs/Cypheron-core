@@ -59,19 +59,16 @@ impl HealthChecker {
 
         let mut services = HashMap::new();
 
-        // Check core services
         services.insert("crypto_engine".to_string(), self.check_crypto_engine().await);
         services.insert("database".to_string(), self.check_database().await);
         services.insert("authentication".to_string(), self.check_authentication().await);
         services.insert("rate_limiter".to_string(), self.check_rate_limiter().await);
         services.insert("monitoring".to_string(), self.check_monitoring().await);
 
-        // Determine overall status
         let overall_status = self.determine_overall_status(&services);
 
-        // Get system metrics (simplified - would need actual system integration)
         let metrics = HealthMetrics {
-            requests_per_minute: 0.0, // Would be calculated from actual metrics
+            requests_per_minute: 0.0, 
             average_response_time_ms: 0.0,
             error_rate_percent: 0.0,
             active_connections: 0,
@@ -128,13 +125,10 @@ impl HealthChecker {
             return Err("ML-KEM-512 shared secret mismatch".to_string());
         }
 
-        // Skip detailed signature testing in production health checks for performance
         Ok(())
     }
 
     async fn check_database(&self) -> ServiceHealth {
-        // In a real implementation, this would test database connectivity
-        // For now, we'll assume it's healthy if no specific database errors
         ServiceHealth {
             status: ServiceStatus::Healthy,
             last_check: Utc::now(),
@@ -199,7 +193,6 @@ impl HealthChecker {
     }
 
     pub async fn get_liveness_status(&self) -> bool {
-        // Basic liveness check - service is running
         !matches!(self.get_health_status().await.status, ServiceStatus::Unhealthy)
     }
 }
@@ -324,7 +317,7 @@ impl HealthChecker {
             ],
         };
 
-        let recent_incidents = vec![]; // Would be populated from incident tracking
+        let recent_incidents = vec![]; 
 
         DetailedHealthReport {
             overall_health,

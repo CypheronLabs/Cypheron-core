@@ -4,7 +4,6 @@ pub mod health;
 pub mod metrics;
 pub mod security_events;
 
-// Export key types with specific names to avoid conflicts
 pub use alerts::{Alert, AlertManager, AlertRule};
 pub use compliance::{ComplianceChecker, ComplianceFramework};
 pub use health::HealthChecker;
@@ -15,7 +14,6 @@ use crate::security::{AuditLogger, ComplianceManager};
 use axum::extract::FromRef;
 use std::sync::Arc;
 
-/// Combined monitoring state for the API routes
 #[derive(Clone)]
 pub struct MonitoringState {
     pub metrics: Arc<MetricsCollector>,
@@ -35,7 +33,6 @@ impl MonitoringState {
         security_events: Arc<SecurityEventMonitor>,
         health: Arc<HealthChecker>,
     ) -> Self {
-        // Create audit logger with reasonable defaults
         let audit = Arc::new(AuditLogger::new(10000));
         let compliance_manager = Arc::new(ComplianceManager::new());
 
@@ -56,7 +53,6 @@ impl MonitoringState {
     }
 }
 
-// Enable individual extractors for each monitoring component
 impl FromRef<MonitoringState> for Arc<MetricsCollector> {
     fn from_ref(state: &MonitoringState) -> Arc<MetricsCollector> {
         state.metrics.clone()

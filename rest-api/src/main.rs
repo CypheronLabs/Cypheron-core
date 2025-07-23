@@ -18,7 +18,6 @@ mod validation;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    // Initialize API key store with Firestore, Database, or in-memory fallback
     let api_key_store = if let Ok(firestore_project_id) = std::env::var("FIRESTORE_PROJECT_ID") {
         match security::ApiKeyStore::new_with_firestore(&firestore_project_id).await {
             Ok(store) => {
@@ -30,7 +29,6 @@ async fn main() {
                     "Failed to connect to Firestore: {}, falling back to database/in-memory",
                     e.message
                 );
-                // Try database as fallback
                 if let Ok(database_url) = std::env::var("DATABASE_URL") {
                     match security::ApiKeyStore::new(&database_url).await {
                         Ok(store) => {
@@ -75,9 +73,6 @@ async fn main() {
     let rate_limiter = security::RateLimiter::new(60);
     let audit_logger = Arc::new(security::AuditLogger::new(10000));
 
-    // Metrics now handled by Google Cloud Monitoring
-
-    // Initialize monitoring and alerting system
     use chrono::Duration;
     use std::sync::Arc;
 
@@ -90,13 +85,10 @@ async fn main() {
         Duration::days(30),
     ));
 
-    // Initialize compliance manager for SOC 2 and GDPR compliance
     let compliance_manager = Arc::new(security::ComplianceManager::new());
 
-    // Create combined app state
     let app_state = state::AppState::new(audit_logger.clone(), compliance_manager.clone());
 
-    // Start background monitoring tasks
     let alert_manager_bg = alert_manager.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
@@ -106,18 +98,15 @@ async fn main() {
         }
     });
 
-    // Start background data retention cleanup task
     let compliance_manager_bg = compliance_manager.clone();
     let audit_logger_bg = audit_logger.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600)); // Run every hour
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600)); 
         loop {
             interval.tick().await;
 
-            // Cleanup old compliance events
             compliance_manager_bg.cleanup_old_events().await;
 
-            // Cleanup old audit logs (based on retention policy)
             let retention_policy = compliance_manager_bg.get_retention_policy();
             let audit_cutoff_days = retention_policy.audit_retention_days;
             audit_logger_bg.cleanup_old_events(audit_cutoff_days).await;
@@ -137,7 +126,6 @@ async fn main() {
     tracing::info!("  - Post-Quantum Encryption: API key storage and retrieval");
     tracing::info!("  - Background Data Cleanup: Hourly retention enforcement");
 
-    // Create the combined monitoring state with audit logger
     let monitoring_state = monitoring::MonitoringState::new_with_audit(
         metrics_collector.clone(),
         alert_manager.clone(),
@@ -149,7 +137,6 @@ async fn main() {
 
     let monitoring_routes = api::monitoring::routes().with_state(monitoring_state.clone());
 
-    // Health check routes (no auth required)
     let public_routes = Router::new()
         .route("/health", get(handlers::monitoring_handler::get_health_status))
         .route("/health/detailed", get(handlers::monitoring_handler::get_detailed_health_report))
@@ -158,7 +145,6 @@ async fn main() {
         .with_state(monitoring_state)
         .merge(api::public::routes());
 
-    // Authenticated API routes
     let api_routes = Router::new()
         .merge(api::kem::routes().with_state(app_state.clone()))
         .merge(api::sig::routes().with_state(audit_logger.clone()))
@@ -182,7 +168,6 @@ async fn main() {
 
     let admin_audit_routes = security::audit_routes().with_state((*audit_logger).clone());
 
-    // Combine all routes with CORS middleware
     let app = Router::new()
         .merge(public_routes)
         .merge(api_routes)

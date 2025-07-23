@@ -728,7 +728,6 @@ pub async fn auth_middleware(
     let api_key = extract_api_key(&headers)?;
 
     let validated_key = api_store.validate_key(&api_key).await.ok_or_else(|| {
-        // Log compliance event for failed authentication
         if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
             let mut details = HashMap::new();
             details.insert("error".to_string(), "invalid_api_key".to_string());
@@ -756,7 +755,6 @@ pub async fn auth_middleware(
     let resource = extract_resource_from_path(path);
 
     if !api_store.check_permission(&api_key, &resource).await {
-        // Log compliance event for permission failure
         if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
             let mut details = HashMap::new();
             details.insert("error".to_string(), "insufficient_permissions".to_string());
@@ -789,7 +787,6 @@ pub async fn auth_middleware(
         validated_key.usage_count
     );
 
-    // Log compliance event for successful authentication
     if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
         let mut details = HashMap::new();
         details.insert("api_key_id".to_string(), validated_key.id.to_string());

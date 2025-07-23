@@ -12,17 +12,14 @@ impl AppState {
         Self { audit_logger, compliance_manager }
     }
 
-    /// Convenience method to sanitize sensitive data using privacy controls
     pub fn sanitize_sensitive_data(&self, data: &str) -> String {
         self.compliance_manager.sanitize_sensitive_data(data)
     }
 
-    /// Convenience method to pseudonymize user identifier
     pub fn pseudonymize_user_id(&self, user_id: &str) -> String {
         self.compliance_manager.pseudonymize_user_id(user_id)
     }
 
-    /// Convenience method for enhanced compliance logging with user context
     pub async fn log_compliance_with_user(
         &self,
         event_type: crate::security::ComplianceEventType,
