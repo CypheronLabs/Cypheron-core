@@ -35,3 +35,26 @@ init.sql
 nginx/
 logs/
 config/
+
+# Test scripts and results
+*_test_results_*.md
+*_test_results_*.json
+*bottleneck_report*.md
+api_performance_test.py
+slow_crypto_bottleneck_test.py
+test_ml_dsa_44.rs
+simple_test.sh
+
+# Documentation (handled separately)
+API_CHEAT_SHEET.md
+hostinger-*.md
+website-integration-guide.md
+
+# Compiled libraries
+lib/
+lib/*.so
+lib/*.dll
+lib/*.dylib
+
+# Library Cargo.lock (uncomment if treating as library)
+# Cargo.lock
