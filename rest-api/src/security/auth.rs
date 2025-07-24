@@ -43,16 +43,49 @@ pub struct ApiKey {
     pub usage_count: u64,
 }
 
-#[derive(Debug, Clone, ZeroizeOnDrop)]
 pub struct PostQuantumEncryption {
     master_key: [u8; 32],
+    kem_public_key: core_lib::kem::ml_kem_768::MlKemPublicKey,
+    kem_secret_key: core_lib::kem::ml_kem_768::MlKemSecretKey,
+}
+
+impl std::fmt::Debug for PostQuantumEncryption {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PostQuantumEncryption")
+            .field("master_key", &"[REDACTED]")
+            .field("kem_public_key", &"[REDACTED]")
+            .field("kem_secret_key", &"[REDACTED]")
+            .finish()
+    }
+}
+
+impl Clone for PostQuantumEncryption {
+    fn clone(&self) -> Self {
+        // For security reasons, generate a new keypair rather than cloning the secret key
+        let key = self.master_key;
+        let (kem_public_key, kem_secret_key) = MlKem768::keypair()
+            .expect("Failed to generate ML-KEM-768 keypair for clone");
+        Self {
+            master_key: key,
+            kem_public_key,
+            kem_secret_key,
+        }
+    }
 }
 
 impl PostQuantumEncryption {
     pub fn new() -> Self {
         let mut key = [0u8; 32];
         secure_random_bytes(&mut key).expect("Failed to generate secure random bytes");
-        Self { master_key: key }
+        
+        let (kem_public_key, kem_secret_key) = MlKem768::keypair()
+            .expect("Failed to generate ML-KEM-768 master keypair");
+            
+        Self { 
+            master_key: key,
+            kem_public_key,
+            kem_secret_key,
+        }
     }
 
     pub fn from_password(password: &str) -> Result<Self, AuthError> {
@@ -72,18 +105,24 @@ impl PostQuantumEncryption {
 
         let mut key = [0u8; 32];
         key.copy_from_slice(&hash.hash.unwrap().as_bytes()[..32]);
-        Ok(Self { master_key: key })
+        
+        let (kem_public_key, kem_secret_key) = MlKem768::keypair()
+            .map_err(|_| AuthError {
+                error: "keypair_error".to_string(),
+                message: "Failed to generate ML-KEM-768 master keypair".to_string(),
+                code: 500,
+            })?;
+            
+        Ok(Self { 
+            master_key: key,
+            kem_public_key,
+            kem_secret_key,
+        })
     }
 
     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, AuthError> {
-        let (public_key, _secret_key) = MlKem768::keypair().map_err(|_| AuthError {
-            error: "keypair_error".to_string(),
-            message: "Failed to generate ML-KEM-768 keypair".to_string(),
-            code: 500,
-        })?;
-
-        let (kem_ciphertext, shared_secret) =
-            MlKem768::encapsulate(&public_key).map_err(|_| AuthError {
+        let (kem_ciphertext, shared_secret) = MlKem768::encapsulate(&self.kem_public_key)
+            .map_err(|_| AuthError {
                 error: "encapsulation_error".to_string(),
                 message: "Failed to encapsulate with ML-KEM-768".to_string(),
                 code: 500,
@@ -92,10 +131,8 @@ impl PostQuantumEncryption {
         let mut hasher = Sha256::new();
         hasher.update(&self.master_key);
         hasher.update(shared_secret.expose_secret());
-        hasher.update(b"Cypheron-API-Key-Encryption-v1");
+        hasher.update(b"Cypheron-Hybrid-PQ-Encryption-v1");
         let derived_key = hasher.finalize();
-
-        let cipher = ChaCha20Poly1305::new(Key::from_slice(&derived_key));
 
         let mut nonce_bytes = [0u8; 12];
         secure_random_bytes(&mut nonce_bytes).map_err(|_| AuthError {
@@ -105,20 +142,14 @@ impl PostQuantumEncryption {
         })?;
         let nonce = Nonce::from_slice(&nonce_bytes);
 
+        let cipher = ChaCha20Poly1305::new(Key::from_slice(&derived_key));
         let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|_| AuthError {
             error: "encryption_error".to_string(),
-            message: "Failed to encrypt data with ChaCha20-Poly1305".to_string(),
+            message: "Failed to encrypt with ChaCha20-Poly1305".to_string(),
             code: 500,
         })?;
 
-        let public_key_bytes = public_key.0.to_vec();
-
-        let mut result = Vec::with_capacity(
-            4 + public_key_bytes.len() + 4 + kem_ciphertext.len() + 12 + ciphertext.len(),
-        );
-
-        result.extend_from_slice(&(public_key_bytes.len() as u32).to_le_bytes());
-        result.extend_from_slice(&public_key_bytes);
+        let mut result = Vec::with_capacity(4 + kem_ciphertext.len() + 12 + ciphertext.len());
         result.extend_from_slice(&(kem_ciphertext.len() as u32).to_le_bytes());
         result.extend_from_slice(&kem_ciphertext);
         result.extend_from_slice(&nonce_bytes);
@@ -128,7 +159,7 @@ impl PostQuantumEncryption {
     }
 
     pub fn decrypt(&self, encrypted_data: &[u8]) -> Result<Vec<u8>, AuthError> {
-        if encrypted_data.len() < 20 {
+        if encrypted_data.len() < 16 {
             return Err(AuthError {
                 error: "invalid_ciphertext".to_string(),
                 message: "Encrypted data too short".to_string(),
@@ -138,33 +169,6 @@ impl PostQuantumEncryption {
 
         let mut offset = 0;
 
-        let pub_key_len = u32::from_le_bytes([
-            encrypted_data[offset],
-            encrypted_data[offset + 1],
-            encrypted_data[offset + 2],
-            encrypted_data[offset + 3],
-        ]) as usize;
-        offset += 4;
-
-        if offset + pub_key_len > encrypted_data.len() {
-            return Err(AuthError {
-                error: "invalid_ciphertext".to_string(),
-                message: "Invalid public key length".to_string(),
-                code: 400,
-            });
-        }
-
-        let public_key_bytes = &encrypted_data[offset..offset + pub_key_len];
-        offset += pub_key_len;
-
-        if offset + 4 > encrypted_data.len() {
-            return Err(AuthError {
-                error: "invalid_ciphertext".to_string(),
-                message: "Missing KEM ciphertext length".to_string(),
-                code: 400,
-            });
-        }
-
         let kem_ct_len = u32::from_le_bytes([
             encrypted_data[offset],
             encrypted_data[offset + 1],
@@ -173,7 +177,7 @@ impl PostQuantumEncryption {
         ]) as usize;
         offset += 4;
 
-        if offset + kem_ct_len > encrypted_data.len() {
+        if offset + kem_ct_len + 12 > encrypted_data.len() {
             return Err(AuthError {
                 error: "invalid_ciphertext".to_string(),
                 message: "Invalid KEM ciphertext length".to_string(),
@@ -184,33 +188,21 @@ impl PostQuantumEncryption {
         let kem_ciphertext_bytes = &encrypted_data[offset..offset + kem_ct_len];
         offset += kem_ct_len;
 
-        if offset + 12 > encrypted_data.len() {
-            return Err(AuthError {
-                error: "invalid_ciphertext".to_string(),
-                message: "Missing nonce".to_string(),
-                code: 400,
-            });
-        }
-
         let nonce_bytes = &encrypted_data[offset..offset + 12];
         offset += 12;
-
         let ciphertext = &encrypted_data[offset..];
 
-        let _public_key = core_lib::kem::ml_kem_768::MlKemPublicKey(
-            public_key_bytes.try_into().map_err(|_| AuthError {
-                error: "invalid_key_size".to_string(),
-                message: "Invalid public key size".to_string(),
-                code: 400,
-            })?,
-        );
-        let _kem_ciphertext = kem_ciphertext_bytes;
+        let shared_secret = MlKem768::decapsulate(&kem_ciphertext_bytes.to_vec(), &self.kem_secret_key)
+            .map_err(|_| AuthError {
+                error: "decapsulation_error".to_string(),
+                message: "Failed to decapsulate with ML-KEM-768".to_string(),
+                code: 500,
+            })?;
 
         let mut hasher = Sha256::new();
         hasher.update(&self.master_key);
-        hasher.update(public_key_bytes);
-        hasher.update(kem_ciphertext_bytes);
-        hasher.update(b"Cypheron-API-Key-Decryption-Fallback-v1");
+        hasher.update(shared_secret.expose_secret());
+        hasher.update(b"Cypheron-Hybrid-PQ-Encryption-v1");
         let derived_key = hasher.finalize();
 
         let cipher = ChaCha20Poly1305::new(Key::from_slice(&derived_key));
@@ -218,7 +210,7 @@ impl PostQuantumEncryption {
 
         cipher.decrypt(nonce, ciphertext).map_err(|_| AuthError {
             error: "decryption_error".to_string(),
-            message: "Failed to decrypt data with ChaCha20-Poly1305".to_string(),
+            message: "Failed to decrypt with ChaCha20-Poly1305".to_string(),
             code: 500,
         })
     }
