@@ -18,57 +18,13 @@ mod validation;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let api_key_store = if let Ok(firestore_project_id) = std::env::var("FIRESTORE_PROJECT_ID") {
-        match security::ApiKeyStore::new_with_firestore(&firestore_project_id).await {
-            Ok(store) => {
-                tracing::info!("API key store connected to Firestore");
-                store
-            }
-            Err(e) => {
-                tracing::warn!(
-                    "Failed to connect to Firestore: {}, falling back to database/in-memory",
-                    e.message
-                );
-                if let Ok(database_url) = std::env::var("DATABASE_URL") {
-                    match security::ApiKeyStore::new(&database_url).await {
-                        Ok(store) => {
-                            tracing::info!("API key store connected to PostgreSQL database (Firestore fallback)");
-                            store
-                        }
-                        Err(e) => {
-                            tracing::warn!(
-                                "Failed to connect to database: {}, using in-memory storage",
-                                e.message
-                            );
-                            security::ApiKeyStore::new_in_memory()
-                        }
-                    }
-                } else {
-                    tracing::info!("No DATABASE_URL configured, using in-memory API key storage");
-                    security::ApiKeyStore::new_in_memory()
-                }
-            }
-        }
-    } else if let Ok(database_url) = std::env::var("DATABASE_URL") {
-        match security::ApiKeyStore::new(&database_url).await {
-            Ok(store) => {
-                tracing::info!("API key store connected to PostgreSQL database");
-                store
-            }
-            Err(e) => {
-                tracing::warn!(
-                    "Failed to connect to database: {}, falling back to in-memory storage",
-                    e.message
-                );
-                security::ApiKeyStore::new_in_memory()
-            }
-        }
-    } else {
-        tracing::info!(
-            "No FIRESTORE_PROJECT_ID or DATABASE_URL configured, using in-memory API key storage"
-        );
-        security::ApiKeyStore::new_in_memory()
-    };
+    let firestore_project_id = std::env::var("FIRESTORE_PROJECT_ID")
+        .expect("FIRESTORE_PROJECT_ID environment variable must be set");
+
+    let api_key_store = security::ApiKeyStore::new_with_firestore(&firestore_project_id).await
+        .expect("Failed to initialize Firestore API key store");
+
+    tracing::info!("API key store connected to Firestore project: {}", firestore_project_id);
 
     let rate_limiter = security::RateLimiter::new(60);
     let audit_logger = Arc::new(security::AuditLogger::new(10000));
@@ -198,13 +154,7 @@ async fn main() {
         );
     }
 
-    if std::env::var("FIRESTORE_PROJECT_ID").is_ok() {
-        tracing::info!("Database storage: Google Cloud Firestore");
-    } else if std::env::var("DATABASE_URL").is_ok() {
-        tracing::info!("Database storage: PostgreSQL with encrypted API keys");
-    } else {
-        tracing::info!("Database storage: In-memory fallback mode");
-    }
+    tracing::info!("Storage backend: Google Cloud Firestore with post-quantum encryption");
 
     if std::env::var("PQ_ENCRYPTION_PASSWORD").is_ok() {
         tracing::info!(
