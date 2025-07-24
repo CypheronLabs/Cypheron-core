@@ -1,3 +1,35 @@
+use secrecy::{SecretBox, ExposeSecret};
+use crate::hybrid::composite::{CompositePublicKey, CompositeSecretKey, CompositeSignature};
+use crate::hybrid::ecdsa::{EcdsaPublicKey, EcdsaPrivateKey, EcdsaSignatureWrapper, EcdsaKeyPair};
+use crate::hybrid::traits::{HybridEngine, VerificationPolicy};
+use crate::sig::{Dilithium2, Falcon512};
+use crate::sig::traits::SignatureEngine;
+use std::error::Error as StdError;
+use std::fmt::{self, Display};
+
+#[derive(Debug)]
+pub enum HybridError {
+    Classical(String),
+    PostQuantum(String),
+}
+
+impl Display for HybridError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            HybridError::Classical(msg) => write!(f, "Classical cryptography error: {}", msg),
+            HybridError::PostQuantum(msg) => write!(f, "Post-quantum cryptography error: {}", msg),
+        }
+    }
+}
+
+impl StdError for HybridError {}
+
+impl From<crate::hybrid::ecdsa::EcdsaError> for HybridError {
+    fn from(err: crate::hybrid::ecdsa::EcdsaError) -> Self {
+        HybridError::Classical(err.to_string())
+    }
+}
+
 pub struct EccDilithium;
 
 type EccPublicKey = EcdsaPublicKey;
@@ -24,7 +56,7 @@ impl HybridEngine for EccDilithium {
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
         let (dilithium_pk, dilithium_sk) =
-            Dilithium2::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+            <Dilithium2 as SignatureEngine>::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         let composite_pk =
             CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: dilithium_pk };
@@ -59,7 +91,7 @@ impl HybridEngine for EccDilithium {
         let ecc_signature = ecc_sk.sign(&message_with_timestamp)?;
 
         let dilithium_sk = sk.post_quantum.expose_secret();
-        let dilithium_signature = Dilithium2::sign(&message_with_timestamp, dilithium_sk)
+        let dilithium_signature = <Dilithium2 as SignatureEngine>::sign(&message_with_timestamp, dilithium_sk)
             .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         Ok(CompositeSignature {
@@ -98,7 +130,7 @@ impl HybridEngine for EccDilithium {
             pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
 
         let dilithium_valid =
-            Dilithium2::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
+            <Dilithium2 as SignatureEngine>::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
 
         match policy {
             VerificationPolicy::BothRequired => ecc_valid && dilithium_valid,
@@ -130,7 +162,7 @@ impl HybridEngine for EccFalcon {
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
         let (falcon_pk, falcon_sk) =
-            Falcon512::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+            <Falcon512 as SignatureEngine>::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         let composite_pk =
             CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: falcon_pk };
@@ -164,7 +196,7 @@ impl HybridEngine for EccFalcon {
         let ecc_signature = ecc_sk.sign(&message_with_timestamp)?;
 
         let falcon_sk = sk.post_quantum.expose_secret();
-        let falcon_signature = Falcon512::sign(&message_with_timestamp, falcon_sk)
+        let falcon_signature = <Falcon512 as SignatureEngine>::sign(&message_with_timestamp, falcon_sk)
             .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         Ok(CompositeSignature {
@@ -201,7 +233,7 @@ impl HybridEngine for EccFalcon {
             pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
 
         let falcon_valid =
-            Falcon512::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
+            <Falcon512 as SignatureEngine>::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
 
         match policy {
             VerificationPolicy::BothRequired => ecc_valid && falcon_valid,
@@ -217,9 +249,9 @@ impl HybridEngine for EccSphincs {
     type ClassicalSecretKey = EccSecretKey;
     type ClassicalSignature = EccSignature;
 
-    type PqPublicKey = shake_128f::types::PublicKey;
-    type PqSecretKey = shake_128f::types::SecretKey;
-    type PqSignature = shake_128f::types::Signature;
+    type PqPublicKey = crate::sig::sphincs::shake_128f::types::PublicKey;
+    type PqSecretKey = crate::sig::sphincs::shake_128f::types::SecretKey;
+    type PqSignature = crate::sig::sphincs::shake_128f::types::Signature;
 
     type CompositePublicKey = CompositePublicKey<Self::ClassicalPublicKey, Self::PqPublicKey>;
     type CompositeSecretKey = CompositeSecretKey<Self::ClassicalSecretKey, Self::PqSecretKey>;
@@ -231,7 +263,7 @@ impl HybridEngine for EccSphincs {
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
         let (sphincs_pk, sphincs_sk) =
-            shake_128f::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+            crate::sig::sphincs::shake_128f::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         let composite_pk =
             CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: sphincs_pk };
@@ -266,7 +298,7 @@ impl HybridEngine for EccSphincs {
 
         let shake_128f_sk = sk.post_quantum.expose_secret();
         let shake_128f_signature =
-            shake_128f::sign_detached(&message_with_timestamp, shake_128f_sk)
+            crate::sig::sphincs::shake_128f::sign_detached(&message_with_timestamp, shake_128f_sk)
                 .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         Ok(CompositeSignature {
@@ -302,7 +334,7 @@ impl HybridEngine for EccSphincs {
         let ecc_valid =
             pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
 
-        let shake_128f_valid = shake_128f::verify_detached(
+        let shake_128f_valid = crate::sig::sphincs::shake_128f::verify_detached(
             &sig.post_quantum,
             &message_with_timestamp,
             &pk.post_quantum,
