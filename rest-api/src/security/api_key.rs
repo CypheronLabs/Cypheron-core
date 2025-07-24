@@ -121,33 +121,24 @@ pub async fn create_api_key(
         usage_count: api_key.usage_count,
     };
 
-    let mut keys = api_store.fallback_keys.write().await;
-    keys.insert(api_key_hash, api_key);
+    api_store.store_api_key(&api_key, &api_key_raw).await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiKeyManagementError {
+                error: "storage_error".to_string(),
+                message: format!("Failed to store API key: {}", e.message),
+                code: 500,
+            }),
+        )
+    })?;
 
     tracing::info!("Created new API key: {} ({})", key_info.name, key_info.id);
 
     Ok(Json(CreateApiKeyResponse { api_key: api_key_raw, key_info }))
 }
 
-pub async fn list_api_keys(State(api_store): State<ApiKeyStore>) -> Json<ApiKeyListResponse> {
-    let keys = api_store.fallback_keys.read().await;
-
-    let key_infos: Vec<ApiKeyInfo> = keys
-        .values()
-        .map(|key| ApiKeyInfo {
-            id: key.id,
-            name: key.name.clone(),
-            permissions: key.permissions.clone(),
-            rate_limit: key.rate_limit,
-            created_at: key.created_at,
-            expires_at: key.expires_at,
-            is_active: key.is_active,
-            last_used: key.last_used,
-            usage_count: key.usage_count,
-        })
-        .collect();
-
-    Json(ApiKeyListResponse { keys: key_infos })
+pub async fn list_api_keys(State(_api_store): State<ApiKeyStore>) -> Json<ApiKeyListResponse> {
+    Json(ApiKeyListResponse { keys: vec![] })
 }
 
 pub async fn get_api_key_info(

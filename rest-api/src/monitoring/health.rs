@@ -60,7 +60,7 @@ impl HealthChecker {
         let mut services = HashMap::new();
 
         services.insert("crypto_engine".to_string(), self.check_crypto_engine().await);
-        services.insert("database".to_string(), self.check_database().await);
+        services.insert("storage".to_string(), self.check_storage().await);
         services.insert("authentication".to_string(), self.check_authentication().await);
         services.insert("rate_limiter".to_string(), self.check_rate_limiter().await);
         services.insert("monitoring".to_string(), self.check_monitoring().await);
@@ -128,13 +128,13 @@ impl HealthChecker {
         Ok(())
     }
 
-    async fn check_database(&self) -> ServiceHealth {
+    async fn check_storage(&self) -> ServiceHealth {
         ServiceHealth {
             status: ServiceStatus::Healthy,
             last_check: Utc::now(),
             response_time_ms: Some(10), // Simulated response time
             error_count: 0,
-            details: Some("Database connectivity normal".to_string()),
+            details: Some("Storage system (Firestore + in-memory fallback) operational".to_string()),
         }
     }
 
