@@ -1,13 +1,4 @@
-/*!
- * Side-Channel Analysis Tests
- * 
- * This module implements tests to detect potential side-channel vulnerabilities
- * in cryptographic implementations. Tests include:
- * - Power analysis simulation
- * - Cache timing analysis
- * - Branch prediction analysis
- * - Electromagnetic emission simulation
- */
+
 
 use core_lib::kem::{MlKem512, MlKem768, MlKem1024, Kem};
 use core_lib::sig::{MlDsa44, MlDsa65, MlDsa87};
@@ -154,7 +145,7 @@ mod ml_kem_sidechannel_tests {
 
     #[test]
     fn test_ml_kem_768_cache_timing() {
-        println!("🧠 Testing ML-KEM-768 cache timing resistance...");
+        println!("Testing ML-KEM-768 cache timing resistance...");
         
         let (pk, sk) = MlKem768::keypair();
         let mut cache_analysis = CacheAnalysis::new();
@@ -180,7 +171,7 @@ mod ml_kem_sidechannel_tests {
             "ML-KEM-768 shows predictable cache access patterns"
         );
         
-        println!("✅ ML-KEM-768 cache timing resistance verified");
+        println!("ML-KEM-768 cache timing resistance verified");
     }
 
     #[test]
@@ -231,7 +222,7 @@ mod ml_kem_sidechannel_tests {
             time_variation
         );
         
-        println!("✅ ML-KEM-1024 branch prediction resistance verified");
+        println!("ML-KEM-1024 branch prediction resistance verified");
     }
 }
 
@@ -242,7 +233,7 @@ mod ml_dsa_sidechannel_tests {
 
     #[test]
     fn test_ml_dsa_44_signing_power_analysis() {
-        println!("⚡ Testing ML-DSA-44 signing power analysis resistance...");
+        println!("Testing ML-DSA-44 signing power analysis resistance...");
         
         let (pk, sk) = MlDsa44::keypair().expect("Key generation failed");
         
@@ -273,12 +264,12 @@ mod ml_dsa_sidechannel_tests {
             power_correlation * 100.0
         );
         
-        println!("✅ ML-DSA-44 signing power analysis resistance verified");
+        println!("ML-DSA-44 signing power analysis resistance verified");
     }
 
     #[test]
     fn test_ml_dsa_65_verification_timing() {
-        println!("⏱️  Testing ML-DSA-65 verification timing analysis...");
+        println!("Testing ML-DSA-65 verification timing analysis...");
         
         let (pk, sk) = MlDsa65::keypair().expect("Key generation failed");
         let message = vec![0x33; 512];
@@ -321,12 +312,12 @@ mod ml_dsa_sidechannel_tests {
             relative_difference * 100.0
         );
         
-        println!("✅ ML-DSA-65 verification timing analysis resistance verified");
+        println!("ML-DSA-65 verification timing analysis resistance verified");
     }
 
     #[test]
     fn test_ml_dsa_87_secret_key_protection() {
-        println!("🔐 Testing ML-DSA-87 secret key protection against side channels...");
+        println!("Testing ML-DSA-87 secret key protection against side channels...");
         
         let (pk1, sk1) = MlDsa87::keypair().expect("Key generation 1 failed");
         let (pk2, sk2) = MlDsa87::keypair().expect("Key generation 2 failed");
@@ -365,7 +356,7 @@ mod ml_dsa_sidechannel_tests {
             sk_timing_diff * 100.0
         );
         
-        println!("✅ ML-DSA-87 secret key protection verified");
+        println!("ML-DSA-87 secret key protection verified");
     }
 }
 
@@ -376,7 +367,7 @@ mod hybrid_sidechannel_tests {
 
     #[test]
     fn test_hybrid_ecc_dilithium_electromagnetic_simulation() {
-        println!("📡 Testing hybrid ECC+Dilithium electromagnetic emission resistance...");
+        println!("Testing hybrid ECC+Dilithium electromagnetic emission resistance...");
         
         let (pk, sk) = EccDilithium::keypair().expect("Hybrid key generation failed");
         let message = vec![0x99; 512];
@@ -416,12 +407,12 @@ mod hybrid_sidechannel_tests {
             em_coefficient_variation
         );
         
-        println!("✅ Hybrid electromagnetic emission resistance verified");
+        println!("Hybrid electromagnetic emission resistance verified");
     }
 
     #[test]
     fn test_hybrid_verification_policy_sidechannel() {
-        println!("🔀 Testing hybrid verification policy side-channel resistance...");
+        println!("esting hybrid verification policy side-channel resistance...");
         
         let (pk, sk) = EccDilithium::keypair().expect("Hybrid key generation failed");
         let message = vec![0xCC; 256];
@@ -470,7 +461,7 @@ mod hybrid_sidechannel_tests {
             timing_spread * 100.0
         );
         
-        println!("✅ Hybrid verification policy side-channel resistance verified");
+        println!("Hybrid verification policy side-channel resistance verified");
     }
 }
 
@@ -481,7 +472,7 @@ mod advanced_sidechannel_detection {
 
     #[test]
     fn test_correlation_analysis() {
-        println!("📊 Testing correlation analysis for side-channel detection...");
+        println!("Testing correlation analysis for side-channel detection...");
         
         let (pk, sk) = MlKem512::keypair();
         
@@ -523,12 +514,12 @@ mod advanced_sidechannel_detection {
             correlation
         );
         
-        println!("✅ Correlation analysis passed - no significant side-channel detected");
+        println!("Correlation analysis passed - no significant side-channel detected");
     }
 
     #[test]
     fn test_frequency_domain_analysis() {
-        println!("🌊 Testing frequency domain analysis for side-channel patterns...");
+        println!("Testing frequency domain analysis for side-channel patterns...");
         
         let (pk, sk) = MlDsa44::keypair().expect("Key generation failed");
         let base_message = vec![0x5A; 128];
@@ -569,6 +560,6 @@ mod advanced_sidechannel_detection {
             normalized_autocorr
         );
         
-        println!("✅ Frequency domain analysis passed - no periodic patterns detected");
+        println!("Frequency domain analysis passed - no periodic patterns detected");
     }
 }

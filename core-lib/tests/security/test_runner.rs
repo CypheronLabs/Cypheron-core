@@ -1,15 +1,6 @@
-/*!
- * Comprehensive Security Test Runner
- * 
- * This module provides a unified interface to run all security tests
- * and generate comprehensive security reports.
- */
-
 use std::process::Command;
 use std::time::Instant;
 
-/// Security test categories
-#[derive(Debug, Clone)]
 pub enum TestCategory {
     KnownAnswerTests,
     PropertyBasedTests,
@@ -20,8 +11,6 @@ pub enum TestCategory {
     PerformanceBenchmarks,
 }
 
-/// Test result summary
-#[derive(Debug)]
 pub struct TestResult {
     pub category: TestCategory,
     pub name: String,
@@ -30,7 +19,6 @@ pub struct TestResult {
     pub details: String,
 }
 
-/// Security test runner
 pub struct SecurityTestRunner {
     pub results: Vec<TestResult>,
     pub start_time: Instant,
@@ -44,7 +32,6 @@ impl SecurityTestRunner {
         }
     }
     
-    /// Run all security tests
     pub fn run_all_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("🔒 Starting Comprehensive Security Test Suite");
         println!("================================================");
@@ -61,7 +48,6 @@ impl SecurityTestRunner {
         Ok(())
     }
     
-    /// Run NIST Known Answer Tests
     fn run_known_answer_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n📋 Running NIST Known Answer Tests...");
         
@@ -91,7 +77,6 @@ impl SecurityTestRunner {
         Ok(())
     }
     
-    /// Run property-based tests
     fn run_property_based_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n🎲 Running Property-Based Tests...");
         
@@ -121,7 +106,6 @@ impl SecurityTestRunner {
         Ok(())
     }
     
-    /// Run timing analysis tests
     fn run_timing_analysis_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n⏱️  Running Timing Analysis Tests...");
         
@@ -151,7 +135,6 @@ impl SecurityTestRunner {
         Ok(())
     }
     
-    /// Run memory safety tests
     fn run_memory_safety_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n🛡️  Running Memory Safety Tests...");
         
@@ -181,7 +164,6 @@ impl SecurityTestRunner {
         Ok(())
     }
     
-    /// Run side-channel analysis tests
     fn run_sidechannel_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n📡 Running Side-Channel Analysis Tests...");
         
@@ -211,7 +193,6 @@ impl SecurityTestRunner {
         Ok(())
     }
     
-    /// Run performance benchmarks
     fn run_performance_benchmarks(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("\n⚡ Running Performance Benchmarks...");
         
@@ -241,7 +222,6 @@ impl SecurityTestRunner {
         Ok(())
     }
     
-    /// Generate comprehensive security report
     fn generate_report(&self) {
         println!("\n📊 Security Test Report");
         println!("========================");
@@ -267,7 +247,6 @@ impl SecurityTestRunner {
             }
         }
         
-        // Security assessment
         println!("\n🔒 Security Assessment:");
         if failed_tests == 0 {
             println!("  STATUS: ✅ ALL SECURITY TESTS PASSED");
@@ -277,7 +256,6 @@ impl SecurityTestRunner {
             println!("  {} security test(s) failed. Review and fix before production use.", failed_tests);
         }
         
-        // Recommendations
         println!("\n📋 Recommendations:");
         println!("  1. Run security tests regularly in CI/CD pipeline");
         println!("  2. Monitor performance benchmarks for regressions");
@@ -289,7 +267,6 @@ impl SecurityTestRunner {
     }
 }
 
-/// Main test runner function
 #[cfg(test)]
 mod test_runner {
     use super::*;
@@ -298,10 +275,8 @@ mod test_runner {
     fn run_comprehensive_security_tests() {
         let mut runner = SecurityTestRunner::new();
         
-        // Run all tests and generate report
         runner.run_all_tests().expect("Failed to run security tests");
         
-        // Ensure all tests passed
         let failed_tests: Vec<_> = runner.results.iter()
             .filter(|r| !r.passed)
             .collect();
