@@ -20,6 +20,18 @@ steps:
     - '--platform'
     - 'managed'
     - '--allow-unauthenticated'
+    - '--service-account'
+    - 'firestore-accessor@$PROJECT_ID.iam.gserviceaccount.com'
+    - '--set-env-vars'
+    - 'FIRESTORE_PROJECT_ID=$PROJECT_ID,FIRESTORE_COLLECTION=api_keys'
+    - '--memory'
+    - '1Gi'
+    - '--cpu'
+    - '1'
+    - '--max-instances'
+    - '10'
+    - '--port'
+    - '8080'
 
 images:
   - 'gcr.io/$PROJECT_ID/cypheron-api'
