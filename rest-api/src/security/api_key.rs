@@ -6,8 +6,8 @@ use axum::{
     Router,
 };
 use chrono::{DateTime, Duration, Utc};
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::distr::Alphanumeric;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -55,7 +55,7 @@ pub struct ApiKeyManagementError {
 
 fn generate_api_key() -> String {
     let random_part: String =
-        thread_rng().sample_iter(&Alphanumeric).take(32).map(char::from).collect();
+        rand::rng().sample_iter(&Alphanumeric).take(32).map(char::from).collect();
 
     format!("pq_live_{}", random_part)
 }
