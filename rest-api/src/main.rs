@@ -16,6 +16,11 @@ mod validation;
 
 #[tokio::main]
 async fn main() {
+    // Install default crypto provider for rustls before any TLS operations
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+    
     tracing_subscriber::fmt::init();
 
     let firestore_project_id = std::env::var("FIRESTORE_PROJECT_ID")
