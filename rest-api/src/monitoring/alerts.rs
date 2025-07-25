@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use super::security_events::{SecurityEventType, SecuritySeverity};
+use super::security_events::SecuritySeverity;
 use super::MetricsCollector;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
