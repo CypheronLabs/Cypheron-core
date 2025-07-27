@@ -106,6 +106,9 @@ async fn main() {
         .with_state(monitoring_state)
         .merge(api::public::routes());
 
+    let admin_api_routes = security::api_key_management_routes().with_state(api_key_store.clone());
+    let admin_audit_routes = security::audit_routes().with_state((*audit_logger).clone());
+
     let api_routes = Router::new()
         .merge(api::kem::routes().with_state(app_state.clone()))
         .merge(api::sig::routes().with_state(audit_logger.clone()))
@@ -125,15 +128,26 @@ async fn main() {
         .layer(middleware::from_fn(security::timing_middleware))
         .layer(middleware::from_fn(security::security_headers_middleware));
 
-    let admin_api_routes = security::api_key_management_routes().with_state(api_key_store.clone());
-
-    let admin_audit_routes = security::audit_routes().with_state((*audit_logger).clone());
+    let admin_routes = Router::new()
+        .merge(admin_api_routes)
+        .merge(admin_audit_routes)
+        .layer(middleware::from_fn_with_state(api_key_store.clone(), security::auth_middleware))
+        .layer(middleware::from_fn_with_state(
+            rate_limiter.clone(),
+            security::rate_limit_middleware,
+        ))
+        .layer(middleware::from_fn_with_state(
+            compliance_manager.clone(),
+            security::compliance_middleware,
+        ))
+        .layer(middleware::from_fn(security::request_validation_middleware))
+        .layer(middleware::from_fn(security::timing_middleware))
+        .layer(middleware::from_fn(security::security_headers_middleware));
 
     let app = Router::new()
         .merge(public_routes)
         .merge(api_routes)
-        .merge(admin_api_routes)
-        .merge(admin_audit_routes)
+        .merge(admin_routes)
         .layer(security::create_cors_middleware());
 
     let config = config::AppConfig::from_env();
@@ -171,7 +185,7 @@ async fn main() {
         );
     }
 
-    tracing::info!("Admin endpoints: /admin/api-keys, /admin/audit-logs");
+    tracing::info!("Admin endpoints: /admin/api-keys, /admin/audit-logs (authentication required)");
     tracing::info!("NIST compliance endpoints: /nist/compliance, /nist/deprecation");
     tracing::info!("Monitoring endpoints: /monitoring/*, /health/*");
     tracing::info!("Security monitoring: Real-time threat detection enabled");
