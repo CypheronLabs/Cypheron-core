@@ -57,7 +57,7 @@ fn generate_api_key() -> String {
     let random_part: String =
         rand::rng().sample_iter(&Alphanumeric).take(32).map(char::from).collect();
 
-    format!("pq_live_{}", random_part)
+    format!("pq-{}", random_part)
 }
 
 pub async fn create_api_key(

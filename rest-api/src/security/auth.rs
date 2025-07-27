@@ -1,5 +1,4 @@
 use super::compliance::{ComplianceEventType, ComplianceManager, RiskLevel};
-use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, StatusCode},
@@ -8,11 +7,9 @@ use axum::{
     Json,
 };
 use base64::{engine::general_purpose, Engine as _};
-use chacha20poly1305::aead::Aead;
-use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, Nonce};
 use chrono::{DateTime, Utc, TimeZone};
-use core_lib::kem::{Kem, MlKem768};
 use core_lib::platform::secure_random_bytes;
+use ring::{aead, pbkdf2, rand};
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -38,31 +35,21 @@ pub struct ApiKey {
 }
 
 pub struct PostQuantumEncryption {
-    master_key: [u8; 32],
-    kem_public_key: core_lib::kem::ml_kem_768::MlKemPublicKey,
-    kem_secret_key: core_lib::kem::ml_kem_768::MlKemSecretKey,
+    key: [u8; 32],
 }
 
 impl std::fmt::Debug for PostQuantumEncryption {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PostQuantumEncryption")
-            .field("master_key", &"[REDACTED]")
-            .field("kem_public_key", &"[REDACTED]")
-            .field("kem_secret_key", &"[REDACTED]")
+            .field("key", &"[REDACTED]")
             .finish()
     }
 }
 
 impl Clone for PostQuantumEncryption {
     fn clone(&self) -> Self {
-        // For security reasons, generate a new keypair rather than cloning the secret key
-        let key = self.master_key;
-        let (kem_public_key, kem_secret_key) = MlKem768::keypair()
-            .expect("Failed to generate ML-KEM-768 keypair for clone");
         Self {
-            master_key: key,
-            kem_public_key,
-            kem_secret_key,
+            key: self.key,
         }
     }
 }
@@ -71,62 +58,34 @@ impl PostQuantumEncryption {
     pub fn new() -> Self {
         let mut key = [0u8; 32];
         secure_random_bytes(&mut key).expect("Failed to generate secure random bytes");
-        
-        let (kem_public_key, kem_secret_key) = MlKem768::keypair()
-            .expect("Failed to generate ML-KEM-768 master keypair");
-            
-        Self { 
-            master_key: key,
-            kem_public_key,
-            kem_secret_key,
-        }
+        Self { key }
     }
 
     pub fn from_password(password: &str) -> Result<Self, AuthError> {
-        let salt =
-            SaltString::from_b64("cypheron_api_key_salt_v1_2024").map_err(|_| AuthError {
-                error: "crypto_error".to_string(),
-                message: "Failed to create salt".to_string(),
-                code: 500,
-            })?;
-
-        let argon2 = Argon2::default();
-        let hash = argon2.hash_password(password.as_bytes(), &salt).map_err(|_| AuthError {
-            error: "crypto_error".to_string(),
-            message: "Failed to derive key".to_string(),
-            code: 500,
-        })?;
-
-        let mut key = [0u8; 32];
-        key.copy_from_slice(&hash.hash.unwrap().as_bytes()[..32]);
+        const SALT: &[u8] = b"Q3lwaGVyb25BcGlLZXlTYWx0";
+        const PBKDF2_ITERATIONS: u32 = 100_000;
         
-        let (kem_public_key, kem_secret_key) = MlKem768::keypair()
-            .map_err(|_| AuthError {
-                error: "keypair_error".to_string(),
-                message: "Failed to generate ML-KEM-768 master keypair".to_string(),
-                code: 500,
-            })?;
-            
-        Ok(Self { 
-            master_key: key,
-            kem_public_key,
-            kem_secret_key,
-        })
+        let mut key = [0u8; 32];
+        pbkdf2::derive(
+            pbkdf2::PBKDF2_HMAC_SHA256,
+            std::num::NonZeroU32::new(PBKDF2_ITERATIONS).unwrap(),
+            SALT,
+            password.as_bytes(),
+            &mut key,
+        );
+        
+        Ok(Self { key })
     }
 
     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, AuthError> {
-        let (kem_ciphertext, shared_secret) = MlKem768::encapsulate(&self.kem_public_key)
-            .map_err(|_| AuthError {
-                error: "encapsulation_error".to_string(),
-                message: "Failed to encapsulate with ML-KEM-768".to_string(),
-                code: 500,
-            })?;
-
-        let mut hasher = Sha256::new();
-        hasher.update(&self.master_key);
-        hasher.update(shared_secret.expose_secret());
-        hasher.update(b"Cypheron-Hybrid-PQ-Encryption-v1");
-        let derived_key = hasher.finalize();
+        let sealing_key = aead::LessSafeKey::new(
+            aead::UnboundKey::new(&aead::AES_256_GCM, &self.key)
+                .map_err(|_| AuthError {
+                    error: "key_error".to_string(),
+                    message: "Failed to create encryption key".to_string(),
+                    code: 500,
+                })?
+        );
 
         let mut nonce_bytes = [0u8; 12];
         secure_random_bytes(&mut nonce_bytes).map_err(|_| AuthError {
@@ -134,26 +93,26 @@ impl PostQuantumEncryption {
             message: "Failed to generate nonce".to_string(),
             code: 500,
         })?;
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
+        let mut in_out = plaintext.to_vec();
+        
+        sealing_key.seal_in_place_append_tag(nonce, aead::Aad::empty(), &mut in_out)
+            .map_err(|_| AuthError {
+                error: "encryption_error".to_string(),
+                message: "Failed to encrypt data".to_string(),
+                code: 500,
+            })?;
 
-        let cipher = ChaCha20Poly1305::new(Key::from_slice(&derived_key));
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|_| AuthError {
-            error: "encryption_error".to_string(),
-            message: "Failed to encrypt with ChaCha20-Poly1305".to_string(),
-            code: 500,
-        })?;
-
-        let mut result = Vec::with_capacity(4 + kem_ciphertext.len() + 12 + ciphertext.len());
-        result.extend_from_slice(&(kem_ciphertext.len() as u32).to_le_bytes());
-        result.extend_from_slice(&kem_ciphertext);
+        let mut result = Vec::with_capacity(12 + in_out.len());
         result.extend_from_slice(&nonce_bytes);
-        result.extend_from_slice(&ciphertext);
-
+        result.extend_from_slice(&in_out);
+        
         Ok(result)
     }
 
     pub fn decrypt(&self, encrypted_data: &[u8]) -> Result<Vec<u8>, AuthError> {
-        if encrypted_data.len() < 16 {
+        if encrypted_data.len() < 12 + 16 {
             return Err(AuthError {
                 error: "invalid_ciphertext".to_string(),
                 message: "Encrypted data too short".to_string(),
@@ -161,52 +120,30 @@ impl PostQuantumEncryption {
             });
         }
 
-        let mut offset = 0;
+        let opening_key = aead::LessSafeKey::new(
+            aead::UnboundKey::new(&aead::AES_256_GCM, &self.key)
+                .map_err(|_| AuthError {
+                    error: "key_error".to_string(),
+                    message: "Failed to create decryption key".to_string(),
+                    code: 500,
+                })?
+        );
 
-        let kem_ct_len = u32::from_le_bytes([
-            encrypted_data[offset],
-            encrypted_data[offset + 1],
-            encrypted_data[offset + 2],
-            encrypted_data[offset + 3],
-        ]) as usize;
-        offset += 4;
-
-        if offset + kem_ct_len + 12 > encrypted_data.len() {
-            return Err(AuthError {
-                error: "invalid_ciphertext".to_string(),
-                message: "Invalid KEM ciphertext length".to_string(),
-                code: 400,
-            });
-        }
-
-        let kem_ciphertext_bytes = &encrypted_data[offset..offset + kem_ct_len];
-        offset += kem_ct_len;
-
-        let nonce_bytes = &encrypted_data[offset..offset + 12];
-        offset += 12;
-        let ciphertext = &encrypted_data[offset..];
-
-        let shared_secret = MlKem768::decapsulate(&kem_ciphertext_bytes.to_vec(), &self.kem_secret_key)
+        let (nonce_bytes, ciphertext) = encrypted_data.split_at(12);
+        let mut nonce_array = [0u8; 12];
+        nonce_array.copy_from_slice(nonce_bytes);
+        
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_array);
+        let mut in_out = ciphertext.to_vec();
+        
+        let plaintext = opening_key.open_in_place(nonce, aead::Aad::empty(), &mut in_out)
             .map_err(|_| AuthError {
-                error: "decapsulation_error".to_string(),
-                message: "Failed to decapsulate with ML-KEM-768".to_string(),
+                error: "decryption_error".to_string(),
+                message: "Failed to decrypt data".to_string(),
                 code: 500,
             })?;
 
-        let mut hasher = Sha256::new();
-        hasher.update(&self.master_key);
-        hasher.update(shared_secret.expose_secret());
-        hasher.update(b"Cypheron-Hybrid-PQ-Encryption-v1");
-        let derived_key = hasher.finalize();
-
-        let cipher = ChaCha20Poly1305::new(Key::from_slice(&derived_key));
-        let nonce = Nonce::from_slice(nonce_bytes);
-
-        cipher.decrypt(nonce, ciphertext).map_err(|_| AuthError {
-            error: "decryption_error".to_string(),
-            message: "Failed to decrypt with ChaCha20-Poly1305".to_string(),
-            code: 500,
-        })
+        Ok(plaintext.to_vec())
     }
 }
 

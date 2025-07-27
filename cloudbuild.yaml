@@ -23,7 +23,7 @@ steps:
     - '--service-account'
     - 'firestore-accessor@$PROJECT_ID.iam.gserviceaccount.com'
     - '--set-env-vars'
-    - 'FIRESTORE_PROJECT_ID=$PROJECT_ID,FIRESTORE_COLLECTION=api_keys'
+    - 'FIRESTORE_PROJECT_ID=$PROJECT_ID,FIRESTORE_COLLECTION=api_keys,PQ_ENCRYPTION_PASSWORD=Cypheron-PQ-API-Master-Key-2024-v1'
     - '--memory'
     - '1Gi'
     - '--cpu'
