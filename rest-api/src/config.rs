@@ -82,6 +82,11 @@ pub struct ServerConfig {
     pub log_level: String,
     pub enable_metrics: bool,
     pub enable_health_check: bool,
+    pub request_timeout_seconds: u64,
+    pub crypto_timeout_seconds: u64,
+    pub health_timeout_seconds: u64,
+    pub connection_timeout_seconds: u64,
+    pub max_concurrent_connections: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +105,11 @@ impl Default for ServerConfig {
             log_level: "info".to_string(),
             enable_metrics: true,
             enable_health_check: true,
+            request_timeout_seconds: 30,       
+            crypto_timeout_seconds: 45,        
+            health_timeout_seconds: 5,         
+            connection_timeout_seconds: 60,    
+            max_concurrent_connections: 100,   
         }
     }
 }
@@ -118,12 +128,10 @@ impl AppConfig {
     pub fn from_env() -> Self {
         let mut config = AppConfig::default();
 
-        // Server configuration from environment
         if let Ok(host) = env::var("PQ_HOST") {
             config.server.host = host;
         }
 
-        // Check PQ_PORT first, then fall back to Cloud Run's PORT
         if let Ok(port) = env::var("PQ_PORT").or_else(|_| env::var("PORT")) {
             if let Ok(port_num) = port.parse::<u16>() {
                 config.server.port = port_num;
@@ -142,7 +150,36 @@ impl AppConfig {
             config.server.log_level = log_level;
         }
 
-        // Security configuration from environment
+        if let Ok(timeout) = env::var("PQ_REQUEST_TIMEOUT") {
+            if let Ok(timeout_secs) = timeout.parse::<u64>() {
+                config.server.request_timeout_seconds = timeout_secs;
+            }
+        }
+
+        if let Ok(timeout) = env::var("PQ_CRYPTO_TIMEOUT") {
+            if let Ok(timeout_secs) = timeout.parse::<u64>() {
+                config.server.crypto_timeout_seconds = timeout_secs;
+            }
+        }
+
+        if let Ok(timeout) = env::var("PQ_HEALTH_TIMEOUT") {
+            if let Ok(timeout_secs) = timeout.parse::<u64>() {
+                config.server.health_timeout_seconds = timeout_secs;
+            }
+        }
+
+        if let Ok(timeout) = env::var("PQ_CONNECTION_TIMEOUT") {
+            if let Ok(timeout_secs) = timeout.parse::<u64>() {
+                config.server.connection_timeout_seconds = timeout_secs;
+            }
+        }
+
+        if let Ok(max_conn) = env::var("PQ_MAX_CONNECTIONS") {
+            if let Ok(max_connections) = max_conn.parse::<usize>() {
+                config.server.max_concurrent_connections = max_connections;
+            }
+        }
+
         if let Ok(rate_limit) = env::var("PQ_RATE_LIMIT") {
             if let Ok(rate) = rate_limit.parse::<u32>() {
                 config.security.rate_limit_per_minute = rate;
@@ -155,7 +192,6 @@ impl AppConfig {
             }
         }
 
-        // Compliance configuration from environment
         if let Ok(soc2) = env::var("PQ_ENABLE_SOC2") {
             config.compliance.enable_soc2_logging = soc2.to_lowercase() == "true";
         }
@@ -164,7 +200,6 @@ impl AppConfig {
             config.compliance.enable_gdpr_privacy_controls = gdpr.to_lowercase() == "true";
         }
 
-        // Production security hardening
         if matches!(config.server.environment, Environment::Production) {
             config.security.log_sensitive_data = false;
             config.security.enable_response_logging = false;
@@ -179,7 +214,6 @@ impl AppConfig {
 
     #[allow(dead_code)]
     pub fn validate(&self) -> Result<(), String> {
-        // Validate server configuration
         if self.server.port == 0 {
             return Err("Invalid port number".to_string());
         }
@@ -188,7 +222,6 @@ impl AppConfig {
             return Err("Host cannot be empty".to_string());
         }
 
-        // Validate security configuration
         if self.security.rate_limit_per_minute == 0 {
             return Err("Rate limit must be greater than 0".to_string());
         }
@@ -201,7 +234,6 @@ impl AppConfig {
             return Err("Password minimum length must be at least 8 characters".to_string());
         }
 
-        // Production environment validation
         if matches!(self.server.environment, Environment::Production) {
             if !self.security.require_tls {
                 return Err("TLS is required in production environment".to_string());

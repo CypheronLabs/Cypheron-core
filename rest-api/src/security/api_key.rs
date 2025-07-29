@@ -132,7 +132,7 @@ pub async fn create_api_key(
         )
     })?;
 
-    tracing::info!("Created new API key: {} ({})", key_info.name, key_info.id);
+    tracing::info!("API key created by master admin: {} ({})", key_info.name, key_info.id);
 
     Ok(Json(CreateApiKeyResponse { api_key: api_key_raw, key_info }))
 }
