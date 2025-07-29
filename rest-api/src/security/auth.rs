@@ -637,6 +637,48 @@ pub async fn auth_middleware(
     Ok(next.run(request).await)
 }
 
+pub async fn admin_auth_middleware(
+    State(_api_store): State<ApiKeyStore>,
+    headers: HeaderMap,
+    request: Request,
+    next: Next,
+) -> Result<Response, (StatusCode, Json<AuthError>)> {
+    let master_admin_key = std::env::var("PQ_MASTER_ADMIN_KEY").map_err(|_| {
+        tracing::error!("PQ_MASTER_ADMIN_KEY environment variable not set");
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(AuthError {
+                error: "admin_config_error".to_string(),
+                message: "Admin authentication not properly configured".to_string(),
+                code: 500,
+            }),
+        )
+    })?;
+
+    let provided_key = extract_api_key(&headers).map_err(|e| {
+        tracing::warn!("Admin endpoint access attempt without API key from: {:?}", request.uri());
+        e
+    })?;
+
+    if provided_key.as_bytes().ct_eq(master_admin_key.as_bytes()).into() {
+        tracing::info!("Master admin authenticated for: {}", request.uri().path());
+        Ok(next.run(request).await)
+    } else {
+        tracing::error!("Unauthorized admin access attempt with key: {}... from: {}", 
+                       &provided_key[..std::cmp::min(10, provided_key.len())], 
+                       request.uri().path());
+        
+        Err((
+            StatusCode::FORBIDDEN,
+            Json(AuthError {
+                error: "admin_access_denied".to_string(),
+                message: "Admin access requires master admin key".to_string(),
+                code: 403,
+            }),
+        ))
+    }
+}
+
 pub async fn compliance_middleware(
     State(compliance_manager): State<Arc<ComplianceManager>>,
     mut request: Request,

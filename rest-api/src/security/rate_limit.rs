@@ -30,7 +30,7 @@ impl RateLimiter {
         Self {
             entries: Arc::new(RwLock::new(HashMap::new())),
             requests_per_minute,
-            block_duration: Duration::from_secs(60), // 1 minute block
+            block_duration: Duration::from_secs(60), 
         }
     }
 
@@ -43,8 +43,6 @@ impl RateLimiter {
             window_start: now,
             blocked_until: None,
         });
-
-        // Check if currently blocked
         if let Some(blocked_until) = entry.blocked_until {
             if now < blocked_until {
                 return Err(RateLimitError {
@@ -55,20 +53,17 @@ impl RateLimiter {
                     code: 429,
                 });
             } else {
-                // Block period expired, reset
                 entry.blocked_until = None;
                 entry.count = 0;
                 entry.window_start = now;
             }
         }
 
-        // Reset window if more than 1 minute has passed
         if now.duration_since(entry.window_start) >= Duration::from_secs(60) {
             entry.count = 0;
             entry.window_start = now;
         }
 
-        // Check rate limit
         if entry.count >= self.requests_per_minute {
             entry.blocked_until = Some(now + self.block_duration);
             return Err(RateLimitError {
@@ -81,7 +76,6 @@ impl RateLimiter {
                 code: 429,
             });
         }
-
         entry.count += 1;
         Ok(())
     }
@@ -100,22 +94,15 @@ pub async fn rate_limit_middleware(
     request: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<RateLimitError>)> {
-    // In production (Cloud Run), we must use a secure identifier that cannot be spoofed
-    // Never trust client-provided headers for rate limiting in production environments
     let identifier = {
-        // Try to get the actual connection IP first
         if let Some(connect_info) = request.extensions().get::<axum::extract::ConnectInfo<std::net::SocketAddr>>() {
-            // Use the real connection IP - cannot be spoofed
             connect_info.0.ip().to_string()
         } else {
-            // If connection info unavailable (Cloud Run), use a combination of 
-            // non-spoofable request characteristics for rate limiting
             use std::collections::hash_map::DefaultHasher;
             use std::hash::{Hash, Hasher};
             
             let mut hasher = DefaultHasher::new();
             
-            // Hash multiple request characteristics that are harder to manipulate
             if let Some(user_agent) = request.headers().get("user-agent") {
                 user_agent.hash(&mut hasher);
             }
@@ -128,12 +115,6 @@ pub async fn rate_limit_middleware(
             if let Some(accept_encoding) = request.headers().get("accept-encoding") {
                 accept_encoding.hash(&mut hasher);
             }
-            
-            // Include request path and method in the hash for more uniqueness
-            request.uri().path().hash(&mut hasher);
-            request.method().hash(&mut hasher);
-            
-            // Create a stable identifier that's difficult to manipulate
             format!("secure-{}", hasher.finish())
         }
     };

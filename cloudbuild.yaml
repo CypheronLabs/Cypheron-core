@@ -32,6 +32,16 @@ steps:
     - '10'
     - '--port'
     - '8080'
+    - '--timeout'
+    - '60'
+    - '--concurrency'
+    - '50'
+    - '--min-instances'
+    - '1'
+    - '--execution-environment'
+    - 'gen2'
+    - '--revision-suffix'
+    - 'secure'
 
 images:
   - 'gcr.io/$PROJECT_ID/cypheron-api'

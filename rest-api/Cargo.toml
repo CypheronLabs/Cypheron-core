@@ -18,8 +18,8 @@ hex = "0.4"
 uuid = { version = "1.17", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 jsonwebtoken = "9.3"
-tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "trace", "limit"] }
+tower = { version = "0.5", features = ["timeout", "limit"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "limit", "timeout"] }
 headers = "0.4"
 sha2 = "0.10"
 rand = "0.9"

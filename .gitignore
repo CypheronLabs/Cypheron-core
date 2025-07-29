@@ -45,6 +45,11 @@ api_performance_test.py
 slow_crypto_bottleneck_test.py
 test_ml_dsa_44.rs
 simple_test.sh
+authenticated_rate_limit_pentest.py
+check_api_keys.py
+rate_limit_bypass_pentest.py
+security_probe.py
+timeout_pentest.py
 
 # Documentation (handled separately)
 API_CHEAT_SHEET.md

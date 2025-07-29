@@ -126,12 +126,13 @@ async fn main() {
         ))
         .layer(middleware::from_fn(security::request_validation_middleware))
         .layer(middleware::from_fn(security::timing_middleware))
-        .layer(middleware::from_fn(security::security_headers_middleware));
+        .layer(middleware::from_fn(security::security_headers_middleware))
+        .layer(middleware::from_fn(security::smart_timeout_middleware));
 
     let admin_routes = Router::new()
         .merge(admin_api_routes)
         .merge(admin_audit_routes)
-        .layer(middleware::from_fn_with_state(api_key_store.clone(), security::auth_middleware))
+        .layer(middleware::from_fn_with_state(api_key_store.clone(), security::admin_auth_middleware))
         .layer(middleware::from_fn_with_state(
             rate_limiter.clone(),
             security::rate_limit_middleware,
@@ -142,15 +143,18 @@ async fn main() {
         ))
         .layer(middleware::from_fn(security::request_validation_middleware))
         .layer(middleware::from_fn(security::timing_middleware))
-        .layer(middleware::from_fn(security::security_headers_middleware));
+        .layer(middleware::from_fn(security::security_headers_middleware))
+        .layer(middleware::from_fn(security::smart_timeout_middleware));
+
+    let config = config::AppConfig::from_env();
 
     let app = Router::new()
         .merge(public_routes)
         .merge(api_routes)
         .merge(admin_routes)
-        .layer(security::create_cors_middleware());
-
-    let config = config::AppConfig::from_env();
+        .layer(security::create_cors_middleware())
+        .layer(security::create_request_size_limit_layer())
+        .layer(security::create_connection_limit_layer(config.server.max_concurrent_connections));
     let bind_addr = format!("{}:{}", config.server.host, config.server.port);
 
     let listener = TcpListener::bind(&bind_addr).await.expect("Failed to bind port");
@@ -164,6 +168,12 @@ async fn main() {
     tracing::info!("  - Audit Logging");
     tracing::info!("  - Post-Quantum ML-KEM-768 + ChaCha20-Poly1305 Encryption at Rest");
     tracing::info!("  - Constant-time Authentication");
+    tracing::info!("  - Smart Timeout Protection (Crypto: {}s, Standard: {}s, Health: {}s)", 
+        config.server.crypto_timeout_seconds, 
+        config.server.request_timeout_seconds, 
+        config.server.health_timeout_seconds);
+    tracing::info!("  - Connection Limits ({} max concurrent)", config.server.max_concurrent_connections);
+    tracing::info!("  - Request Size Limits (1MB max)");
 
     if std::env::var("PQ_TEST_API_KEY").is_ok() {
         tracing::info!("Test API Key loaded from PQ_TEST_API_KEY environment variable");
@@ -171,6 +181,13 @@ async fn main() {
         tracing::info!(
             "No test API key configured. Use PQ_TEST_API_KEY environment variable for testing."
         );
+    }
+
+    if std::env::var("PQ_MASTER_ADMIN_KEY").is_ok() {
+        tracing::info!("Master admin key configured - admin endpoints secured");
+    } else {
+        tracing::error!("PQ_MASTER_ADMIN_KEY not set - admin endpoints will be inaccessible");
+        tracing::error!("Set PQ_MASTER_ADMIN_KEY environment variable with a secure admin key");
     }
 
     tracing::info!("Storage backend: Google Cloud Firestore with post-quantum encryption");
