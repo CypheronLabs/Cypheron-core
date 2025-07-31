@@ -634,6 +634,10 @@ pub async fn auth_middleware(
         );
     }
 
+    // Add user_id and api_key_prefix to request extensions for logging
+    request.extensions_mut().insert(validated_key.id.to_string());
+    request.extensions_mut().insert(api_key[..8].to_string());
+
     Ok(next.run(request).await)
 }
 
