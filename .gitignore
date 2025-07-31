@@ -55,6 +55,7 @@ timeout_pentest.py
 API_CHEAT_SHEET.md
 hostinger-*.md
 website-integration-guide.md
+rest-api-analysis.md
 
 # Compiled libraries
 lib/
