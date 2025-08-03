@@ -5,6 +5,8 @@ pub mod compliance;
 pub mod middleware;
 pub mod rate_limit;
 pub mod timeout;
+pub mod validation;
+pub mod repository;
 
 pub use api_key::*;
 pub use audit::*;
@@ -13,3 +15,4 @@ pub use compliance::*;
 pub use middleware::*;
 pub use rate_limit::*;
 pub use timeout::*;
+pub use validation::ValidationPipeline;

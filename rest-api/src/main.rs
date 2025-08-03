@@ -116,7 +116,6 @@ async fn main() {
         .merge(api::nist::routes())
         .merge(monitoring_routes)
         .layer(middleware::from_fn_with_state(api_key_store.clone(), security::auth_middleware))
-        .wrap(monitoring::analytics_logger::AnalyticsLogger)
         .layer(middleware::from_fn_with_state(
             rate_limiter.clone(),
             security::rate_limit_middleware,
