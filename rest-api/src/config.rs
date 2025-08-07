@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 
+pub mod database;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityConfig {
     pub api_key_expiry_days: u32,

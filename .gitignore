@@ -57,6 +57,11 @@ hostinger-*.md
 website-integration-guide.md
 rest-api-analysis.md
 
+# Authentication and security guides (sensitive information)
+API_AUTHENTICATION_GUIDE.md
+*_AUTHENTICATION_*.md
+*_AUTH_*.md
+
 # Compiled libraries
 lib/
 lib/*.so
@@ -65,3 +70,14 @@ lib/*.dylib
 
 # Library Cargo.lock (uncomment if treating as library)
 # Cargo.lock
+terraform/terraform.tfvars
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform/
+.env.secrets
+.env.production
+*.pem
+*.key
+.secrets_generated
+terraform/*.tfstate
+terraform/*.tfstate.backup

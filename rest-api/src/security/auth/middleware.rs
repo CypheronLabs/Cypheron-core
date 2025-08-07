@@ -16,14 +16,17 @@ use super::{
     utils::extract_api_key,
 };
 use crate::security::compliance::{ComplianceEventType, ComplianceManager, RiskLevel};
+use crate::security::error_sanitizer::{ErrorSanitizer, SanitizedError};
 
 pub async fn auth_middleware(
     State(api_store): State<ApiKeyStore>,
     headers: HeaderMap,
     mut request: Request,
     next: Next,
-) -> Result<Response, (StatusCode, Json<AuthError>)> {
-    let api_key = extract_api_key(&headers)?;
+) -> Result<Response, (StatusCode, Json<SanitizedError>)> {
+    let api_key = extract_api_key(&headers).map_err(|e| {
+        (e.0, Json(ErrorSanitizer::sanitize_auth_error(&e.1)))
+    })?;
 
     let validated_key = api_store.validate_key(&api_key).await.ok_or_else(|| {
         if let Some(compliance_manager) = request.extensions().get::<Arc<ComplianceManager>>() {
@@ -39,14 +42,14 @@ pub async fn auth_middleware(
             );
         }
 
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(AuthError {
+        {
+            let error = AuthError {
                 error: "invalid_api_key".to_string(),
                 message: "Invalid or expired API key".to_string(),
                 code: 401,
-            }),
-        )
+            };
+            (StatusCode::UNAUTHORIZED, Json(ErrorSanitizer::sanitize_auth_error(&error)))
+        }
     })?;
 
     let path = request.uri().path();
@@ -68,13 +71,14 @@ pub async fn auth_middleware(
             );
         }
 
+        let error = AuthError {
+            error: "insufficient_permissions".to_string(),
+            message: format!("Insufficient permissions for resource: {}", resource),
+            code: 403,
+        };
         return Err((
             StatusCode::FORBIDDEN,
-            Json(AuthError {
-                error: "insufficient_permissions".to_string(),
-                message: format!("Insufficient permissions for resource: {}", resource),
-                code: 403,
-            }),
+            Json(ErrorSanitizer::sanitize_auth_error(&error)),
         ));
     }
 
@@ -110,17 +114,17 @@ pub async fn admin_auth_middleware(
     headers: HeaderMap,
     request: Request,
     next: Next,
-) -> Result<Response, (StatusCode, Json<AuthError>)> {
+) -> Result<Response, (StatusCode, Json<SanitizedError>)> {
     let master_admin_key = std::env::var("PQ_MASTER_ADMIN_KEY").map_err(|_| {
         tracing::error!("PQ_MASTER_ADMIN_KEY environment variable not set");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(AuthError {
+        {
+            let error = AuthError {
                 error: "admin_config_error".to_string(),
                 message: "Admin authentication not properly configured".to_string(),
                 code: 500,
-            }),
-        )
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorSanitizer::sanitize_auth_error(&error)))
+        }
     })?;
 
     let provided_key = extract_api_key(&headers).map_err(|e| {
@@ -128,7 +132,7 @@ pub async fn admin_auth_middleware(
             "Admin endpoint access attempt without API key from: {:?}",
             request.uri()
         );
-        e
+        (e.0, Json(ErrorSanitizer::sanitize_auth_error(&e.1)))
     })?;
 
     if provided_key
@@ -145,14 +149,14 @@ pub async fn admin_auth_middleware(
             request.uri().path()
         );
 
-        Err((
-            StatusCode::FORBIDDEN,
-            Json(AuthError {
+        {
+            let error = AuthError {
                 error: "admin_access_denied".to_string(),
                 message: "Admin access requires master admin key".to_string(),
                 code: 403,
-            }),
-        ))
+            };
+            Err((StatusCode::FORBIDDEN, Json(ErrorSanitizer::sanitize_auth_error(&error))))
+        }
     }
 }
 

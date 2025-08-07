@@ -1,0 +1,26 @@
+# Cypheron API Production Configuration
+# Generated on Sun 03 Aug 2025 23:34:23 PDT
+
+# GCP Configuration
+project_id = "cypheron-api"
+region = "us-central1"
+service_name = "cypheron-api"
+environment = "prod"
+
+# Security Configuration (Auto-generated - KEEP SECURE)
+master_admin_key = "gbAfOYbozSHci0RGH72MTLYol6TSxv0fiwZjJH7ECldNUn0NZoq4zUQ2aV18hae
+8Irvb0GRN9DHFX0zF6SppA"
+encryption_password = "GyIhs0181nzsCtnIgCfN8IUQgv5jEpGrQWbfrHxN2YJCWubNhRbkw7XNNoAGHrB
+7KHbGpWhAvmMBrjhjTrfw"
+
+# Access Control
+allowed_users = []
+
+# Resource Limits
+max_instances = 10
+min_instances = 1
+memory_limit = "1Gi"
+cpu_limit = "1000m"
+
+# Security Settings
+enable_deletion_protection = true

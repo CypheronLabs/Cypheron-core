@@ -32,14 +32,43 @@ impl PostQuantumEncryption {
     }
 
     pub fn from_password(password: &str) -> Result<Self, AuthError> {
-        const SALT: &[u8] = b"Q3lwaGVyb25BcGlLZXlTYWx0";
+        if password.is_empty() {
+            return Err(AuthError {
+                error: "invalid_password".to_string(),
+                message: "Master password cannot be empty".to_string(),
+                code: 500,
+            });
+        }
+
+        if password.len() < 32 {
+            return Err(AuthError {
+                error: "weak_password".to_string(),
+                message: "Master password must be at least 32 characters".to_string(),
+                code: 500,
+            });
+        }
+        
+        let salt = std::env::var("PQ_ENCRYPTION_SALT").map_err(|_| AuthError {
+            error: "missing_salt".to_string(),
+            message: "PQ_ENCRYPTION_SALT environment variable is required".to_string(),
+            code: 500,
+        })?;
+
+        if salt.len() < 16 {
+            return Err(AuthError {
+                error: "invalid_salt".to_string(),
+                message: "Encryption salt must be at least 16 bytes".to_string(),
+                code: 500,
+            });
+        }
+
         const PBKDF2_ITERATIONS: u32 = 100_000;
         
         let mut key = [0u8; 32];
         pbkdf2::derive(
             pbkdf2::PBKDF2_HMAC_SHA256,
             NonZeroU32::new(PBKDF2_ITERATIONS).unwrap(),
-            SALT,
+            salt.as_bytes(),
             password.as_bytes(),
             &mut key,
         );

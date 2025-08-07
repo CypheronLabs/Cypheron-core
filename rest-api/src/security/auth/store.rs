@@ -10,7 +10,7 @@ use super::{
     repository::FirestoreApiKeyRepository,
     validation::KeyValidator,
 };
-use crate::security::repository::ApiKeyRepository;
+use crate::security::repository::LegacyApiKeyRepository;
 
 #[derive(Clone)]
 pub struct ApiKeyStore {
@@ -23,11 +23,13 @@ impl ApiKeyStore {
         let collection_name = std::env::var("FIRESTORE_COLLECTION")
             .unwrap_or_else(|_| "api_keys".to_string());
 
-        let encryption = if let Ok(password) = std::env::var("PQ_ENCRYPTION_PASSWORD") {
-            PostQuantumEncryption::from_password(&password)?
-        } else {
-            PostQuantumEncryption::new()
-        };
+        let password = std::env::var("PQ_ENCRYPTION_PASSWORD").map_err(|_| AuthError {
+            error: "missing_encryption_password".to_string(),
+            message: "PQ_ENCRYPTION_PASSWORD environment variable is required for secure operation".to_string(),
+            code: 500,
+        })?;
+
+        let encryption = PostQuantumEncryption::from_password(&password)?;
 
         let firestore_client = Arc::new(
             GoogleApi::from_function(
@@ -63,7 +65,7 @@ impl ApiKeyStore {
         );
 
         let key_validator = Arc::new(KeyValidator::new(
-            firestore_repo as Arc<dyn ApiKeyRepository>,
+            firestore_repo as Arc<dyn LegacyApiKeyRepository>,
             validation_pipeline,
         ));
 

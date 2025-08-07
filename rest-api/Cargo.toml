@@ -40,3 +40,6 @@ hyper = "1.6.0"
 p256 = "0.13.2"
 gcloud-sdk = { version = "0.27.3", features = ["google-firestore-v1"] }
 rustls = { version = "0.23", features = ["ring"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+deadpool-postgres = "0.14"
+clap = { version = "4.5", features = ["derive"] }

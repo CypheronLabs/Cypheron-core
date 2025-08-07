@@ -6,42 +6,6 @@ steps:
   # Push the image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/cypheron-api']
-  
-  # Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args: 
-    - 'run'
-    - 'deploy'
-    - 'cypheron-api'
-    - '--image'
-    - 'gcr.io/$PROJECT_ID/cypheron-api'
-    - '--region'
-    - 'us-central1'
-    - '--platform'
-    - 'managed'
-    - '--allow-unauthenticated'
-    - '--service-account'
-    - 'firestore-accessor@$PROJECT_ID.iam.gserviceaccount.com'
-    - '--set-env-vars'
-    - 'FIRESTORE_PROJECT_ID=$PROJECT_ID,FIRESTORE_COLLECTION=api_keys,PQ_ENCRYPTION_PASSWORD=Cypheron-PQ-API-Master-Key-2024-v1'
-    - '--memory'
-    - '1Gi'
-    - '--cpu'
-    - '1'
-    - '--max-instances'
-    - '10'
-    - '--port'
-    - '8080'
-    - '--timeout'
-    - '60'
-    - '--concurrency'
-    - '50'
-    - '--min-instances'
-    - '1'
-    - '--execution-environment'
-    - 'gen2'
-    - '--revision-suffix'
-    - 'secure'
 
 images:
   - 'gcr.io/$PROJECT_ID/cypheron-api'
