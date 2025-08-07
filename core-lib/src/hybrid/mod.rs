@@ -1,11 +1,13 @@
 pub mod composite;
 pub mod ecdsa;
+pub mod kem;
 pub mod schemes;
 pub mod traits;
 
 pub use composite::{CompositeKeypair, CompositeSignature};
+pub use kem::{P256MlKem768, HybridCiphertext, HybridSharedSecret};
 pub use schemes::{EccDilithium, EccFalcon, EccSphincs};
-pub use traits::{HybridEngine, HybridScheme};
+pub use traits::{HybridEngine, HybridKemEngine, HybridScheme};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum HybridVariant {

@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
     response::Json,
     routing::{get, post},
@@ -137,21 +137,83 @@ pub async fn create_api_key(
     Ok(Json(CreateApiKeyResponse { api_key: api_key_raw, key_info }))
 }
 
-pub async fn list_api_keys(State(_api_store): State<ApiKeyStore>) -> Json<ApiKeyListResponse> {
-    Json(ApiKeyListResponse { keys: vec![] })
+pub async fn list_api_keys(State(api_store): State<ApiKeyStore>) -> Result<Json<ApiKeyListResponse>, (StatusCode, Json<ApiKeyManagementError>)> {
+    match api_store.list_api_keys().await {
+        Ok(api_keys) => {
+            let key_infos = api_keys.into_iter().map(|api_key| ApiKeyInfo {
+                id: api_key.id,
+                name: api_key.name,
+                permissions: api_key.permissions,
+                rate_limit: api_key.rate_limit,
+                created_at: api_key.created_at,
+                expires_at: api_key.expires_at,
+                is_active: api_key.is_active,
+                last_used: api_key.last_used,
+                usage_count: api_key.usage_count,
+            }).collect();
+
+            tracing::info!("Listed {} API keys for admin", key_infos.len());
+            Ok(Json(ApiKeyListResponse { keys: key_infos }))
+        }
+        Err(e) => {
+            tracing::error!("Failed to list API keys: {}", e.message);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiKeyManagementError {
+                    error: e.error,
+                    message: e.message,
+                    code: e.code,
+                }),
+            ))
+        }
+    }
 }
 
 pub async fn get_api_key_info(
-    State(_api_store): State<ApiKeyStore>,
+    Path(id): Path<String>,
+    State(api_store): State<ApiKeyStore>,
 ) -> Result<Json<ApiKeyInfo>, (StatusCode, Json<ApiKeyManagementError>)> {
-    Err((
-        StatusCode::NOT_IMPLEMENTED,
-        Json(ApiKeyManagementError {
-            error: "not_implemented".to_string(),
-            message: "Individual key lookup not implemented yet".to_string(),
-            code: 501,
-        }),
-    ))
+    // Use the ID as the key hash for lookup
+    match api_store.get_api_key(&id).await {
+        Ok(Some(api_key)) => {
+            let key_info = ApiKeyInfo {
+                id: api_key.id,
+                name: api_key.name,
+                permissions: api_key.permissions,
+                rate_limit: api_key.rate_limit,
+                created_at: api_key.created_at,
+                expires_at: api_key.expires_at,
+                is_active: api_key.is_active,
+                last_used: api_key.last_used,
+                usage_count: api_key.usage_count,
+            };
+
+            tracing::info!("Retrieved API key info for admin: {} ({})", key_info.name, key_info.id);
+            Ok(Json(key_info))
+        }
+        Ok(None) => {
+            tracing::warn!("API key not found: {}", id);
+            Err((
+                StatusCode::NOT_FOUND,
+                Json(ApiKeyManagementError {
+                    error: "api_key_not_found".to_string(),
+                    message: format!("API key with ID {} not found", id),
+                    code: 404,
+                }),
+            ))
+        }
+        Err(e) => {
+            tracing::error!("Failed to retrieve API key {}: {}", id, e.message);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiKeyManagementError {
+                    error: e.error,
+                    message: e.message,
+                    code: e.code,
+                }),
+            ))
+        }
+    }
 }
 
 pub fn api_key_management_routes() -> Router<ApiKeyStore> {

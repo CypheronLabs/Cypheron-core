@@ -33,7 +33,7 @@ impl Default for SecurityConfig {
             enable_response_logging: false,
             log_sensitive_data: false,
             require_tls: true,
-            allowed_origins: vec!["http://localhost:3000".to_string()],
+            allowed_origins: vec!["https://api.cypheronlabs.com".to_string()],
         }
     }
 }
@@ -206,7 +206,7 @@ impl AppConfig {
             config.security.log_sensitive_data = false;
             config.security.enable_response_logging = false;
             config.security.require_tls = true;
-            config.security.allowed_origins = vec!["https://yourdomain.com".to_string()];
+            config.security.allowed_origins = vec!["https://api.cypheronlabs.com".to_string()];
             config.compliance.enable_soc2_logging = true;
             config.compliance.enable_gdpr_privacy_controls = true;
         }
