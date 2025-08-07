@@ -1,5 +1,5 @@
 # Multi-stage build for production deployment
-FROM rust:1.86 AS builder
+FROM rust:1.90 AS builder
 
 # Install build dependencies including Node.js for static file processing and PostgreSQL client
 RUN apt-get update && apt-get install -y --no-install-recommends \
