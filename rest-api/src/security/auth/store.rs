@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use super::{
     encryption::PostQuantumEncryption,
+    hybrid_encryption::HybridEncryption,
     errors::AuthError,
     models::ApiKey,
     permissions::check_permission,
@@ -16,6 +17,7 @@ use crate::security::repository::LegacyApiKeyRepository;
 pub struct ApiKeyStore {
     repository: Arc<FirestoreApiKeyRepository>,
     key_validator: Arc<KeyValidator>,
+    hybrid_encryption: Arc<HybridEncryption>,
 }
 
 impl ApiKeyStore {
@@ -30,6 +32,9 @@ impl ApiKeyStore {
         })?;
 
         let encryption = PostQuantumEncryption::from_password(&password)?;
+        
+        // Create hybrid encryption with legacy support for existing keys
+        let hybrid_encryption = Arc::new(HybridEncryption::with_legacy_support(&password)?);
 
         let firestore_client = Arc::new(
             GoogleApi::from_function(
@@ -72,6 +77,7 @@ impl ApiKeyStore {
         Ok(Self {
             repository,
             key_validator,
+            hybrid_encryption,
         })
     }
 
@@ -87,11 +93,43 @@ impl ApiKeyStore {
         self.repository.delete_api_key(key_hash).await
     }
 
+    pub async fn get_api_key(&self, key_hash: &str) -> Result<Option<ApiKey>, AuthError> {
+        self.repository.get_api_key(key_hash).await
+    }
+
+    pub async fn list_api_keys(&self) -> Result<Vec<ApiKey>, AuthError> {
+        self.repository.list_api_keys().await
+    }
+
     pub async fn check_permission(&self, key: &str, resource: &str) -> bool {
         if let Some(api_key) = self.validate_key(key).await {
             check_permission(&api_key, resource)
         } else {
             false
         }
+    }
+
+    /// Store API key using hybrid encryption (new keys use V2)
+    pub async fn store_api_key_hybrid(&self, api_key: &ApiKey, raw_key: &str) -> Result<(), AuthError> {
+        // Use hybrid encryption for new keys
+        let encrypted_data = self.hybrid_encryption.encrypt(raw_key.as_bytes())?;
+        
+        // Serialize the versioned encrypted data
+        let serialized_data = serde_json::to_vec(&encrypted_data).map_err(|e| AuthError {
+            error: "serialization_error".to_string(),
+            message: format!("Failed to serialize versioned encrypted data: {}", e),
+            code: 500,
+        })?;
+
+        // Actually store the data using the versioned repository method
+        self.repository.store_api_key_versioned(api_key, &serialized_data).await?;
+
+        tracing::info!("Stored API key with hybrid encryption (V2): {} ({})", api_key.name, api_key.id);
+        Ok(())
+    }
+
+    /// Get hybrid encryption instance (for advanced use cases)
+    pub fn get_hybrid_encryption(&self) -> Arc<HybridEncryption> {
+        self.hybrid_encryption.clone()
     }
 }

@@ -43,3 +43,31 @@ pub enum VerificationPolicy {
 }
 
 pub trait HybridScheme: HybridEngine {}
+
+/// Trait for hybrid Key Encapsulation Mechanisms (KEM)
+/// Combines classical and post-quantum key agreement
+pub trait HybridKemEngine {
+    type ClassicalPublicKey: Clone + Debug + Send + Sync + 'static;
+    type ClassicalSecretKey: Zeroize + Debug + Send + Sync + 'static;
+    
+    type PqPublicKey: Clone + Debug + Send + Sync + 'static;
+    type PqSecretKey: Zeroize + Debug + Send + Sync + 'static;
+    
+    type CompositePublicKey: Clone + Debug + Send + Sync + 'static;
+    type CompositeSecretKey: Zeroize + Debug + Send + Sync + 'static;
+    type HybridCiphertext: Clone + Debug + Send + Sync + 'static;
+    type SharedSecret: Zeroize + Debug + Send + Sync + 'static;
+    
+    type Error: StdError + Debug + Send + Sync + 'static;
+    
+    fn keypair() -> Result<(Self::CompositePublicKey, Self::CompositeSecretKey), Self::Error>;
+    
+    fn encapsulate(
+        pk: &Self::CompositePublicKey,
+    ) -> Result<(Self::HybridCiphertext, Self::SharedSecret), Self::Error>;
+    
+    fn decapsulate(
+        ct: &Self::HybridCiphertext,
+        sk: &Self::CompositeSecretKey,
+    ) -> Result<Self::SharedSecret, Self::Error>;
+}

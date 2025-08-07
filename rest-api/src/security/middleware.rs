@@ -142,7 +142,7 @@ pub async fn timing_middleware(request: Request, next: Next) -> Response {
 // Create CORS middleware
 pub fn create_cors_middleware() -> CorsLayer {
     CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin("https://api.cypheronlabs.com".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([
             "content-type".parse().unwrap(),
