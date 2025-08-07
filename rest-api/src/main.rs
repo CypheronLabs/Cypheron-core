@@ -4,6 +4,7 @@ use tracing_subscriber;
 
 mod api;
 mod config;
+mod database;
 mod error;
 mod handlers;
 mod models;
@@ -23,13 +24,16 @@ async fn main() {
     
     tracing_subscriber::fmt::init();
 
-    let firestore_project_id = std::env::var("FIRESTORE_PROJECT_ID")
-        .expect("FIRESTORE_PROJECT_ID environment variable must be set");
+    let db_config = config::database::DatabaseConfiguration::from_environment().await
+        .expect("Failed to initialize database configuration");
 
-    let api_key_store = security::ApiKeyStore::new_with_firestore(&firestore_project_id).await
-        .expect("Failed to initialize Firestore API key store");
+    let api_key_store = db_config.api_key_store.clone();
 
-    tracing::info!("API key store connected to Firestore project: {}", firestore_project_id);
+    tracing::info!("Database backend initialized: {}", db_config.get_backend_type());
+    
+    let health_status = db_config.health_check().await
+        .expect("Database health check failed");
+    tracing::info!("Database health check passed: healthy={}", health_status.is_healthy());
 
     let rate_limiter = security::RateLimiter::new(60);
     let audit_logger = Arc::new(security::AuditLogger::new(10000));
@@ -190,7 +194,11 @@ async fn main() {
         tracing::error!("Set PQ_MASTER_ADMIN_KEY environment variable with a secure admin key");
     }
 
-    tracing::info!("Storage backend: Google Cloud Firestore with post-quantum encryption");
+    tracing::info!("Storage backend: {} with post-quantum encryption", db_config.get_backend_type());
+    
+    if let Some(response_time) = health_status.response_time_ms() {
+        tracing::info!("Database response time: {}ms", response_time);
+    }
 
     if std::env::var("PQ_ENCRYPTION_PASSWORD").is_ok() {
         tracing::info!(

@@ -1,4 +1,4 @@
-use super::ApiKeyRepository;
+use super::LegacyApiKeyRepository;
 use crate::security::auth::AuthError;
 use crate::security::validation::UsageUpdateInfo;
 use gcloud_sdk::google::firestore::v1::{
@@ -35,7 +35,7 @@ impl FirestoreRepository {
 }
 
 #[async_trait::async_trait]
-impl ApiKeyRepository for FirestoreRepository {
+impl LegacyApiKeyRepository for FirestoreRepository {
     async fn get_key_document(&self, key_hash: &str) -> Result<Option<Document>, AuthError> {
         let request = GetDocumentRequest {
             name: format!(

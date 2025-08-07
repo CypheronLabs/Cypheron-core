@@ -1,0 +1,29 @@
+# terraform/terraform.tfvars.example
+# Copy this file to terraform.tfvars and fill in your values
+
+# Required: Your GCP project ID
+project_id = "your-gcp-project-id"
+
+# Required: Strong admin key (generate with: openssl rand -base64 48)
+master_admin_key = "your-very-secure-admin-key-at-least-32-characters-long"
+
+# Required: Strong encryption password (generate with: openssl rand -base64 48)
+encryption_password = "your-very-secure-encryption-password-at-least-32-characters"
+
+# Optional: Additional configuration
+region = "us-central1"
+service_name = "cypheron-api"
+environment = "prod"
+
+# Optional: Users allowed to access the API
+# Format: ["user:admin@yourdomain.com", "serviceAccount:your-service@project.iam.gserviceaccount.com"]
+allowed_users = []
+
+# Optional: Resource limits
+max_instances = 10
+min_instances = 1
+memory_limit = "1Gi"
+cpu_limit = "1000m"
+
+# Security settings
+enable_deletion_protection = true

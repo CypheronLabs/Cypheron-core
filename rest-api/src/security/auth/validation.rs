@@ -2,16 +2,16 @@ use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
 use super::models::ApiKey;
-use crate::security::repository::ApiKeyRepository;
+use crate::security::repository::LegacyApiKeyRepository;
 
 pub struct KeyValidator {
-    repository: Arc<dyn ApiKeyRepository>,
+    repository: Arc<dyn LegacyApiKeyRepository>,
     validation_pipeline: crate::security::validation::ValidationPipeline,
 }
 
 impl KeyValidator {
     pub fn new(
-        repository: Arc<dyn ApiKeyRepository>,
+        repository: Arc<dyn LegacyApiKeyRepository>,
         validation_pipeline: crate::security::validation::ValidationPipeline,
     ) -> Self {
         Self {

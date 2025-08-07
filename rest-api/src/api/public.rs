@@ -1,4 +1,5 @@
 use axum::{response::Json, routing::get, Router};
+use crate::handlers::status_handler;
 
 pub async fn get_api_status() -> Json<serde_json::Value> {
     Json(serde_json::json!({
@@ -23,5 +24,8 @@ pub fn routes<S>() -> Router<S>
 where
     S: Clone + Send + Sync + 'static,
 {
-    Router::new().route("/public/status", get(get_api_status))
+    Router::new()
+        .route("/public/status", get(get_api_status))
+        .route("/status", get(status_handler::serve_status_page))
+        .route("/static/{*path}", get(status_handler::serve_static_file))
 }
