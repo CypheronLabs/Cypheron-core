@@ -16,10 +16,14 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+  # Credentials are automatically sourced from the gcloud CLI's
+  # application default credentials.
 }
 provider "google-beta" {
   project = var.project_id
-  region = var.region
+  region  = var.region
+  # Credentials are automatically sourced from the gcloud CLI's
+  # application default credentials.
 }
 
 # Variables are defined in variables.tf
@@ -35,7 +39,9 @@ resource "google_project_service" "apis" {
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
     "compute.googleapis.com",
-    "vpcaccess.googleapis.com"
+    "vpcaccess.googleapis.com",
+    "servicenetworking.googleapis.com",
+    "sqladmin.googleapis.com"
   ])
   
   project = var.project_id
@@ -104,6 +110,11 @@ resource "google_secret_manager_secret" "admin_key" {
   depends_on = [google_project_service.apis]
 }
 
+resource "google_secret_manager_secret_version" "admin_key_version" {
+  secret      = google_secret_manager_secret.admin_key.id
+  secret_data = var.master_admin_key
+}
+
 # Secret Manager for encryption password
 resource "google_secret_manager_secret" "encryption_password" {
   secret_id = "pq-encryption-password"
@@ -117,6 +128,11 @@ resource "google_secret_manager_secret" "encryption_password" {
   }
 
   depends_on = [google_project_service.apis]
+}
+
+resource "google_secret_manager_secret_version" "encryption_password_version" {
+  secret      = google_secret_manager_secret.encryption_password.id
+  secret_data = var.encryption_password
 }
 
 
@@ -315,8 +331,7 @@ resource "google_cloud_run_service_iam_binding" "authenticated_invokers" {
   role     = "roles/run.invoker"
   
   members = concat([
-    "serviceAccount:${google_service_account.firestore_accessor.email}",
-    "allAuthenticatedUsers"
+    "serviceAccount:${google_service_account.firestore_accessor.email}"
   ], var.allowed_users)
 }
 
@@ -346,31 +361,24 @@ resource "google_compute_firewall" "allow_internal" {
   priority      = 500
 }
 resource "google_firebaserules_release" "firestore_release" {
-  provider = google-beta # <--- Add this line
-
+  provider = google-beta
   project      = var.project_id
   ruleset_name = google_firebaserules_ruleset.security_rules.name
   name         = "cloud.firestore"
-
   depends_on = [
     google_firebaserules_ruleset.security_rules
   ]
 }
 
-# Apply Firestore Security Rules
-# This resource also requires google-beta, and had a typo
 resource "google_firebaserules_ruleset" "security_rules" {
   provider = google-beta 
-
   project = var.project_id
-  
   source {
     files {
       content = file("../firestore.rules")
       name    = "firestore.rules"
     }
   }
-
   depends_on = [google_firestore_database.default]
 }
 # Outputs are defined in outputs.tf

@@ -80,6 +80,10 @@ resource "google_sql_database_instance" "cypheron_postgres" {
 
   deletion_protection = var.enable_deletion_protection
 
+  lifecycle {
+    ignore_changes = [settings[0].version]
+  }
+
   settings {
     tier                        = var.postgres_tier
     availability_type          = var.postgres_availability_type
@@ -106,12 +110,9 @@ resource "google_sql_database_instance" "cypheron_postgres" {
       ipv4_enabled                                  = false
       private_network                              = google_compute_network.vpc.id
       enable_private_path_for_google_cloud_services = true
-      require_ssl                                  = true
+      ssl_mode                                     = "ENCRYPTED_ONLY"
 
-      authorized_networks {
-        name  = "vpc-connector"
-        value = "10.8.0.0/28"
-      }
+      # authorized_networks block removed - VPC connector range is automatically authorized
     }
 
     # Maintenance window
@@ -142,15 +143,17 @@ resource "google_sql_database_instance" "cypheron_postgres" {
       value = "on"
     }
 
+    # Simplified logging configuration
     database_flags {
       name  = "log_statement"
       value = "ddl"
     }
 
-    database_flags {
-      name  = "shared_preload_libraries"
-      value = "pg_stat_statements"
-    }
+    # Removed shared_preload_libraries as it may not be supported
+    # database_flags {
+    #   name  = "shared_preload_libraries"
+    #   value = "pg_stat_statements"
+    # }
 
     insights_config {
       query_insights_enabled  = true
@@ -178,14 +181,7 @@ resource "google_sql_database" "cypheron_database" {
   collation = "en_US.UTF8"
 }
 
-# PostgreSQL user
-resource "google_sql_user" "cypheron_user" {
-  name     = var.postgres_username
-  instance = google_sql_database_instance.cypheron_postgres.name
-  password = random_password.postgres_password.result
 
-  depends_on = [google_sql_database.cypheron_database]
-}
 
 # IAM binding for Secret Manager access to PostgreSQL password
 resource "google_secret_manager_secret_iam_member" "postgres_password_accessor" {
@@ -210,7 +206,7 @@ resource "google_project_iam_member" "cloudsql_client" {
 
 # Additional Cloud SQL instance user for service account (for IAM authentication)
 resource "google_sql_user" "iam_service_account_user" {
-  name     = google_service_account.firestore_accessor.email
+  name     = replace(google_service_account.firestore_accessor.email, ".gserviceaccount.com", "")
   instance = google_sql_database_instance.cypheron_postgres.name
   type     = "CLOUD_IAM_SERVICE_ACCOUNT"
 
@@ -228,7 +224,7 @@ resource "google_monitoring_alert_policy" "postgres_connection_count" {
     condition_threshold {
       filter          = "resource.type=\"cloudsql_database\" AND resource.labels.database_id=\"${var.project_id}:${google_sql_database_instance.cypheron_postgres.name}\" AND metric.type=\"cloudsql.googleapis.com/database/postgresql/num_backends\""
       duration        = "300s"
-      comparison      = "COMPARISON_GREATER_THAN"
+      comparison      = "COMPARISON_GT"
       threshold_value = var.postgres_max_connections * 0.8
 
       aggregations {
