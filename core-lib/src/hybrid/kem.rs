@@ -2,16 +2,17 @@ use crate::hybrid::composite::{CompositePublicKey, CompositeSecretKey};
 use crate::hybrid::traits::HybridKemEngine;
 use crate::kem::{MlKem768, Kem as KemTrait, sizes};
 use hkdf::Hkdf;
+use sha2::Sha256;
 use p256::{
     ecdh::EphemeralSecret,
     elliptic_curve::rand_core::OsRng,
+    elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint},
     EncodedPoint, PublicKey as P256PublicKey, SecretKey as P256SecretKey,
 };
 use secrecy::{ExposeSecret, SecretBox};
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
-use std::error::Error as StdError;
-use std::fmt::{self, Debug, Display};
+// use sha2::Sha256; // Not needed, use hkdf::Sha256 instead
+use std::fmt::Debug;
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -40,7 +41,9 @@ pub struct P256SecretKeyWrapper(pub P256SecretKey);
 impl Zeroize for P256SecretKeyWrapper {
     fn zeroize(&mut self) {
         // P256SecretKey implements Zeroize internally
-        self.0.zeroize();
+        use p256::elliptic_curve::ScalarPrimitive;
+        let mut bytes = self.0.to_bytes();
+        bytes.zeroize();
     }
 }
 
@@ -135,7 +138,8 @@ impl HybridKemEngine for P256MlKem768 {
         let encoded_point = EncodedPoint::from_bytes(&pk.classical.0)
             .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
         let recipient_public = P256PublicKey::from_encoded_point(&encoded_point)
-            .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
+            .into_option()
+            .ok_or_else(|| HybridKemError::ClassicalError("Invalid P-256 public key point".to_string()))?;
 
         // Perform ECDH
         let classical_shared_secret = ephemeral_secret.diffie_hellman(&recipient_public);
@@ -159,7 +163,7 @@ impl HybridKemEngine for P256MlKem768 {
         // Derive final shared secret using HKDF
         let combined_secret = [
             classical_shared_secret.raw_secret_bytes().as_slice(),
-            pq_shared_secret.0.as_slice(),
+            pq_shared_secret.expose_secret().as_slice(),
         ].concat();
 
         let hkdf = Hkdf::<Sha256>::new(None, &combined_secret);
@@ -187,10 +191,11 @@ impl HybridKemEngine for P256MlKem768 {
         let ephemeral_encoded = EncodedPoint::from_bytes(&ct.classical_ephemeral)
             .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
         let ephemeral_public = P256PublicKey::from_encoded_point(&ephemeral_encoded)
-            .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
+            .into_option()
+            .ok_or_else(|| HybridKemError::ClassicalError("Invalid P-256 public key point".to_string()))?;
 
-        let classical_shared_secret = sk.classical.expose_secret()
-            .0.diffie_hellman(&ephemeral_public);
+        let classical_shared_secret_bytes = ephemeral_secret.diffie_hellman(&recipient_public).
+     raw_secret_bytes();
 
         // Post-quantum ML-KEM decapsulation
         if ct.post_quantum_ciphertext.len() != sizes::ML_KEM_768_CIPHERTEXT {
