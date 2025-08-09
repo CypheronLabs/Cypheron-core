@@ -140,7 +140,7 @@ pub async fn create_api_key(
 pub async fn list_api_keys(State(api_store): State<ApiKeyStore>) -> Result<Json<ApiKeyListResponse>, (StatusCode, Json<ApiKeyManagementError>)> {
     match api_store.list_api_keys().await {
         Ok(api_keys) => {
-            let key_infos = api_keys.into_iter().map(|api_key| ApiKeyInfo {
+            let key_infos: Vec<_> = api_keys.into_iter().map(|api_key| ApiKeyInfo {
                 id: api_key.id,
                 name: api_key.name,
                 permissions: api_key.permissions,

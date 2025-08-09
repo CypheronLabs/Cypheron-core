@@ -204,9 +204,25 @@ resource "google_project_iam_member" "cloudsql_client" {
   member  = "serviceAccount:${google_service_account.firestore_accessor.email}"
 }
 
+# Cloud SQL IAM binding for Cloud Build service account (for SQLx compilation)
+resource "google_project_iam_member" "cloudbuild_cloudsql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
+}
+
 # Additional Cloud SQL instance user for service account (for IAM authentication)
 resource "google_sql_user" "iam_service_account_user" {
   name     = replace(google_service_account.firestore_accessor.email, ".gserviceaccount.com", "")
+  instance = google_sql_database_instance.cypheron_postgres.name
+  type     = "CLOUD_IAM_SERVICE_ACCOUNT"
+
+  depends_on = [google_sql_database.cypheron_database]
+}
+
+# Cloud SQL user for Cloud Build service account (for SQLx compilation)
+resource "google_sql_user" "cloudbuild_iam_user" {
+  name     = "${data.google_project.current.number}@cloudbuild"
   instance = google_sql_database_instance.cypheron_postgres.name
   type     = "CLOUD_IAM_SERVICE_ACCOUNT"
 

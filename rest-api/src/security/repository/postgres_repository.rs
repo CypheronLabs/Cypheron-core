@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 /// PostgreSQL implementation of the ApiKeyRepository trait
 /// Provides full CRUD operations with transaction support
+#[derive(Debug)]
 pub struct PostgresRepository {
     pool: PgPool,
     encryption: Arc<PostQuantumEncryption>,
@@ -118,25 +119,25 @@ impl ApiKeyRepository for PostgresRepository {
         })?;
 
         // Insert API key
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO api_keys (
                 id, name, key_hash, encrypted_key, permissions, rate_limit,
                 created_at, expires_at, is_active, last_used, usage_count
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            "#,
-            api_key.id,
-            api_key.name,
-            api_key.key_hash,
-            encrypted_key_b64,
-            &api_key.permissions,
-            api_key.rate_limit as i32,
-            api_key.created_at,
-            api_key.expires_at,
-            api_key.is_active,
-            api_key.last_used,
-            api_key.usage_count as i64
+            "#
         )
+        .bind(api_key.id)
+        .bind(&api_key.name)
+        .bind(&api_key.key_hash)
+        .bind(encrypted_key_b64)
+        .bind(&api_key.permissions)
+        .bind(api_key.rate_limit as i32)
+        .bind(api_key.created_at)
+        .bind(api_key.expires_at)
+        .bind(api_key.is_active)
+        .bind(api_key.last_used)
+        .bind(api_key.usage_count as i64)
         .execute(&mut *tx)
         .await
         .map_err(|e| AuthError {
@@ -146,22 +147,22 @@ impl ApiKeyRepository for PostgresRepository {
         })?;
 
         // Log audit event
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO audit_logs (
                 event_type, api_key_id, api_key_hash, metadata, risk_level
             ) VALUES ($1, $2, $3, $4, $5)
-            "#,
-            "api_key_created",
-            api_key.id,
-            api_key.key_hash,
-            serde_json::json!({
-                "name": api_key.name,
-                "permissions": api_key.permissions,
-                "rate_limit": api_key.rate_limit
-            }),
-            "low"
+            "#
         )
+        .bind("api_key_created")
+        .bind(api_key.id)
+        .bind(&api_key.key_hash)
+        .bind(serde_json::json!({
+            "name": api_key.name,
+            "permissions": api_key.permissions,
+            "rate_limit": api_key.rate_limit
+        }))
+        .bind("low")
         .execute(&mut *tx)
         .await
         .map_err(|e| {
@@ -181,15 +182,15 @@ impl ApiKeyRepository for PostgresRepository {
     }
 
     async fn get_api_key_by_hash(&self, key_hash: &str) -> Result<Option<ApiKey>, AuthError> {
-        let row = sqlx::query!(
+        let row = sqlx::query(
             r#"
             SELECT id, name, key_hash, permissions, rate_limit, created_at, 
                    expires_at, is_active, last_used, usage_count
             FROM api_keys 
             WHERE key_hash = $1 AND is_active = true
-            "#,
-            key_hash
+            "#
         )
+        .bind(key_hash)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AuthError {
@@ -199,21 +200,7 @@ impl ApiKeyRepository for PostgresRepository {
         })?;
 
         match row {
-            Some(row) => {
-                let api_key = ApiKey {
-                    id: row.id,
-                    name: row.name,
-                    key_hash: row.key_hash,
-                    permissions: row.permissions,
-                    rate_limit: row.rate_limit as u32,
-                    created_at: row.created_at,
-                    expires_at: row.expires_at,
-                    is_active: row.is_active,
-                    last_used: row.last_used,
-                    usage_count: row.usage_count as u64,
-                };
-                Ok(Some(api_key))
-            }
+            Some(row) => Ok(Some(self.row_to_api_key(&row)?)),
             None => Ok(None),
         }
     }
@@ -225,20 +212,20 @@ impl ApiKeyRepository for PostgresRepository {
             code: 500,
         })?;
 
-        let result = sqlx::query!(
+        let result = sqlx::query(
             r#"
             UPDATE api_keys 
             SET name = $1, permissions = $2, rate_limit = $3, expires_at = $4, 
                 is_active = $5, updated_at = NOW()
             WHERE key_hash = $6
-            "#,
-            api_key.name,
-            &api_key.permissions,
-            api_key.rate_limit as i32,
-            api_key.expires_at,
-            api_key.is_active,
-            api_key.key_hash
+            "#
         )
+        .bind(&api_key.name)
+        .bind(&api_key.permissions)
+        .bind(api_key.rate_limit as i32)
+        .bind(api_key.expires_at)
+        .bind(api_key.is_active)
+        .bind(&api_key.key_hash)
         .execute(&mut *tx)
         .await
         .map_err(|e| AuthError {
@@ -256,22 +243,22 @@ impl ApiKeyRepository for PostgresRepository {
         }
 
         // Log audit event
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO audit_logs (
                 event_type, api_key_id, api_key_hash, metadata, risk_level
             ) VALUES ($1, $2, $3, $4, $5)
-            "#,
-            "api_key_updated",
-            api_key.id,
-            api_key.key_hash,
-            serde_json::json!({
-                "name": api_key.name,
-                "permissions": api_key.permissions,
-                "is_active": api_key.is_active
-            }),
-            "low"
+            "#
         )
+        .bind("api_key_updated")
+        .bind(api_key.id)
+        .bind(&api_key.key_hash)
+        .bind(serde_json::json!({
+            "name": api_key.name,
+            "permissions": api_key.permissions,
+            "is_active": api_key.is_active
+        }))
+        .bind("low")
         .execute(&mut *tx)
         .await
         .ok(); // Don't fail for audit log errors
@@ -295,10 +282,10 @@ impl ApiKeyRepository for PostgresRepository {
         // Get API key info before deletion for audit log
         let api_key = self.get_api_key_by_hash(key_hash).await?;
         
-        let result = sqlx::query!(
-            "DELETE FROM api_keys WHERE key_hash = $1",
-            key_hash
+        let result = sqlx::query(
+            "DELETE FROM api_keys WHERE key_hash = $1"
         )
+        .bind(key_hash)
         .execute(&mut *tx)
         .await
         .map_err(|e| AuthError {
@@ -317,21 +304,21 @@ impl ApiKeyRepository for PostgresRepository {
 
         // Log audit event if we had the key info
         if let Some(key) = api_key {
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 INSERT INTO audit_logs (
                     event_type, api_key_id, api_key_hash, metadata, risk_level
                 ) VALUES ($1, $2, $3, $4, $5)
-                "#,
-                "api_key_deleted",
-                key.id,
-                key.key_hash,
-                serde_json::json!({
-                    "name": key.name,
-                    "permissions": key.permissions
-                }),
-                "medium"
+                "#
             )
+            .bind("api_key_deleted")
+            .bind(key.id)
+            .bind(&key.key_hash)
+            .bind(serde_json::json!({
+                "name": key.name,
+                "permissions": key.permissions
+            }))
+            .bind("medium")
             .execute(&mut *tx)
             .await
             .ok(); // Don't fail for audit log errors
@@ -350,17 +337,17 @@ impl ApiKeyRepository for PostgresRepository {
         let limit = limit.unwrap_or(100).min(1000); // Cap at 1000 for performance
         let offset = offset.unwrap_or(0).max(0);
 
-        let rows = sqlx::query!(
+        let rows = sqlx::query(
             r#"
             SELECT id, name, key_hash, permissions, rate_limit, created_at, 
                    expires_at, is_active, last_used, usage_count
             FROM api_keys 
             ORDER BY created_at DESC
             LIMIT $1 OFFSET $2
-            "#,
-            limit,
-            offset
+            "#
         )
+        .bind(limit as i32)
+        .bind(offset as i32)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| AuthError {
@@ -371,35 +358,23 @@ impl ApiKeyRepository for PostgresRepository {
 
         let mut api_keys = Vec::new();
         for row in rows {
-            let api_key = ApiKey {
-                id: row.id,
-                name: row.name,
-                key_hash: row.key_hash,
-                permissions: row.permissions,
-                rate_limit: row.rate_limit as u32,
-                created_at: row.created_at,
-                expires_at: row.expires_at,
-                is_active: row.is_active,
-                last_used: row.last_used,
-                usage_count: row.usage_count as u64,
-            };
-            api_keys.push(api_key);
+            api_keys.push(self.row_to_api_key(&row)?);
         }
 
         Ok(api_keys)
     }
 
     async fn update_usage(&self, usage_info: &UsageUpdateInfo) -> Result<(), AuthError> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE api_keys 
             SET last_used = $1, usage_count = $2, updated_at = NOW()
             WHERE key_hash = $3
-            "#,
-            usage_info.last_used,
-            usage_info.usage_count as i64,
-            usage_info.key_hash
+            "#
         )
+        .bind(usage_info.last_used)
+        .bind(usage_info.usage_count as i64)
+        .bind(&usage_info.key_hash)
         .execute(&self.pool)
         .await
         .map_err(|e| AuthError {
@@ -412,28 +387,28 @@ impl ApiKeyRepository for PostgresRepository {
     }
 
     async fn log_audit_event(&self, entry: &AuditLogEntry) -> Result<(), AuthError> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO audit_logs (
                 id, timestamp, event_type, api_key_id, api_key_hash,
                 ip_address, user_agent, request_path, request_method,
                 response_status, response_time_ms, metadata, risk_level
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            "#,
-            entry.id,
-            entry.timestamp,
-            entry.event_type,
-            entry.api_key_id,
-            entry.api_key_hash,
-            entry.ip_address,
-            entry.user_agent,
-            entry.request_path,
-            entry.request_method,
-            entry.response_status,
-            entry.response_time_ms,
-            entry.metadata,
-            entry.risk_level
+            "#
         )
+        .bind(entry.id)
+        .bind(entry.timestamp)
+        .bind(&entry.event_type)
+        .bind(entry.api_key_id)
+        .bind(&entry.api_key_hash)
+        .bind(&entry.ip_address)
+        .bind(&entry.user_agent)
+        .bind(&entry.request_path)
+        .bind(&entry.request_method)
+        .bind(entry.response_status)
+        .bind(entry.response_time_ms)
+        .bind(&entry.metadata)
+        .bind(&entry.risk_level)
         .execute(&self.pool)
         .await
         .map_err(|e| AuthError {
@@ -455,7 +430,7 @@ impl ApiKeyRepository for PostgresRepository {
         let limit = limit.unwrap_or(100).min(1000);
 
         let rows = if let Some(api_key_id) = api_key_id {
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 SELECT id, timestamp, event_type, api_key_id, api_key_hash,
                        ip_address, user_agent, request_path, request_method,
@@ -466,16 +441,16 @@ impl ApiKeyRepository for PostgresRepository {
                   AND ($3::timestamptz IS NULL OR timestamp <= $3)
                 ORDER BY timestamp DESC
                 LIMIT $4
-                "#,
-                api_key_id,
-                start_time,
-                end_time,
-                limit
+                "#
             )
+            .bind(api_key_id)
+            .bind(start_time)
+            .bind(end_time)
+            .bind(limit as i32)
             .fetch_all(&self.pool)
             .await
         } else {
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 SELECT id, timestamp, event_type, api_key_id, api_key_hash,
                        ip_address, user_agent, request_path, request_method,
@@ -485,11 +460,11 @@ impl ApiKeyRepository for PostgresRepository {
                   AND ($2::timestamptz IS NULL OR timestamp <= $2)
                 ORDER BY timestamp DESC
                 LIMIT $3
-                "#,
-                start_time,
-                end_time,
-                limit
+                "#
             )
+            .bind(start_time)
+            .bind(end_time)
+            .bind(limit as i32)
             .fetch_all(&self.pool)
             .await
         };
@@ -502,50 +477,35 @@ impl ApiKeyRepository for PostgresRepository {
 
         let mut audit_logs = Vec::new();
         for row in rows {
-            let entry = AuditLogEntry {
-                id: row.id,
-                timestamp: row.timestamp,
-                event_type: row.event_type,
-                api_key_id: row.api_key_id,
-                api_key_hash: row.api_key_hash,
-                ip_address: row.ip_address,
-                user_agent: row.user_agent,
-                request_path: row.request_path,
-                request_method: row.request_method,
-                response_status: row.response_status,
-                response_time_ms: row.response_time_ms,
-                metadata: row.metadata,
-                risk_level: row.risk_level,
-            };
-            audit_logs.push(entry);
+            audit_logs.push(self.row_to_audit_entry(&row)?);
         }
 
         Ok(audit_logs)
     }
 
     async fn record_analytics(&self, entry: &AnalyticsEntry) -> Result<(), AuthError> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO analytics (
                 id, timestamp, api_key_id, endpoint, method,
                 response_time_ms, request_size_bytes, response_size_bytes,
                 success, error_type, region, client_type, metrics
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            "#,
-            entry.id,
-            entry.timestamp,
-            entry.api_key_id,
-            entry.endpoint,
-            entry.method,
-            entry.response_time_ms,
-            entry.request_size_bytes,
-            entry.response_size_bytes,
-            entry.success,
-            entry.error_type,
-            entry.region,
-            entry.client_type,
-            entry.metrics
+            "#
         )
+        .bind(entry.id)
+        .bind(entry.timestamp)
+        .bind(entry.api_key_id)
+        .bind(&entry.endpoint)
+        .bind(&entry.method)
+        .bind(entry.response_time_ms)
+        .bind(entry.request_size_bytes)
+        .bind(entry.response_size_bytes)
+        .bind(entry.success)
+        .bind(&entry.error_type)
+        .bind(&entry.region)
+        .bind(&entry.client_type)
+        .bind(&entry.metrics)
         .execute(&self.pool)
         .await
         .map_err(|e| AuthError {

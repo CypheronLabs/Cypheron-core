@@ -1,4 +1,5 @@
 use secrecy::SecretBox;
+use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Debug, Clone)]
@@ -9,7 +10,7 @@ pub struct CompositeSignature<C, P> {
     pub nonce: [u8; 32],
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompositePublicKey<C, P> {
     pub classical: C,
     pub post_quantum: P,

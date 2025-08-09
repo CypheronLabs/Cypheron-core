@@ -38,6 +38,7 @@ bindgen = "0.72.0"
 
 [dev-dependencies]
 core-lib = { path = "." }
+serde_json = "1.0"
 # Security testing dependencies
 proptest = "1.7"
 criterion = { version = "0.7", features = ["html_reports"] }

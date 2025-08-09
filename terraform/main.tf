@@ -28,6 +28,11 @@ provider "google-beta" {
 
 # Variables are defined in variables.tf
 
+# Data source for current project to get project number
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
 # Enable required APIs
 resource "google_project_service" "apis" {
   for_each = toset([

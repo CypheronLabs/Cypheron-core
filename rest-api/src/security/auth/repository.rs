@@ -240,12 +240,9 @@ impl FirestoreApiKeyRepository {
 
         match self.firestore_client.get().get_document(request).await {
             Ok(response) => {
-                if let Some(document) = response.into_inner() {
-                    let api_key = self.firestore_document_to_api_key(&document)?;
-                    Ok(Some(api_key))
-                } else {
-                    Ok(None)
-                }
+                let document = response.into_inner();
+                let api_key = self.firestore_document_to_api_key(&document)?;
+                Ok(Some(api_key))
             }
             Err(e) => {
                 // Check if error is "not found" - this is expected behavior

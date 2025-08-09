@@ -14,7 +14,21 @@ target/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
+
+# IDE / Tooling
+.sqlx/
+.claude/
+
+# Downloaded Binaries / SDKs
+cloud-sql-proxy
+google-cloud-sdk/
+
+# Generated CodeQL directory
+ql/
+
+# Potentially sensitive files
+add_test_key.json
 
 # Security validation and demo files
 test_security*
@@ -61,6 +75,7 @@ rest-api-analysis.md
 API_AUTHENTICATION_GUIDE.md
 *_AUTHENTICATION_*.md
 *_AUTH_*.md
+API_KEY_CREATION_GUIDE.md
 
 # Compiled libraries
 lib/
@@ -70,7 +85,7 @@ lib/*.dylib
 
 # Library Cargo.lock (uncomment if treating as library)
 # Cargo.lock
-terraform/terraform.tfvars
+terraform/*.tfvars
 terraform/*.tfstate
 terraform/*.tfstate.backup
 terraform/.terraform/
@@ -79,5 +94,3 @@ terraform/.terraform/
 *.pem
 *.key
 .secrets_generated
-terraform/*.tfstate
-terraform/*.tfstate.backup
