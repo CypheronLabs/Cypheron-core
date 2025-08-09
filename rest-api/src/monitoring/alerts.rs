@@ -222,7 +222,7 @@ impl AlertManager {
                 let time_window = Duration::minutes(*time_window_minutes as i64);
                 let security_metrics =
                     self.metrics_collector.get_security_metrics(Some(1000)).await;
-                let since = Utc::now() - time_window;
+                let _since = Utc::now() - time_window;
 
                 let failed_auth_count = security_metrics
                     .iter()
@@ -268,7 +268,7 @@ impl AlertManager {
             actions_taken: Vec::new(),
         };
 
-        let metrics_severity = match alert.severity {
+        let _metrics_severity = match alert.severity {
             AlertSeverity::Critical => SecuritySeverity::Critical,
             AlertSeverity::High => SecuritySeverity::High,
             AlertSeverity::Medium => SecuritySeverity::Medium,
@@ -307,7 +307,7 @@ impl AlertManager {
     async fn check_anomalies(&self) {
         // Check for timing anomalies
         let timing_anomalies = self.metrics_collector.detect_timing_anomalies().await;
-        for anomaly in timing_anomalies {
+        for _anomaly in timing_anomalies {
             let alert = Alert {
                 alert_id: Uuid::new_v4(),
                 alert_type: AlertType::AnomalyDetected,
@@ -328,7 +328,7 @@ impl AlertManager {
 
         // Check for usage anomalies
         let usage_anomalies = self.metrics_collector.detect_usage_anomalies().await;
-        for anomaly in usage_anomalies {
+        for _anomaly in usage_anomalies {
             let alert = Alert {
                 alert_id: Uuid::new_v4(),
                 alert_type: AlertType::SecurityThreat,

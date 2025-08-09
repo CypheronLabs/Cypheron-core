@@ -23,10 +23,11 @@ impl DatabaseConfig {
                 let port = std::env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string());
                 let user = std::env::var("DB_USER").unwrap_or_else(|_| "postgres".to_string());
                 let password = std::env::var("DB_PASSWORD")
-                    .map_err(|e| format!("DB_PASSWORD environment variable is required: {}", e))?;
+                    .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, 
+                        format!("DB_PASSWORD environment variable is required: {}", e))) as Box<dyn std::error::Error>)?;
                 let database = std::env::var("DB_NAME").unwrap_or_else(|_| "cypheron".to_string());
                 
-                Ok(format!("postgresql://{}:{}@{}:{}/{}", user, password, host, port, database))
+                Ok::<String, Box<dyn std::error::Error>>(format!("postgresql://{}:{}@{}:{}/{}", user, password, host, port, database))
             })?;
 
         let max_connections = std::env::var("DB_MAX_CONNECTIONS")
@@ -112,6 +113,7 @@ impl DatabaseConfig {
 }
 
 /// Database manager for handling connections and migrations
+#[derive(Debug)]
 pub struct DatabaseManager {
     pub pool: PgPool,
     config: DatabaseConfig,

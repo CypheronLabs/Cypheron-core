@@ -1,4 +1,6 @@
-use core_lib::hybrid::{P256MlKem768, HybridCiphertext, HybridSharedSecret};
+use core_lib::hybrid::{P256MlKem768, HybridCiphertext};
+use core_lib::hybrid::composite::{CompositePublicKey, CompositeSecretKey};
+use core_lib::hybrid::kem::{P256PublicKeyWrapper, P256SecretKeyWrapper, MlKemPublicKeyWrapper, MlKemSecretKeyWrapper};
 use core_lib::hybrid::traits::HybridKemEngine;
 use core_lib::platform::secure_random_bytes;
 use ring::aead;
@@ -34,12 +36,15 @@ pub struct VersionedEncryptedData {
 pub struct HybridEncryption {
     // Optional master key for V1 compatibility
     legacy_encryption: Option<PostQuantumEncryption>,
+    // Master keypair for hybrid encryption (stored securely)
+    master_keypair: Option<(CompositePublicKey<P256PublicKeyWrapper, MlKemPublicKeyWrapper>, CompositeSecretKey<P256SecretKeyWrapper, MlKemSecretKeyWrapper>)>,
 }
 
 impl std::fmt::Debug for HybridEncryption {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("HybridEncryption")
             .field("legacy_encryption", &self.legacy_encryption.is_some())
+            .field("master_keypair", &self.master_keypair.is_some())
             .finish()
     }
 }
@@ -48,37 +53,58 @@ impl Clone for HybridEncryption {
     fn clone(&self) -> Self {
         Self {
             legacy_encryption: self.legacy_encryption.clone(),
+            master_keypair: None, // Don't clone secret keys for security
         }
     }
 }
 
 impl HybridEncryption {
     /// Create new hybrid encryption instance (V2 only)
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> Result<Self, AuthError> {
+        // Generate master keypair for this instance
+        let (public_key, secret_key) = P256MlKem768::keypair()
+            .map_err(|e| AuthError {
+                error: "hybrid_keygen_failed".to_string(),
+                message: format!("Failed to generate master keypair: {}", e),
+                code: 500,
+            })?;
+
+        Ok(Self {
             legacy_encryption: None,
-        }
+            master_keypair: Some((public_key, secret_key)),
+        })
     }
 
     /// Create hybrid encryption with legacy support for existing keys
     pub fn with_legacy_support(password: &str) -> Result<Self, AuthError> {
+        // Generate master keypair for hybrid encryption
+        let (public_key, secret_key) = P256MlKem768::keypair()
+            .map_err(|e| AuthError {
+                error: "hybrid_keygen_failed".to_string(),
+                message: format!("Failed to generate master keypair: {}", e),
+                code: 500,
+            })?;
+
         Ok(Self {
             legacy_encryption: Some(PostQuantumEncryption::from_password(password)?),
+            master_keypair: Some((public_key, secret_key)),
         })
     }
 
     /// Encrypt data using hybrid P256 + ML-KEM-768 scheme (V2)
     pub fn encrypt_hybrid(&self, plaintext: &[u8]) -> Result<VersionedEncryptedData, AuthError> {
-        // Generate ephemeral keypair for this encryption
-        let (public_key, secret_key) = P256MlKem768::keypair()
-            .map_err(|e| AuthError {
-                error: "hybrid_keygen_failed".to_string(),
-                message: format!("Failed to generate hybrid keypair: {}", e),
+        // Use the master public key for encryption
+        let public_key = match &self.master_keypair {
+            Some((pk, _)) => pk,
+            None => return Err(AuthError {
+                error: "no_master_key".to_string(),
+                message: "No master keypair available for hybrid encryption".to_string(),
                 code: 500,
-            })?;
+            }),
+        };
 
         // Encapsulate to get shared secret and ciphertext
-        let (hybrid_ciphertext, shared_secret) = P256MlKem768::encapsulate(&public_key)
+        let (hybrid_ciphertext, shared_secret) = P256MlKem768::encapsulate(public_key)
             .map_err(|e| AuthError {
                 error: "hybrid_encapsulation_failed".to_string(),
                 message: format!("Failed to encapsulate: {}", e),
@@ -115,16 +141,12 @@ impl HybridEncryption {
             })?;
 
         // Serialize the complete encrypted structure
+        // Note: secret_key_bytes is empty as the secret key is stored securely in the instance
         let encrypted_data = HybridEncryptedData {
             hybrid_ciphertext,
             aes_nonce: nonce_bytes.to_vec(),
             aes_ciphertext: aes_plaintext,
-            secret_key_bytes: serde_json::to_vec(&secret_key)
-                .map_err(|e| AuthError {
-                    error: "serialization_error".to_string(),
-                    message: format!("Failed to serialize secret key: {}", e),
-                    code: 500,
-                })?,
+            secret_key_bytes: vec![], // Secret key stored securely in master_keypair
         };
 
         let serialized_data = serde_json::to_vec(&encrypted_data)
@@ -172,23 +194,25 @@ impl HybridEncryption {
                 code: 500,
             })?;
 
-        // Deserialize the secret key
-        let secret_key = serde_json::from_slice(&encrypted_data.secret_key_bytes)
-            .map_err(|e| AuthError {
-                error: "deserialization_error".to_string(),
-                message: format!("Failed to deserialize secret key: {}", e),
+        // Get the master secret key for decryption
+        let secret_key = match &self.master_keypair {
+            Some((_, sk)) => sk,
+            None => return Err(AuthError {
+                error: "no_master_key".to_string(),
+                message: "No master keypair available for hybrid decryption".to_string(),
                 code: 500,
-            })?;
+            }),
+        };
 
-        // Decapsulate to recover shared secret
-        let shared_secret = P256MlKem768::decapsulate(&encrypted_data.hybrid_ciphertext, &secret_key)
+        // Decapsulate to get shared secret
+        let shared_secret = P256MlKem768::decapsulate(&encrypted_data.hybrid_ciphertext, secret_key)
             .map_err(|e| AuthError {
                 error: "hybrid_decapsulation_failed".to_string(),
                 message: format!("Failed to decapsulate: {}", e),
                 code: 500,
             })?;
 
-        // Create AES key from shared secret
+        // Reconstruct AES-256-GCM key
         let opening_key = aead::LessSafeKey::new(
             aead::UnboundKey::new(&aead::AES_256_GCM, shared_secret.as_bytes())
                 .map_err(|_| AuthError {
@@ -202,14 +226,13 @@ impl HybridEncryption {
         if encrypted_data.aes_nonce.len() != 12 {
             return Err(AuthError {
                 error: "invalid_nonce".to_string(),
-                message: "AES nonce must be 12 bytes".to_string(),
+                message: "Invalid AES nonce length".to_string(),
                 code: 500,
             });
         }
-
-        let mut nonce_array = [0u8; 12];
-        nonce_array.copy_from_slice(&encrypted_data.aes_nonce);
-        let nonce = aead::Nonce::assume_unique_for_key(nonce_array);
+        let mut nonce_bytes = [0u8; 12];
+        nonce_bytes.copy_from_slice(&encrypted_data.aes_nonce);
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         // Decrypt with AES-256-GCM
         let mut aes_ciphertext = encrypted_data.aes_ciphertext;
@@ -244,7 +267,7 @@ mod tests {
 
     #[test]
     fn test_hybrid_encryption_roundtrip() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
         let plaintext = b"test-api-key-12345";
 
         // Encrypt
@@ -258,7 +281,7 @@ mod tests {
 
     #[test]
     fn test_different_encryptions_produce_different_ciphertexts() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
         let plaintext = b"test-api-key";
 
         let encrypted1 = encryption.encrypt(plaintext).unwrap();
@@ -294,7 +317,7 @@ mod tests {
 
     #[test]
     fn test_versioned_encrypted_data_serialization() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
         let plaintext = b"serialization-test-data";
 
         let encrypted = encryption.encrypt(plaintext).unwrap();
@@ -313,7 +336,7 @@ mod tests {
 
     #[test]
     fn test_multiple_api_keys_different_encryption() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
         let api_keys = [
             b"pq_test_1234567890abcdef",
             b"pq_prod_fedcba0987654321", 
@@ -365,7 +388,7 @@ mod tests {
 
     #[test]
     fn test_without_legacy_support_fails_v1() {
-        let encryption = HybridEncryption::new(); // No legacy support
+        let encryption = HybridEncryption::new().unwrap(); // No legacy support
 
         let v1_data = VersionedEncryptedData {
             version: EncryptionVersion::V1AES256 as u8,
@@ -380,7 +403,7 @@ mod tests {
 
     #[test]
     fn test_empty_data_encryption() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
         let plaintext = b"";
 
         let encrypted = encryption.encrypt(plaintext).unwrap();
@@ -390,7 +413,7 @@ mod tests {
 
     #[test]
     fn test_large_data_encryption() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
         let plaintext = vec![0xAA; 10000]; // 10KB of data
 
         let encrypted = encryption.encrypt(&plaintext).unwrap();
@@ -400,7 +423,7 @@ mod tests {
 
     #[test]
     fn test_encryption_randomness() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
         let plaintext = b"randomness-test";
 
         // Encrypt same data multiple times
@@ -426,7 +449,7 @@ mod tests {
 
     #[test]
     fn test_invalid_json_handling() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
 
         // Test invalid JSON in V2 data
         let invalid_v2_data = VersionedEncryptedData {
@@ -441,7 +464,7 @@ mod tests {
 
     #[test] 
     fn test_api_key_typical_sizes() {
-        let encryption = HybridEncryption::new();
+        let encryption = HybridEncryption::new().unwrap();
         
         // Test typical API key formats
         let test_keys = [
