@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 
-pub mod database;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityConfig {
     pub api_key_expiry_days: u32,
@@ -17,6 +15,8 @@ pub struct SecurityConfig {
     pub log_sensitive_data: bool,
     pub require_tls: bool,
     pub allowed_origins: Vec<String>,
+    pub jwt_secret: Option<String>,
+    pub jwt_expiry_hours: u32,
 }
 
 impl Default for SecurityConfig {
@@ -34,6 +34,8 @@ impl Default for SecurityConfig {
             log_sensitive_data: false,
             require_tls: true,
             allowed_origins: vec!["https://api.cypheronlabs.com".to_string()],
+            jwt_secret: None,
+            jwt_expiry_hours: 24,
         }
     }
 }
@@ -200,6 +202,16 @@ impl AppConfig {
 
         if let Ok(gdpr) = env::var("PQ_ENABLE_GDPR") {
             config.compliance.enable_gdpr_privacy_controls = gdpr.to_lowercase() == "true";
+        }
+
+        if let Ok(jwt_secret) = env::var("DEMO_JWT_SECRET") {
+            config.security.jwt_secret = Some(jwt_secret);
+        }
+
+        if let Ok(jwt_expiry) = env::var("DEMO_JWT_EXPIRY_HOURS") {
+            if let Ok(expiry_hours) = jwt_expiry.parse::<u32>() {
+                config.security.jwt_expiry_hours = expiry_hours;
+            }
         }
 
         if matches!(config.server.environment, Environment::Production) {

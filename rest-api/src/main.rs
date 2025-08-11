@@ -24,7 +24,7 @@ async fn main() {
     
     tracing_subscriber::fmt::init();
 
-    let db_config = config::database::DatabaseConfiguration::from_environment().await
+    let db_config = database::DatabaseConfiguration::from_environment().await
         .expect("Failed to initialize database configuration");
 
     let api_key_store = db_config.api_key_store.clone();
@@ -152,10 +152,41 @@ async fn main() {
 
     let config = config::AppConfig::from_env();
 
-    let app = Router::new()
+    let demo_routes = if let Some(jwt_secret) = &config.security.jwt_secret {
+        let jwt_validator = Arc::new(security::JwtValidator::new(jwt_secret.clone()));
+        
+        Some(Router::new()
+            .merge(api::kem::routes().with_state(app_state.clone()))
+            .merge(api::sig::routes().with_state(audit_logger.clone()))
+            .merge(api::hybrid::routes())
+            .merge(api::nist::routes())
+            .layer(middleware::from_fn_with_state(jwt_validator, security::jwt_auth_middleware))
+            .layer(middleware::from_fn_with_state(
+                rate_limiter.clone(),
+                security::rate_limit_middleware,
+            ))
+            .layer(middleware::from_fn_with_state(
+                compliance_manager.clone(),
+                security::compliance_middleware,
+            ))
+            .layer(middleware::from_fn(security::request_validation_middleware))
+            .layer(middleware::from_fn(security::timing_middleware))
+            .layer(middleware::from_fn(security::security_headers_middleware))
+            .layer(middleware::from_fn(security::smart_timeout_middleware)))
+    } else {
+        None
+    };
+
+    let mut app = Router::new()
         .merge(public_routes)
         .merge(api_routes)
-        .merge(admin_routes)
+        .merge(admin_routes);
+
+    if let Some(demo_routes) = demo_routes {
+        app = app.merge(demo_routes);
+    }
+
+    let app = app
         .layer(security::create_cors_middleware())
         .layer(security::create_request_size_limit_layer())
         .layer(security::create_connection_limit_layer(config.server.max_concurrent_connections));
@@ -178,6 +209,15 @@ async fn main() {
         config.server.health_timeout_seconds);
     tracing::info!("  - Connection Limits ({} max concurrent)", config.server.max_concurrent_connections);
     tracing::info!("  - Request Size Limits (1MB max)");
+
+    if config.security.jwt_secret.is_some() {
+        tracing::info!("JWT Demo Authentication enabled:");
+        tracing::info!("  - Demo JWT authentication configured");
+        tracing::info!("  - Demo permissions: kem:encapsulate, sig:verify, hybrid:sign, nist:read, monitoring:read");
+        tracing::info!("  - JWT expiry: {} hours", config.security.jwt_expiry_hours);
+    } else {
+        tracing::info!("JWT Demo Authentication disabled (DEMO_JWT_SECRET not configured)");
+    }
 
     if std::env::var("PQ_TEST_API_KEY").is_ok() {
         tracing::info!("Test API Key loaded from PQ_TEST_API_KEY environment variable");
