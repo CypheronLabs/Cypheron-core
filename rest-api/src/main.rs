@@ -17,7 +17,6 @@ mod validation;
 
 #[tokio::main]
 async fn main() {
-    // Install default crypto provider for rustls before any TLS operations
     rustls::crypto::ring::default_provider()
         .install_default()
         .expect("Failed to install rustls crypto provider");
@@ -103,6 +102,8 @@ async fn main() {
     let monitoring_routes = api::monitoring::routes().with_state(monitoring_state.clone());
 
     let public_routes = Router::new()
+        .route("/", get(handlers::status_handler::serve_static_index))
+        .route("/static/index.html", get(handlers::status_handler::serve_static_index))
         .route("/health", get(handlers::monitoring_handler::get_health_status))
         .route("/health/detailed", get(handlers::monitoring_handler::get_detailed_health_report))
         .route("/health/ready", get(handlers::monitoring_handler::get_readiness_check))

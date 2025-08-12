@@ -1,12 +1,12 @@
 use rest_api::{
     database::{DatabaseConfig, DatabaseManager},
     security::{
-        auth::{ApiKey, AuthError, PostQuantumEncryption},
+        auth::{ApiKey, PostQuantumEncryption},
         repository::{postgres_repository::PostgresRepository, ApiKeyRepository},
     },
 };
 use base64::{engine::general_purpose, Engine as _};
-use chrono::Utc;
+use chrono::{TimeZone, Utc};
 use clap::{Arg, Command};
 use gcloud_sdk::{
     google::firestore::v1::{
