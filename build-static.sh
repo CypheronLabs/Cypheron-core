@@ -22,7 +22,7 @@ npx terser /tmp/app.js \
 sed -n '/<style>/,/<\/style>/p' rest-api/static/index.html | sed '1d;$d' > /tmp/app.css
 
 # Minify CSS
-npx cleancss -o /tmp/app.min.css /tmp/app.css
+npx clean-css-cli -o /tmp/app.min.css /tmp/app.css
 
 # Create obfuscated HTML with minified JS/CSS
 cat > rest-api/static-build/index.html << 'EOF'
@@ -39,9 +39,11 @@ EOF
 # Add ASCII art (keep this unminified for display)
 sed -n '/class="ascii-art"/,/<\/div>/p' rest-api/static/index.html >> rest-api/static-build/index.html
 
+# Extract the actual body content between ascii-art and script tags
+sed -n '/<div id="typewriter"/,/<script>/p' rest-api/static/index.html | sed '$d' >> rest-api/static-build/index.html
+
 cat >> rest-api/static-build/index.html << 'EOF'
-<div id="typewriter" class="typewriter-text"></div><div class="api-form"><div class="field"><label>API Endpoint:</label><input type="text" id="api-url" placeholder="https://api.cypheronlabs.com" value="https://api.cypheronlabs.com"></div><div style="text-align: center;"><button onclick="testHealth()">Test Health</button><button onclick="testDetailed()">Detailed Status</button><button onclick="clearResults()">Clear</button></div></div><div class="response-area"><div style="color: #C084FC; margin-bottom: 10px;">═══ API RESPONSE ═══</div><div class="response-content" id="response-content">$ Ready to test your Cypheron Labs API...
-$ </div></div></div><script>
+<script>
 EOF
 
 # Append obfuscated JavaScript

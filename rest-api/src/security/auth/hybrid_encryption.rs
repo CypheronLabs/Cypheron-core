@@ -340,7 +340,7 @@ mod tests {
         let api_keys = [
             b"pq_test_1234567890abcdef",
             b"pq_prod_fedcba0987654321", 
-            b"pq_dev_1111222233334444",
+            b"pq_dev_1111222233334444x",
         ];
 
         let mut encrypted_keys = Vec::new();
@@ -467,10 +467,10 @@ mod tests {
         let encryption = HybridEncryption::new().unwrap();
         
         // Test typical API key formats
-        let test_keys = [
-            b"pq_test_abcd1234efgh5678", // 24 chars
-            b"pq_live_1234567890123456789012345678901234567890", // 48 chars  
-            b"pk_test_51234567890123456789012345678901234567890123456789012345", // 64 chars
+        let test_keys: [&[u8]; 3] = [
+            b"pq_test_abcd1234efgh5678".as_ref(), // 24 chars
+            b"pq_live_1234567890123456789012345678901234567890".as_ref(), // 48 chars  
+            b"pk_test_51234567890123456789012345678901234567890123456789012345".as_ref(), // 64 chars
         ];
 
         for key in &test_keys {

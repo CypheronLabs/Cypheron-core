@@ -13,6 +13,13 @@ pub async fn serve_status_page() -> Result<Html<String>, (StatusCode, &'static s
     }
 }
 
+pub async fn serve_static_index() -> Result<Html<String>, StatusCode> {
+    match fs::read_to_string("static/index.html").await {
+        Ok(content) => Ok(Html(content)),
+        Err(_) => Err(StatusCode::NOT_FOUND),
+    }
+}
+
 pub async fn serve_static_file(
     Path(path): Path<String>,
 ) -> Result<Response, (StatusCode, &'static str)> {
