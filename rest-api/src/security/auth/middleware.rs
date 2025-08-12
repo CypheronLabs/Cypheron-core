@@ -9,6 +9,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use subtle::ConstantTimeEq;
 
+// Wrapper types for request extensions to avoid conflicts
+#[derive(Debug, Clone)]
+pub struct UserId(pub String);
+
+#[derive(Debug, Clone)]
+pub struct ApiKeyPrefix(pub String);
+
 use super::{
     errors::AuthError,
     permissions::{check_permission, extract_resource_from_path},
@@ -103,9 +110,10 @@ pub async fn auth_middleware(
         );
     }
 
-    // Add user_id and api_key_prefix to request extensions for logging
-    request.extensions_mut().insert(validated_key.id.to_string());
-    request.extensions_mut().insert(api_key[..8].to_string());
+    // Add API key info to request extensions for analytics and logging
+    request.extensions_mut().insert(validated_key.id); // API key UUID
+    request.extensions_mut().insert(UserId(validated_key.id.to_string())); // user_id wrapped
+    request.extensions_mut().insert(ApiKeyPrefix(api_key[..8].to_string())); // api_key_prefix wrapped
 
     Ok(next.run(request).await)
 }

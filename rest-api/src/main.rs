@@ -51,7 +51,63 @@ async fn main() {
 
     let compliance_manager = Arc::new(security::ComplianceManager::new());
 
-    let app_state = state::AppState::new(audit_logger.clone(), compliance_manager.clone());
+    // Initialize analytics repository if PostgreSQL is enabled
+    let app_state = if std::env::var("ANALYTICS_STORAGE")
+        .unwrap_or_else(|_| "firestore".to_string())
+        .to_lowercase() == "postgresql" 
+    {
+        tracing::info!("Initializing PostgreSQL analytics repository...");
+        
+        // Check if we can create a PostgreSQL connection for analytics
+        match database::DatabaseConfig::from_env() {
+            Ok(db_config) => {
+                match db_config.create_pool().await {
+                    Ok(pool) => {
+                        // We need to create a PostgreSQL repository for analytics
+                        // For now, we'll use a simple encryption setup for the repository
+                        use crate::security::auth::PostQuantumEncryption;
+                        use crate::security::repository::PostgresRepository;
+                        use std::sync::Arc;
+                        
+                        // Create a minimal encryption setup for the analytics repository
+                        let encryption_password = std::env::var("PQ_ENCRYPTION_PASSWORD")
+                            .unwrap_or_else(|_| "analytics_temp_key".to_string());
+                        
+                        match PostQuantumEncryption::from_password(&encryption_password) {
+                            Ok(encryption) => {
+                                let analytics_repo = Arc::new(PostgresRepository::new(
+                                    pool, 
+                                    Arc::new(encryption)
+                                )) as security::repository::ApiKeyRepositoryRef;
+                                
+                                tracing::info!("PostgreSQL analytics repository initialized successfully");
+                                state::AppState::with_analytics_repository(
+                                    audit_logger.clone(), 
+                                    compliance_manager.clone(),
+                                    analytics_repo
+                                )
+                            },
+                            Err(e) => {
+                                tracing::warn!("Failed to initialize encryption for analytics: {}, falling back to Firestore logging", e);
+                                state::AppState::new(audit_logger.clone(), compliance_manager.clone())
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        tracing::warn!("Failed to create PostgreSQL pool for analytics: {}, falling back to Firestore logging", e);
+                        state::AppState::new(audit_logger.clone(), compliance_manager.clone())
+                    }
+                }
+            },
+            Err(e) => {
+                tracing::warn!("PostgreSQL configuration error for analytics: {}, falling back to Firestore logging", e);
+                state::AppState::new(audit_logger.clone(), compliance_manager.clone())
+            }
+        }
+    } else {
+        tracing::info!("Using Firestore fallback for analytics logging");
+        state::AppState::new(audit_logger.clone(), compliance_manager.clone())
+    };
 
     let alert_manager_bg = alert_manager.clone();
     tokio::spawn(async move {
@@ -120,6 +176,7 @@ async fn main() {
         .merge(api::hybrid::routes())
         .merge(api::nist::routes())
         .merge(monitoring_routes)
+        .layer(middleware::from_fn_with_state(app_state.clone(), monitoring::analytics_middleware))
         .layer(middleware::from_fn_with_state(api_key_store.clone(), security::auth_middleware))
         .layer(middleware::from_fn_with_state(
             rate_limiter.clone(),
@@ -161,6 +218,7 @@ async fn main() {
             .merge(api::sig::routes().with_state(audit_logger.clone()))
             .merge(api::hybrid::routes())
             .merge(api::nist::routes())
+            .layer(middleware::from_fn_with_state(app_state.clone(), monitoring::analytics_middleware))
             .layer(middleware::from_fn_with_state(jwt_validator, security::jwt_auth_middleware))
             .layer(middleware::from_fn_with_state(
                 rate_limiter.clone(),
@@ -236,6 +294,19 @@ async fn main() {
     }
 
     tracing::info!("Storage backend: {} with post-quantum encryption", db_config.get_backend_type());
+    
+    // Log analytics configuration
+    let analytics_storage = std::env::var("ANALYTICS_STORAGE")
+        .unwrap_or_else(|_| "firestore".to_string());
+    tracing::info!("Analytics storage: {}", analytics_storage);
+    
+    if analytics_storage.to_lowercase() == "postgresql" {
+        if app_state.analytics_repository.is_some() {
+            tracing::info!("PostgreSQL analytics repository active - will record usage metrics to Cloud SQL");
+        } else {
+            tracing::warn!("PostgreSQL analytics requested but failed to initialize - falling back to Firestore logging");
+        }
+    }
     
     if let Some(response_time) = health_status.response_time_ms() {
         tracing::info!("Database response time: {}ms", response_time);

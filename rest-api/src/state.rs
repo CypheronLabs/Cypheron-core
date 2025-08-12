@@ -1,15 +1,33 @@
 use crate::security::{AuditLogger, ComplianceManager};
+use crate::security::repository::ApiKeyRepositoryRef;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
     pub audit_logger: Arc<AuditLogger>,
     pub compliance_manager: Arc<ComplianceManager>,
+    pub analytics_repository: Option<ApiKeyRepositoryRef>,
 }
 
 impl AppState {
     pub fn new(audit_logger: Arc<AuditLogger>, compliance_manager: Arc<ComplianceManager>) -> Self {
-        Self { audit_logger, compliance_manager }
+        Self { 
+            audit_logger, 
+            compliance_manager,
+            analytics_repository: None,
+        }
+    }
+
+    pub fn with_analytics_repository(
+        audit_logger: Arc<AuditLogger>, 
+        compliance_manager: Arc<ComplianceManager>,
+        analytics_repository: ApiKeyRepositoryRef,
+    ) -> Self {
+        Self { 
+            audit_logger, 
+            compliance_manager,
+            analytics_repository: Some(analytics_repository),
+        }
     }
 
     pub fn sanitize_sensitive_data(&self, data: &str) -> String {

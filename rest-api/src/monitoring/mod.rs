@@ -1,10 +1,12 @@
 pub mod alerts;
+pub mod analytics_logger;
 pub mod compliance;
 pub mod health;
 pub mod metrics;
 pub mod security_events;
 
 pub use alerts::{Alert, AlertManager, AlertRule};
+pub use analytics_logger::analytics_middleware;
 pub use compliance::{ComplianceChecker, ComplianceFramework};
 pub use health::HealthChecker;
 pub use metrics::MetricsCollector;
