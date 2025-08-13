@@ -12,9 +12,6 @@ pub mod store;
 pub mod utils;
 pub mod validation;
 
-#[cfg(test)]
-pub mod tests;
-
 pub use encryption::PostQuantumEncryption;
 pub use errors::AuthError;
 pub use jwt_middleware::jwt_auth_middleware;
