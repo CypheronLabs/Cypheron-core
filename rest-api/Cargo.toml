@@ -43,3 +43,5 @@ rustls = { version = "0.23", features = ["ring"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
 deadpool-postgres = "0.14"
 clap = { version = "4.5", features = ["derive"] }
+
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }

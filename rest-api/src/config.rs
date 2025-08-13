@@ -72,10 +72,52 @@ impl Default for ComplianceConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RedisConfig {
+    pub enabled: bool,
+    pub url: Option<String>,
+    pub password: Option<String>,
+    pub connection_timeout: u64,
+    pub max_connections: u32,
+    pub default_ttl_seconds: u64,
+}
+
+impl Default for RedisConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            url: None,
+            password: None,
+            connection_timeout: 5,
+            max_connections: 10,
+            default_ttl_seconds: 300, 
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GatewayConfig {
+    pub enabled: bool,
+    pub jwt_secret: Option<String>,
+    pub internal_token_header: String,
+}
+
+impl Default for GatewayConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            jwt_secret: None,
+            internal_token_header: "X-Internal-Token".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub server: ServerConfig,
     pub security: SecurityConfig,
     pub compliance: ComplianceConfig,
+    pub redis: RedisConfig,
+    pub gateway: GatewayConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,6 +166,8 @@ impl Default for AppConfig {
             server: ServerConfig::default(),
             security: SecurityConfig::default(),
             compliance: ComplianceConfig::default(),
+            redis: RedisConfig::default(),
+            gateway: GatewayConfig::default(),
         }
     }
 }
@@ -212,6 +256,50 @@ impl AppConfig {
             if let Ok(expiry_hours) = jwt_expiry.parse::<u32>() {
                 config.security.jwt_expiry_hours = expiry_hours;
             }
+        }
+
+        // Redis configuration
+        if let Ok(redis_enabled) = env::var("REDIS_ENABLED") {
+            config.redis.enabled = redis_enabled.to_lowercase() == "true";
+        }
+
+        if let Ok(redis_url) = env::var("REDIS_URL") {
+            config.redis.url = Some(redis_url);
+        }
+
+        if let Ok(redis_password) = env::var("REDIS_PASSWORD") {
+            config.redis.password = Some(redis_password);
+        }
+
+        if let Ok(redis_timeout) = env::var("REDIS_TIMEOUT_SECONDS") {
+            if let Ok(timeout) = redis_timeout.parse::<u64>() {
+                config.redis.connection_timeout = timeout;
+            }
+        }
+
+        if let Ok(redis_max_conn) = env::var("REDIS_MAX_CONNECTIONS") {
+            if let Ok(max_conn) = redis_max_conn.parse::<u32>() {
+                config.redis.max_connections = max_conn;
+            }
+        }
+
+        if let Ok(redis_ttl) = env::var("REDIS_DEFAULT_TTL_SECONDS") {
+            if let Ok(ttl) = redis_ttl.parse::<u64>() {
+                config.redis.default_ttl_seconds = ttl;
+            }
+        }
+
+        // Gateway configuration
+        if let Ok(gateway_enabled) = env::var("GATEWAY_MODE") {
+            config.gateway.enabled = gateway_enabled.to_lowercase() == "true";
+        }
+
+        if let Ok(gateway_jwt_secret) = env::var("GATEWAY_JWT_SECRET") {
+            config.gateway.jwt_secret = Some(gateway_jwt_secret);
+        }
+
+        if let Ok(gateway_header) = env::var("GATEWAY_INTERNAL_TOKEN_HEADER") {
+            config.gateway.internal_token_header = gateway_header;
         }
 
         if matches!(config.server.environment, Environment::Production) {
