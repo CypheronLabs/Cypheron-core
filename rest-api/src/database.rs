@@ -269,7 +269,8 @@ impl DatabaseConfiguration {
         
         // Initialize API key store with Firestore (preserves your existing setup)
         let project_id = std::env::var("GOOGLE_CLOUD_PROJECT")
-            .unwrap_or_else(|_| "cypheron-pq-keys".to_string());
+            .or_else(|_| std::env::var("GOOGLE_CLOUD_PROJECT_ID"))
+            .unwrap_or_else(|_| "cypheron-api".to_string());
         
         tracing::info!("Connecting to Firestore project: {}", project_id);
         let api_key_store = ApiKeyStore::new_with_firestore(&project_id).await

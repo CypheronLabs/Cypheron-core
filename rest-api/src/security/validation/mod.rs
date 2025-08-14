@@ -33,6 +33,14 @@ pub enum ValidatorType {
     DocumentParsing,
     Decryption(std::sync::Arc<crate::security::auth::PostQuantumEncryption>),
     Hash(std::sync::Arc<crate::security::auth::PostQuantumEncryption>),
+    HybridDecryption {
+        legacy: std::sync::Arc<crate::security::auth::PostQuantumEncryption>,
+        hybrid: std::sync::Arc<crate::security::auth::hybrid_encryption::HybridEncryption>,
+    },
+    HybridHash {
+        legacy: std::sync::Arc<crate::security::auth::PostQuantumEncryption>,
+        hybrid: std::sync::Arc<crate::security::auth::hybrid_encryption::HybridEncryption>,
+    },
     Expiration,
     Completion,
 }
@@ -49,6 +57,12 @@ impl ValidatorType {
             }
             ValidatorType::Hash(encryption) => {
                 validators::validate_hash(context, encryption).await
+            }
+            ValidatorType::HybridDecryption { legacy, hybrid } => {
+                validators::validate_hybrid_decryption(context, legacy, hybrid).await
+            }
+            ValidatorType::HybridHash { legacy, hybrid } => {
+                validators::validate_hybrid_hash(context, legacy, hybrid).await
             }
             ValidatorType::Expiration => {
                 validators::validate_expiration(context).await

@@ -65,8 +65,9 @@ impl ApiKeyStore {
             collection_name.clone(),
         ));
 
-        let validation_pipeline = crate::security::validation::ValidationPipeline::new_default(
+        let validation_pipeline = crate::security::validation::ValidationPipeline::new_hybrid(
             Arc::new(encryption.clone()),
+            hybrid_encryption.clone(),
         );
 
         let key_validator = Arc::new(KeyValidator::new(

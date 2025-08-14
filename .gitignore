@@ -94,3 +94,6 @@ terraform/.terraform/
 *.pem
 *.key
 .secrets_generated
+api_benchmark.py
+deploy.sh
+guide.md
