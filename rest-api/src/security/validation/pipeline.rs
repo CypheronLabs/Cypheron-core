@@ -1,5 +1,6 @@
 use super::{ValidatorType, ValidationContext, ValidationResult, ValidationStep};
 use crate::security::auth::{AuthError, PostQuantumEncryption};
+use crate::security::auth::hybrid_encryption::HybridEncryption;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -24,6 +25,21 @@ impl ValidationPipeline {
             .add_validator(ValidatorType::DocumentParsing)
             .add_validator(ValidatorType::Decryption(encryption.clone()))
             .add_validator(ValidatorType::Hash(encryption))
+            .add_validator(ValidatorType::Expiration)
+            .add_validator(ValidatorType::Completion)
+    }
+
+    pub fn new_hybrid(legacy: Arc<PostQuantumEncryption>, hybrid: Arc<HybridEncryption>) -> Self {
+        Self::new()
+            .add_validator(ValidatorType::DocumentParsing)
+            .add_validator(ValidatorType::HybridDecryption {
+                legacy: legacy.clone(),
+                hybrid: hybrid.clone(),
+            })
+            .add_validator(ValidatorType::HybridHash {
+                legacy,
+                hybrid,
+            })
             .add_validator(ValidatorType::Expiration)
             .add_validator(ValidatorType::Completion)
     }

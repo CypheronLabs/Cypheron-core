@@ -232,15 +232,28 @@ pub fn validate_decoded_key_size(
 ) -> Result<(), AppError> {
     let expected_size = match (algorithm, is_public) {
         ("dilithium2", true) => 1312,
-        ("dilithium2", false) => 2560,
+        ("dilithium2", false) => 2528,
+        ("ml-dsa-44", true) => 1312,
+        ("ml-dsa-44", false) => 2528,
         ("dilithium3", true) => 1952,
         ("dilithium3", false) => 4032,
+        ("ml-dsa-65", true) => 1952,
+        ("ml-dsa-65", false) => 4032,
         ("dilithium5", true) => 2592,
         ("dilithium5", false) => 4896,
+        ("ml-dsa-87", true) => 2592,
+        ("ml-dsa-87", false) => 4896,
         ("falcon512", true) => 897,
         ("falcon512", false) => 1281,
         ("falcon1024", true) => 1793,
         ("falcon1024", false) => 2305,
+        // SPHINCS/SLH-DSA variants
+        ("slh-dsa-haraka-192f", true) => 48,
+        ("slh-dsa-haraka-192f", false) => 96,
+        ("slh-dsa-sha2-256s", true) => 64,
+        ("slh-dsa-sha2-256s", false) => 128,
+        ("slh-dsa-shake-128f", true) => 32,
+        ("slh-dsa-shake-128f", false) => 64,
         _ => return Ok(()),
     };
 

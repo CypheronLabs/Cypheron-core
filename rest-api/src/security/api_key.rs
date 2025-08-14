@@ -121,7 +121,7 @@ pub async fn create_api_key(
         usage_count: api_key.usage_count,
     };
 
-    api_store.store_api_key(&api_key, &api_key_raw).await.map_err(|e| {
+    api_store.store_api_key_hybrid(&api_key, &api_key_raw).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiKeyManagementError {
