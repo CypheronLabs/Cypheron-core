@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use axum::{middleware, routing::get, serve, Router};
+use chrono::Duration;
 use tokio::net::TcpListener;
 use tracing_subscriber;
 
@@ -37,8 +40,6 @@ async fn main() {
     let rate_limiter = security::RateLimiter::new(60);
     let audit_logger = Arc::new(security::AuditLogger::new(10000));
 
-    use chrono::Duration;
-    use std::sync::Arc;
 
     let metrics_collector = Arc::new(monitoring::MetricsCollector::new(10000));
     let security_monitor = Arc::new(monitoring::SecurityEventMonitor::new(5000));

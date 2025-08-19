@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use chrono::{DateTime, Duration, Utc};
@@ -51,6 +51,15 @@ pub struct ApiKeyManagementError {
     pub error: String,
     pub message: String,
     pub code: u16,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateAPIKeyRequest {
+    pub name: Option<String>,
+    pub permissions: Option<Vec<String>>,
+    pub rate_limit: Option<u32>,
+    pub is_active: Option<bool>,
+    pub expires_in_days: Option<i64>,
 }
 
 fn generate_api_key() -> String {
@@ -216,9 +225,70 @@ pub async fn get_api_key_info(
     }
 }
 
+pub async fn update_api_key(
+    Path(id): Path<String>,
+    State(api_store): State<ApiKeyStore>,
+    Json(payload): Json<UpdateAPIKeyRequest>,
+) -> Result<Json<ApiKeyInfo>, (StatusCode, Json<ApiKeyManagementError>)> {
+    match api_store.update_api_key(&id, &payload).await {
+        Ok(updated_key) => {
+            let key_info = ApiKeyInfo {
+                id: updated_key.id,
+                name: updated_key.name,
+                permissions: updated_key.permissions,
+                rate_limit: updated_key.rate_limit,
+                created_at: updated_key.created_at,
+                expires_at: updated_key.expires_at,
+                is_active: updated_key.is_active,
+                last_used: updated_key.last_used,
+                usage_count: updated_key.usage_count,
+            };
+
+            tracing::info!("Updated API key: {} ({})", key_info.name, key_info.id);
+            Ok(Json(key_info))
+        }
+        Err(e) => {
+            tracing::error!("Failed to update API key {}: {}", id, e.message);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiKeyManagementError {
+                    error: e.error,
+                    message: e.message,
+                    code: e.code,
+                }),
+            ))
+        }
+    }
+}
+
+pub async fn revoke_api_key(
+    Path(id): Path<String>,
+    State(api_store): State<ApiKeyStore>,
+) -> Result<StatusCode, (StatusCode, Json<ApiKeyManagementError>)> {
+    match api_store.revoke_api_key(&id).await {
+        Ok(_) => {
+            tracing::info!("Revoked API key: {}", id);
+            Ok(StatusCode::NO_CONTENT)
+        }
+        Err(e) => {
+            tracing::error!("Failed to revoke API key {}: {}", id, e.message);
+            Err((
+                StatusCode::from_u16(e.code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                Json(ApiKeyManagementError {
+                    error: e.error,
+                    message: e.message,
+                    code: e.code,
+                }),
+            ))
+        }
+    }
+}
+
 pub fn api_key_management_routes() -> Router<ApiKeyStore> {
     Router::new()
         .route("/admin/api-keys", post(create_api_key))
         .route("/admin/api-keys", get(list_api_keys))
         .route("/admin/api-keys/{id}", get(get_api_key_info))
+        .route("/admin/api-keys/{id}", put(update_api_key))
+        .route("/admin/api-keys/{id}", delete(revoke_api_key))
 }
