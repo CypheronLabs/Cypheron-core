@@ -14,9 +14,9 @@ pub use api_key::*;
 pub use audit::*;
 pub use auth::*;
 pub use compliance::*;
-pub use error_sanitizer::*;
-pub use gateway_auth::*;
+// pub use error_sanitizer::*;  // Unused - commented for now
+// pub use gateway_auth::*;     // Unused - commented for now
 pub use middleware::*;
 pub use rate_limit::*;
 pub use timeout::*;
-pub use validation::ValidationPipeline;
+// pub use validation::ValidationPipeline;  // Unused - commented for now

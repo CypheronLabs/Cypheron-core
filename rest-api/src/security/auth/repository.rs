@@ -1,16 +1,19 @@
-use base64::{engine::general_purpose, Engine as _};
-use chrono::{Utc, TimeZone};
-use gcloud_sdk::google::firestore::v1::{
-    firestore_client::FirestoreClient, value::ValueType, ArrayValue, CreateDocumentRequest,
-    DeleteDocumentRequest, Document, Value, GetDocumentRequest, ListDocumentsRequest,
-};
-use gcloud_sdk::{GoogleApi, GoogleAuthMiddleware};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::SystemTime;
+
+use base64::{engine::general_purpose, Engine as _};
+use chrono::{TimeZone, Utc};
+use gcloud_sdk::google::firestore::v1::{
+    firestore_client::FirestoreClient, value::ValueType, ArrayValue, CreateDocumentRequest,
+    DeleteDocumentRequest, Document, GetDocumentRequest, ListDocumentsRequest, Value,
+};
+use gcloud_sdk::{GoogleApi, GoogleAuthMiddleware};
 use uuid::Uuid;
 
+use crate::security::api_key::UpdateAPIKeyRequest;
 use super::{encryption::PostQuantumEncryption, errors::AuthError, models::ApiKey};
+
 
 #[derive(Clone)]
 pub struct FirestoreApiKeyRepository {
@@ -63,7 +66,6 @@ impl FirestoreApiKeyRepository {
         Ok(())
     }
 
-    /// Store API key with versioned encrypted data (for hybrid encryption)
     pub async fn store_api_key_versioned(&self, api_key: &ApiKey, versioned_encrypted_data: &[u8]) -> Result<(), AuthError> {
         let encrypted_data_b64 = general_purpose::STANDARD.encode(versioned_encrypted_data);
 
@@ -98,7 +100,6 @@ impl FirestoreApiKeyRepository {
             },
         );
 
-        // Store versioned encrypted data instead of legacy format
         fields.insert(
             "encrypted_key_versioned".to_string(),
             Value {
@@ -264,7 +265,7 @@ impl FirestoreApiKeyRepository {
         let request = ListDocumentsRequest {
             parent: format!("projects/{}/databases/{}/documents", self.project_id, self.database_id),
             collection_id: self.collection_name.clone(),
-            page_size: 100, // Reasonable limit for admin operations
+            page_size: 100, 
             page_token: String::new(),
             order_by: String::new(),
             mask: None,
@@ -286,12 +287,139 @@ impl FirestoreApiKeyRepository {
                 Ok(api_key) => api_keys.push(api_key),
                 Err(e) => {
                     tracing::warn!("Failed to parse API key document: {}", e.message);
-                    // Continue processing other documents instead of failing the entire operation
                 }
             }
         }
 
         Ok(api_keys)
+    }
+
+    pub async fn update_api_key(
+        &self, 
+        key_id: &str, 
+        update_request: &UpdateAPIKeyRequest) 
+        -> Result<ApiKey, AuthError> {
+
+        let doc_name = format!(
+            "projects/{}/databases/{}/documents/{}/{}",
+            self.project_id, 
+            self.database_id,
+            self.collection_name, key_id
+        );
+        let _existing_key = self.get_api_key(key_id).await?
+            .ok_or_else(|| AuthError {
+                error: "not_found".to_string(),
+                message: format!("API key with ID {} not found", key_id),
+                code: 404,
+            })?;
+
+        let mut fields_to_update = HashMap::new();
+        let mut update_mask_paths = Vec::new();
+
+        if let Some(rate_limit) = update_request.rate_limit {
+            fields_to_update.insert(
+                "rate_limit".to_string(),
+                Value {value_type: Some(ValueType::IntegerValue(rate_limit as i64)) },
+            );
+            update_mask_paths.push("rate_limit".to_string());
+        }
+
+        if let Some(permissions) = &update_request.permissions {
+            let permissions_values: Vec<Value> = permissions
+                .iter()
+                .map(|p| Value {
+                    value_type: Some(ValueType::StringValue(p.clone())),
+                })
+                .collect();
+           fields_to_update.insert(
+               "permissions".to_string(),
+               Value {
+                   value_type: Some(ValueType::ArrayValue(ArrayValue {
+                       values: permissions_values,
+                   })),
+               },
+           );
+           update_mask_paths.push("permissions".to_string());
+        }
+
+        if let Some(is_active) = update_request.is_active {
+            fields_to_update.insert(
+                "is_active".to_string(),
+                Value {
+                    value_type: Some(ValueType::BooleanValue(is_active)),
+                },
+            );
+            update_mask_paths.push("is_active".to_string());
+        }
+
+        if fields_to_update.is_empty() {
+            return Err(AuthError {
+                error: "validation_error".to_string(),
+                message: "No fields to update".to_string(),
+                code: 400,
+            });
+        }
+
+        let request = gcloud_sdk::google::firestore::v1::UpdateDocumentRequest {
+            document: Some(Document {
+                name: doc_name.clone(),
+                fields: fields_to_update,
+                ..Default::default()
+            }),
+            update_mask: Some(gcloud_sdk::google::firestore::v1::DocumentMask {
+                field_paths: update_mask_paths,
+            }),
+            ..Default::default()
+        };
+
+        self.firestore_client.get().update_document(request).await.map_err(|e| AuthError {
+            error: "firestore_update_error".to_string(),
+            message: format!("Failed to update document: {}", e),
+            code: 500,
+        })?;
+
+        self.get_api_key(key_id).await?.ok_or_else(|| AuthError {
+            error: "not_found".to_string(),
+            message: format!("API key with ID {} not found", key_id),
+            code: 500,
+        })
+    }
+
+    pub async fn revoke_api_key(&self, key_id: &str) -> Result<(), AuthError> {
+        let _existing_key = self.get_api_key(key_id).await?
+            .ok_or_else(|| AuthError {
+                error: "not_found".to_string(),
+                message: format!("API key with ID {} not found", key_id),
+                code: 404,
+            })?;
+
+        let request = gcloud_sdk::google::firestore::v1::UpdateDocumentRequest {
+            document: Some(Document {
+                name: format!(
+                    "projects/{}/databases/{}/documents/{}/{}",
+                    self.project_id, self.database_id, self.collection_name, key_id
+                ),
+                fields: HashMap::from([(
+                    "is_active".to_string(),
+                    Value {
+                        value_type: Some(ValueType::BooleanValue(false)),
+                    },
+                )]),
+                ..Default::default()
+            }),
+            update_mask: Some(gcloud_sdk::google::firestore::v1::DocumentMask {
+                field_paths: vec!["is_active".to_string()],
+            }),
+            ..Default::default()
+        };
+
+        self.firestore_client.get().update_document(request).await.map_err(|e| AuthError {
+            error: "firestore_update_error".to_string(),
+            message: format!("Failed to update document: {}", e),
+            code: 500,
+        })?;
+
+        Ok(())
     }
 
     fn api_key_to_firestore_fields(

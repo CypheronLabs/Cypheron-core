@@ -1,17 +1,19 @@
-use gcloud_sdk::google::firestore::v1::firestore_client::FirestoreClient;
-use gcloud_sdk::GoogleApi;
 use std::sync::Arc;
 
+use gcloud_sdk::google::firestore::v1::firestore_client::FirestoreClient;
+use gcloud_sdk::GoogleApi;
+
+use crate::security::api_key::UpdateAPIKeyRequest;
+use crate::security::repository::LegacyApiKeyRepository;
 use super::{
     encryption::PostQuantumEncryption,
-    hybrid_encryption::HybridEncryption,
     errors::AuthError,
+    hybrid_encryption::HybridEncryption,
     models::ApiKey,
     permissions::check_permission,
     repository::FirestoreApiKeyRepository,
     validation::KeyValidator,
 };
-use crate::security::repository::LegacyApiKeyRepository;
 
 #[derive(Clone)]
 pub struct ApiKeyStore {
@@ -110,27 +112,32 @@ impl ApiKeyStore {
         }
     }
 
-    /// Store API key using hybrid encryption (new keys use V2)
     pub async fn store_api_key_hybrid(&self, api_key: &ApiKey, raw_key: &str) -> Result<(), AuthError> {
-        // Use hybrid encryption for new keys
         let encrypted_data = self.hybrid_encryption.encrypt(raw_key.as_bytes())?;
         
-        // Serialize the versioned encrypted data
         let serialized_data = serde_json::to_vec(&encrypted_data).map_err(|e| AuthError {
             error: "serialization_error".to_string(),
             message: format!("Failed to serialize versioned encrypted data: {}", e),
             code: 500,
         })?;
 
-        // Actually store the data using the versioned repository method
         self.repository.store_api_key_versioned(api_key, &serialized_data).await?;
 
         tracing::info!("Stored API key with hybrid encryption (V2): {} ({})", api_key.name, api_key.id);
         Ok(())
     }
 
-    /// Get hybrid encryption instance (for advanced use cases)
     pub fn get_hybrid_encryption(&self) -> Arc<HybridEncryption> {
         self.hybrid_encryption.clone()
+    }
+
+    
+
+    pub async fn update_api_key(&self, key_id: &str, update_request: &UpdateAPIKeyRequest) -> Result<ApiKey, AuthError> {
+        self.repository.update_api_key(key_id, update_request).await
+    }
+    
+    pub async fn revoke_api_key(&self, key_id: &str) -> Result<(), AuthError> {
+        self.repository.delete_api_key(key_id).await
     }
 }

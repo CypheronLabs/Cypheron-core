@@ -225,7 +225,7 @@ impl MigrationTool {
         };
 
         // Helper function to extract optional string values
-        let extract_optional_string = |key: &str| -> Option<String> {
+        let _extract_optional_string = |key: &str| -> Option<String> {
             fields.get(key)
                 .and_then(|v| v.value_type.as_ref())
                 .and_then(|vt| if let ValueType::StringValue(s) = vt { Some(s.clone()) } else { None })
