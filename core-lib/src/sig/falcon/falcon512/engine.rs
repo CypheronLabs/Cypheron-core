@@ -100,7 +100,7 @@ impl SignatureEngine for Falcon512Engine {
 
         if keygen_result != 0 {
             sk_buf.zeroize();
-            return Err(FalconErrors::KeyGenerationFailed);
+            return Err(FalconErrors::from_c_code(keygen_result, "keypair"));
         }
 
         Ok((PublicKey(pk_buf), SecretKey(SecretBox::new(Box::from(sk_buf)))))
@@ -138,12 +138,12 @@ impl SignatureEngine for Falcon512Engine {
 
         if sign_result != 0 {
             sig_buf.zeroize();
-            return Err(FalconErrors::SigningFailed);
+            return Err(FalconErrors::from_c_code(sign_result, "sign"));
         }
 
         if siglen > FALCON_SIGNATURE {
             sig_buf.zeroize();
-            return Err(FalconErrors::SigningFailed);
+            return Err(FalconErrors::SigningInternalError);
         }
 
         let mut actual_sig = [0u8; FALCON_SIGNATURE];

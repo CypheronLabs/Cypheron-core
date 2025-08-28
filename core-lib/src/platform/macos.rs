@@ -131,7 +131,7 @@ pub fn optimize_for_apple_silicon() -> Result<(), Error> {
 
     unsafe {
         if libc::setpriority(libc::PRIO_PROCESS, 0, -5) != 0 {
-            eprintln!("Warning: Could not set process priority");
+            crate::security::secure_warn!("Could not set process priority");
         }
     }
 

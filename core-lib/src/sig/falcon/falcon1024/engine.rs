@@ -44,7 +44,7 @@ impl SignatureEngine for Falcon1024Engine {
         };
 
         if keygen_result != 0 {
-            return Err(FalconErrors::KeyGenerationFailed);
+            return Err(FalconErrors::from_c_code(keygen_result, "keypair"));
         }
         Ok((PublicKey(pk), SecretKey(SecretBox::new(Box::from(sk)))))
     }
@@ -78,7 +78,7 @@ impl SignatureEngine for Falcon1024Engine {
         };
 
         if sign_result != 0 {
-            return Err(FalconErrors::SigningFailed);
+            return Err(FalconErrors::from_c_code(sign_result, "sign"));
         }
 
         let mut actual_sig = [0u8; FALCON_SIGNATURE];

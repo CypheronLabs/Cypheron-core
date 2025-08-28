@@ -117,3 +117,30 @@ pub fn verify_buffer_initialized<T: PartialEq + Default + Copy>(
     
     !initialized_portion.iter().all(|&x| x == default_val)
 }
+
+#[cfg(debug_assertions)]
+macro_rules! secure_debug {
+    ($($arg:tt)*) => {
+        eprintln!("[DEBUG] {}", format_args!($($arg)*));
+    };
+}
+
+#[cfg(not(debug_assertions))]
+macro_rules! secure_debug {
+    ($($arg:tt)*) => {};
+}
+
+#[cfg(debug_assertions)]
+macro_rules! secure_warn {
+    ($($arg:tt)*) => {
+        eprintln!("[WARN] {}", format_args!($($arg)*));
+    };
+}
+
+#[cfg(not(debug_assertions))]
+macro_rules! secure_warn {
+    ($($arg:tt)*) => {};
+}
+
+pub(crate) use secure_debug;
+pub(crate) use secure_warn;
