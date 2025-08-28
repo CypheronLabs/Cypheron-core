@@ -1,8 +1,15 @@
 [package]
-name = "core-lib"
+name = "cypheron-core"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
+description = "Post-quantum cryptography library with NIST-standardized quantum-resistant algorithms"
+license = "Apache-2.0"
+repository = "https://github.com/CypheronLabs/Cypheron-core"
+homepage = "https://cypheronlabs.com/"
+authors = ["Cypheron Labs"]
+keywords = ["post-quantum-cryptography", "quantum-resistant", "enterprise-crypto", "pqc", "nist"]
+categories = ["cryptography", "api-bindings"]
 
 [dependencies]
 secrecy = "0.10.3"
@@ -37,7 +44,7 @@ cc = "1.2.30"
 bindgen = "0.72.0"
 
 [dev-dependencies]
-core-lib = { path = "." }
+cypheron-core = { path = "." }
 serde_json = "1.0"
 # Security testing dependencies
 proptest = "1.7"
