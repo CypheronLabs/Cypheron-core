@@ -46,6 +46,39 @@ hex = "0.4"
 # Note: dudect requires nightly features, added as optional for timing tests
 # dudect = "0.4"  # Uncomment when using nightly Rust for side-channel testing
 
+# Benchmark configurations
+[[bench]]
+name = "crypto_benchmarks"
+harness = false
+
+[[bench]]
+name = "kem_benchmarks"
+harness = false
+
+[[bench]]
+name = "signature_benchmarks"
+harness = false
+
+[[bench]]
+name = "hybrid_signature_benchmarks"
+harness = false
+
+[[bench]]
+name = "hybrid_kem_benchmarks"
+harness = false
+
+[[bench]]
+name = "security_benchmarks"
+harness = false
+
+[[bench]]
+name = "workflow_benchmarks"
+harness = false
+
+[[bench]]
+name = "regression_benchmarks"
+harness = false
+
 [features]
 default = []
 derand = []
