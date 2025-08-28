@@ -1,3 +1,4 @@
+use crate::security::{validate_ffi_fixed_buffer, validate_message_bounds, safe_cast_to_c_void, FfiSafe};
 use crate::sig::falcon::bindings::shake256_context;
 use libc::c_int;
 use rand::TryRngCore;
@@ -14,26 +15,52 @@ use crate::sig::traits::SignatureEngine;
 
 const FALCON_SEED_LENGTH: usize = 48;
 
-fn initialize_falcon_rng(
-    rng_state_uninit: &mut MaybeUninit<shake256_context>,
-) -> Result<(), FalconErrors> {
-    let mut seed = [0u8; FALCON_SEED_LENGTH];
+struct SecureRngState {
+    state: MaybeUninit<shake256_context>,
+    initialized: bool,
+}
 
-    rand::rng().try_fill_bytes(&mut seed).map_err(|e| {
-        eprintln!("FATAL: System RNG failed: {}", e);
-        FalconErrors::RngInitializationFailed
-    })?;
+impl SecureRngState {
+    fn new() -> Result<Self, FalconErrors> {
+        let mut seed = [0u8; FALCON_SEED_LENGTH];
+        let mut state = MaybeUninit::<shake256_context>::uninit();
 
-    unsafe {
-        shake256_init_prng_from_seed(
-            rng_state_uninit.as_mut_ptr(),
-            seed.as_ptr() as *const c_void,
-            seed.len(),
-        );
+        rand::rng().try_fill_bytes(&mut seed).map_err(|_| {
+            FalconErrors::RngInitializationFailed
+        })?;
+
+        unsafe {
+            shake256_init_prng_from_seed(
+                state.as_mut_ptr(),
+                safe_cast_to_c_void!(seed.as_ptr()),
+                seed.len(),
+            );
+        }
+
+        seed.zeroize();
+        
+        Ok(SecureRngState {
+            state,
+            initialized: true,
+        })
     }
 
-    seed.zeroize();
-    Ok(())
+    fn as_mut_ptr(&mut self) -> *mut shake256_context {
+        if !self.initialized {
+            panic!("Attempting to use uninitialized RNG state");
+        }
+        self.state.as_mut_ptr()
+    }
+}
+
+impl Drop for SecureRngState {
+    fn drop(&mut self) {
+        if self.initialized {
+            unsafe {
+                std::ptr::write_bytes(self.state.as_mut_ptr(), 0, 1);
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -49,25 +76,30 @@ impl SignatureEngine for Falcon512Engine {
         let mut pk_buf = [0u8; FALCON_PUBLIC];
         let mut sk_buf = [0u8; FALCON_SECRET];
         let mut tmp = vec![0u8; FALCON_TMPSIZE_KEYGEN];
-        let mut rng_state = MaybeUninit::<shake256_context>::uninit();
 
-        initialize_falcon_rng(&mut rng_state)?;
+        validate_ffi_fixed_buffer!(&pk_buf, FALCON_PUBLIC);
+        validate_ffi_fixed_buffer!(&sk_buf, FALCON_SECRET);
+        validate_ffi_fixed_buffer!(&tmp, FALCON_TMPSIZE_KEYGEN);
+
+        let mut rng_state = SecureRngState::new()?;
 
         let keygen_result: c_int = unsafe {
             falcon_keygen_make(
                 rng_state.as_mut_ptr(),
                 FALCON_LOGN as u32,
-                sk_buf.as_mut_ptr() as *mut c_void,
+                safe_cast_to_c_void!(mut sk_buf.as_mut_ptr()),
                 sk_buf.len(),
-                pk_buf.as_mut_ptr() as *mut c_void,
+                safe_cast_to_c_void!(mut pk_buf.as_mut_ptr()),
                 pk_buf.len(),
-                tmp.as_mut_ptr() as *mut c_void,
+                safe_cast_to_c_void!(mut tmp.as_mut_ptr()),
                 tmp.len(),
             )
         };
-        drop(tmp);
+
+        tmp.zeroize();
 
         if keygen_result != 0 {
+            sk_buf.zeroize();
             return Err(FalconErrors::KeyGenerationFailed);
         }
 
@@ -75,64 +107,100 @@ impl SignatureEngine for Falcon512Engine {
     }
 
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error> {
+        validate_message_bounds!(msg);
+        
         let sk_bytes = sk.0.expose_secret();
         let mut sig_buf = [0u8; FALCON_SIGNATURE];
         let mut siglen: usize = FALCON_SIGNATURE;
         let mut tmp = vec![0u8; FALCON_TMPSIZE_SIGNDYN];
-        let mut rng_state = MaybeUninit::<shake256_context>::uninit();
 
-        initialize_falcon_rng(&mut rng_state)?;
+        validate_ffi_fixed_buffer!(sk_bytes, FALCON_SECRET);
+        validate_ffi_fixed_buffer!(&tmp, FALCON_TMPSIZE_SIGNDYN);
+
+        let mut rng_state = SecureRngState::new()?;
 
         let sign_result: c_int = unsafe {
             falcon_sign_dyn(
                 rng_state.as_mut_ptr(),
-                sig_buf.as_mut_ptr() as *mut _,
+                safe_cast_to_c_void!(mut sig_buf.as_mut_ptr()),
                 &mut siglen,
                 FALCON_SIG_COMPRESSED,
-                sk_bytes.as_ptr() as *const c_void,
+                safe_cast_to_c_void!(sk_bytes.as_ptr()),
                 sk_bytes.len(),
-                msg.as_ptr() as *const c_void,
+                safe_cast_to_c_void!(msg.as_ptr()),
                 msg.len(),
-                tmp.as_mut_ptr() as *mut c_void,
+                safe_cast_to_c_void!(mut tmp.as_mut_ptr()),
                 tmp.len(),
             )
         };
 
-        drop(tmp);
+        tmp.zeroize();
 
         if sign_result != 0 {
+            sig_buf.zeroize();
+            return Err(FalconErrors::SigningFailed);
+        }
+
+        if siglen > FALCON_SIGNATURE {
+            sig_buf.zeroize();
             return Err(FalconErrors::SigningFailed);
         }
 
         let mut actual_sig = [0u8; FALCON_SIGNATURE];
         actual_sig[..siglen].copy_from_slice(&sig_buf[..siglen]);
-        if siglen < FALCON_SIGNATURE {
-            actual_sig[siglen..].fill(0);
+        
+        for i in siglen..FALCON_SIGNATURE {
+            actual_sig[i] = 0;
         }
+        
+        sig_buf.zeroize();
         Ok(Signature(actual_sig))
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
+        if msg.len() > usize::MAX / 2 {
+            return false;
+        }
+        if !msg.is_valid_for_ffi() && !msg.is_empty() {
+            return false;
+        }
+
         let sig_bytes = &sig.0;
         let pk_bytes = &pk.0;
 
-        let actual_sig_len = sig_bytes.len();
+        if sig_bytes.len() != FALCON_SIGNATURE || !sig_bytes.is_valid_for_ffi() {
+            return false;
+        }
+        if pk_bytes.len() != FALCON_PUBLIC || !pk_bytes.is_valid_for_ffi() {
+            return false;
+        }
+
+        let mut actual_sig_len = sig_bytes.len();
+        while actual_sig_len > 0 && sig_bytes[actual_sig_len - 1] == 0 {
+            actual_sig_len -= 1;
+        }
+
+        if actual_sig_len == 0 {
+            return false;
+        }
 
         let mut tmp = vec![0u8; FALCON_TMPSIZE_VERIFY];
 
         let verify_result: c_int = unsafe {
             falcon_verify(
-                sig_bytes.as_ptr() as *const c_void,
+                safe_cast_to_c_void!(sig_bytes.as_ptr()),
                 actual_sig_len,
                 FALCON_SIG_COMPRESSED,
-                pk_bytes.as_ptr() as *const c_void,
+                safe_cast_to_c_void!(pk_bytes.as_ptr()),
                 pk_bytes.len(),
-                msg.as_ptr() as *const c_void,
+                safe_cast_to_c_void!(msg.as_ptr()),
                 msg.len(),
-                tmp.as_mut_ptr() as *mut c_void,
+                safe_cast_to_c_void!(mut tmp.as_mut_ptr()),
                 tmp.len(),
             )
         };
+
+        tmp.zeroize();
         verify_result == 0
     }
 }

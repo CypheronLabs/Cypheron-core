@@ -1,5 +1,6 @@
 use super::bindings::*;
 use super::types::*;
+use crate::security::{verify_buffer_initialized, FfiSafe};
 use crate::sig::dilithium::common::*;
 use crate::sig::dilithium::errors::DilithiumError;
 use crate::sig::traits::SignatureEngine;
@@ -30,13 +31,24 @@ impl SignatureEngine for Dilithium2Engine {
     }
 
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error> {
-        let mut sig = MaybeUninit::<[u8; ML_DSA_44_SIGNATURE]>::uninit();
+        if msg.len() > usize::MAX / 2 {
+            return Err(DilithiumError::InvalidInput);
+        }
+        if !msg.is_valid_for_ffi() && !msg.is_empty() {
+            return Err(DilithiumError::InvalidInput);
+        }
+        
+        let mut sig_buffer = [0u8; ML_DSA_44_SIGNATURE];
         let mut siglen = 0usize;
         let sk_bytes = sk.0.expose_secret();
 
+        if sk_bytes.len() != ML_DSA_44_SECRET {
+            return Err(DilithiumError::InvalidInput);
+        }
+
         let result = unsafe {
             pqcrystals_dilithium2_ref_signature(
-                sig.as_mut_ptr() as *mut u8,
+                sig_buffer.as_mut_ptr(),
                 &mut siglen,
                 msg.as_ptr(),
                 msg.len(),
@@ -45,17 +57,38 @@ impl SignatureEngine for Dilithium2Engine {
                 sk_bytes.as_ptr(),
             )
         };
+        
         match result {
             0 => {
-                let sig = unsafe { sig.assume_init() };
+                if siglen == 0 || siglen > ML_DSA_44_SIGNATURE {
+                    return Err(DilithiumError::SigningInternalError);
+                }
+                
+                if !verify_buffer_initialized(&sig_buffer[..siglen], siglen) {
+                    return Err(DilithiumError::SigningInternalError);
+                }
 
-                Ok(Signature(sig))
+                Ok(Signature(sig_buffer))
             }
             code => Err(DilithiumError::from_c_code(code, "sign")),
         }
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
+        if msg.len() > usize::MAX / 2 {
+            return false;
+        }
+        if !msg.is_valid_for_ffi() && !msg.is_empty() {
+            return false;
+        }
+        
+        if sig.0.len() != ML_DSA_44_SIGNATURE {
+            return false;
+        }
+        if pk.0.len() != ML_DSA_44_PUBLIC {
+            return false;
+        }
+        
         let sig_len = sig.0.len();
         let result = unsafe {
             pqcrystals_dilithium2_ref_verify(

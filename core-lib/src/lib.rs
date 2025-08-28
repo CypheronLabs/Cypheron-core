@@ -1,6 +1,7 @@
 pub mod hybrid;
 pub mod kem;
 pub mod platform;
+pub mod security;
 pub mod sig;
 
 pub use platform::{get_platform_info, secure_random_bytes, secure_zero, PlatformInfo};

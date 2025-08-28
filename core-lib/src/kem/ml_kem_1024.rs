@@ -14,7 +14,7 @@ mod bindings {
 }
 use bindings::*;
 
-pub struct MlKemSecretKey(pub [u8; sizes::ML_KEM_1024_SECRET]);
+pub struct MlKemSecretKey(pub SecretBox<[u8; sizes::ML_KEM_1024_SECRET]>);
 
 #[deprecated(since = "0.2.0", note = "Use MlKemSecretKey instead for NIST FIPS 203 compliance")]
 pub type KyberSecretKey = MlKemSecretKey;
@@ -84,7 +84,7 @@ impl Kem for MlKem1024 {
             return Err(MlKemError::KeyGenerationFailed);
         }
 
-        Ok((MlKemPublicKey(pk), MlKemSecretKey(sk)))
+        Ok((MlKemPublicKey(pk), MlKemSecretKey(SecretBox::new(Box::new(sk)))))
     }
 
     fn encapsulate(
@@ -120,17 +120,17 @@ impl Kem for MlKem1024 {
                 actual: ct.len(),
             });
         }
-        if sk.0.len() != sizes::ML_KEM_1024_SECRET {
+        if sk.0.expose_secret().len() != sizes::ML_KEM_1024_SECRET {
             return Err(MlKemError::InvalidSecretKeyLength {
                 expected: sizes::ML_KEM_1024_SECRET,
-                actual: sk.0.len(),
+                actual: sk.0.expose_secret().len(),
             });
         }
 
         let mut ss = [0u8; sizes::ML_KEM_1024_SHARED];
 
         let result =
-            unsafe { pqcrystals_kyber1024_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.as_ptr()) };
+            unsafe { pqcrystals_kyber1024_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.expose_secret().as_ptr()) };
 
         if result != 0 {
             ss.zeroize();

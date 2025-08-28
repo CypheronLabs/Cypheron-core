@@ -121,7 +121,7 @@ impl HybridKemEngine for P256MlKem768 {
 
         let composite_secret = CompositeSecretKey {
             classical: SecretBox::new(Box::new(P256SecretKeyWrapper(classical_secret))),
-            post_quantum: SecretBox::new(Box::new(MlKemSecretKeyWrapper(pq_secret.0.to_vec()))),
+            post_quantum: SecretBox::new(Box::new(MlKemSecretKeyWrapper(pq_secret.0.expose_secret().to_vec()))),
         };
 
         Ok((composite_public, composite_secret))
@@ -220,9 +220,10 @@ impl HybridKemEngine for P256MlKem768 {
             ));
         }
 
+        let secret_array: [u8; sizes::ML_KEM_768_SECRET] = pq_secret_bytes.0[..sizes::ML_KEM_768_SECRET].try_into()
+                .map_err(|_| HybridKemError::PostQuantumError("Invalid secret key conversion".to_string()))?;
         let pq_secret_key = crate::kem::ml_kem_768::MlKemSecretKey(
-            pq_secret_bytes.0[..sizes::ML_KEM_768_SECRET].try_into()
-                .map_err(|_| HybridKemError::PostQuantumError("Invalid secret key conversion".to_string()))?,
+            SecretBox::new(Box::new(secret_array))
         );
 
         let pq_shared_secret = MlKem768::decapsulate(&pq_ciphertext, &pq_secret_key)
