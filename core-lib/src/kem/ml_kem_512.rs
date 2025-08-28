@@ -27,22 +27,51 @@ pub type KyberPublicKey = MlKemPublicKey;
 
 #[derive(Error, Debug)]
 pub enum MlKemError {
-    #[error("Key generation failed")]
-    KeyGenerationFailed,
-    #[error("Encapsulation failed")]
-    EncapsulationFailed,
-    #[error("Decapsulation failed")]
-    DecapsulationFailed,
+    #[error("Key generation failed - entropy failure")]
+    KeyGenerationEntropyFailure,
+    #[error("Key generation failed - internal error")]
+    KeyGenerationInternalError,
+    #[error("Encapsulation failed - invalid public key")]
+    EncapsulationInvalidKey,
+    #[error("Encapsulation failed - internal error")]
+    EncapsulationInternalError,
+    #[error("Decapsulation failed - invalid ciphertext")]
+    DecapsulationInvalidCiphertext,
+    #[error("Decapsulation failed - internal error")]
+    DecapsulationInternalError,
     #[error("Invalid ciphertext length: expected {expected}, got {actual}")]
     InvalidCiphertextLength { expected: usize, actual: usize },
     #[error("Invalid public key length: expected {expected}, got {actual}")]
     InvalidPublicKeyLength { expected: usize, actual: usize },
     #[error("Invalid secret key length: expected {expected}, got {actual}")]
     InvalidSecretKeyLength { expected: usize, actual: usize },
+    #[error("ML-KEM C library returned error code: {code}")]
+    CLibraryError { code: i32 },
 }
 
 #[deprecated(since = "0.2.0", note = "Use MlKemError instead for NIST FIPS 203 compliance")]
 pub type KyberError = MlKemError;
+
+impl MlKemError {
+    pub fn from_c_code(code: i32, operation: &str) -> Self {
+        match code {
+            0 => panic!("Should not map success code 0 to error"),
+            -1 => match operation {
+                "keypair" => MlKemError::KeyGenerationInternalError,
+                "encapsulate" => MlKemError::EncapsulationInternalError,
+                "decapsulate" => MlKemError::DecapsulationInternalError,
+                _ => MlKemError::CLibraryError { code },
+            },
+            -2 => match operation {
+                "keypair" => MlKemError::KeyGenerationEntropyFailure,
+                "encapsulate" => MlKemError::EncapsulationInvalidKey,
+                "decapsulate" => MlKemError::DecapsulationInvalidCiphertext,
+                _ => MlKemError::CLibraryError { code },
+            },
+            _ => MlKemError::CLibraryError { code },
+        }
+    }
+}
 
 pub struct MlKem512;
 
@@ -81,7 +110,7 @@ impl Kem for MlKem512 {
         if result != 0 {
             pk.zeroize();
             sk.zeroize();
-            return Err(MlKemError::KeyGenerationFailed);
+            return Err(MlKemError::from_c_code(result, "keypair"));
         }
 
         Ok((MlKemPublicKey(pk), MlKemSecretKey(SecretBox::new(Box::new(sk)))))
@@ -105,7 +134,7 @@ impl Kem for MlKem512 {
 
         if result != 0 {
             ss.zeroize();
-            return Err(MlKemError::EncapsulationFailed);
+            return Err(MlKemError::from_c_code(result, "encapsulate"));
         }
 
         Ok((ct, SecretBox::new(ss.into())))
@@ -135,7 +164,7 @@ impl Kem for MlKem512 {
 
         if result != 0 {
             ss.zeroize();
-            return Err(MlKemError::DecapsulationFailed);
+            return Err(MlKemError::from_c_code(result, "decapsulate"));
         }
 
         Ok(SecretBox::new(ss.into())) // WRAP IN Ok()
