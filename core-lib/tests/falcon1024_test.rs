@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core_lib::sig::falcon::falcon1024::api::Falcon1024;
-use core_lib::sig::falcon::falcon1024::constants::{
+use cypheron_core::sig::falcon::falcon1024::api::Falcon1024;
+use cypheron_core::sig::falcon::falcon1024::constants::{
     FALCON_PUBLIC, FALCON_SECRET, FALCON_SIGNATURE,
 };
-use core_lib::sig::falcon::falcon1024::types::Signature;
-use core_lib::sig::traits::SignatureEngine;
+use cypheron_core::sig::falcon::falcon1024::types::Signature;
+use cypheron_core::sig::traits::SignatureEngine;
 use secrecy::ExposeSecret;
 
 const TEST_MESSAGE_FALCON1024: &[u8] = b"This is a test message for Falcon-1024 implementation.";

@@ -181,6 +181,6 @@ impl Kem for MlKem512 {
             return Err(MlKemError::from_c_code(result, "decapsulate"));
         }
 
-        Ok(SecretBox::new(ss.into())) // WRAP IN Ok()
+        Ok(SecretBox::new(ss.into()))
     }
 }

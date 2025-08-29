@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core_lib::kem::KemVariant;
-use core_lib::kem::{Kem, Kyber1024};
+use cypheron_core::kem::KemVariant;
+use cypheron_core::kem::{Kem, Kyber1024};
 use secrecy::ExposeSecret;
 
 #[test]
@@ -25,7 +25,7 @@ fn test_variant_and_expose() {
     let ss2 = Kyber1024::decapsulate(&ct, &sk).expect("Failed to decapsulate");
 
     println!("Public Key generated successfully (len={})", pk.0.len());
-    println!("Secret Key generated successfully (len={})", sk.0.len());
+    println!("Secret Key generated successfully (len={})", sk.0.expose_secret().len());
     println!("Ciphertext generated successfully (len={})", ct.len());
     println!("Shared secrets match: {}", ss1.expose_secret() == ss2.expose_secret());
 

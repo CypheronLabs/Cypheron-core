@@ -26,7 +26,6 @@ use p256::{
 use p256::elliptic_curve::ecdh;
 use secrecy::{ExposeSecret, SecretBox};
 use serde::{Deserialize, Serialize};
-// use sha2::Sha256; // Not needed, use hkdf::Sha256 instead
 use std::fmt::Debug;
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
@@ -45,27 +44,22 @@ pub enum HybridKemError {
     InvalidCiphertext(String),
 }
 
-/// P-256 public key wrapper for consistency
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct P256PublicKeyWrapper(pub Vec<u8>);
 
-/// P-256 secret key wrapper with zeroization
 #[derive(Debug, ZeroizeOnDrop)]
 pub struct P256SecretKeyWrapper(pub P256SecretKey);
 
 impl Zeroize for P256SecretKeyWrapper {
     fn zeroize(&mut self) {
-        // P256SecretKey implements Zeroize internally
         let mut bytes = self.0.to_bytes();
         bytes.zeroize();
     }
 }
 
-/// ML-KEM-768 public key wrapper
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MlKemPublicKeyWrapper(pub Vec<u8>);
 
-/// ML-KEM-768 secret key wrapper with zeroization
 #[derive(Debug, ZeroizeOnDrop, Serialize, Deserialize)]
 pub struct MlKemSecretKeyWrapper(pub Vec<u8>);
 
@@ -75,17 +69,15 @@ impl Zeroize for MlKemSecretKeyWrapper {
     }
 }
 
-/// Hybrid ciphertext containing both classical and post-quantum components
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HybridCiphertext {
-    pub classical_ephemeral: Vec<u8>, // Ephemeral P-256 public key
-    pub post_quantum_ciphertext: Vec<u8>, // ML-KEM-768 ciphertext
+    pub classical_ephemeral: Vec<u8>,
+    pub post_quantum_ciphertext: Vec<u8>,
 }
 
-/// The resulting shared secret from hybrid KEM
 #[derive(Debug, ZeroizeOnDrop)]
 pub struct HybridSharedSecret {
-    key: [u8; 32], // Derived 32-byte key from HKDF
+    key: [u8; 32],
 }
 
 impl HybridSharedSecret {
@@ -100,7 +92,6 @@ impl Zeroize for HybridSharedSecret {
     }
 }
 
-/// P-256 + ML-KEM-768 Hybrid KEM implementation following existing architecture
 pub struct P256MlKem768;
 
 impl HybridKemEngine for P256MlKem768 {
@@ -118,11 +109,9 @@ impl HybridKemEngine for P256MlKem768 {
     type Error = HybridKemError;
     
     fn keypair() -> Result<(Self::CompositePublicKey, Self::CompositeSecretKey), Self::Error> {
-        // Generate classical P-256 keypair
         let classical_secret = P256SecretKey::random(&mut OsRng);
         let classical_public = classical_secret.public_key();
 
-        // Generate post-quantum ML-KEM-768 keypair
         let (pq_public, pq_secret) = MlKem768::keypair()
             .map_err(|e| HybridKemError::PostQuantumError(format!("{:?}", e)))?;
 
@@ -144,21 +133,17 @@ impl HybridKemEngine for P256MlKem768 {
     fn encapsulate(
         pk: &Self::CompositePublicKey,
     ) -> Result<(Self::HybridCiphertext, Self::SharedSecret), Self::Error> {
-        // Classical ECDH
         let ephemeral_secret = EphemeralSecret::random(&mut OsRng);
         let ephemeral_public = ephemeral_secret.public_key();
 
-        // Reconstruct recipient's P-256 public key
         let encoded_point = EncodedPoint::from_bytes(&pk.classical.0)
             .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
         let recipient_public = P256PublicKey::from_encoded_point(&encoded_point)
             .into_option()
             .ok_or_else(|| HybridKemError::ClassicalError("Invalid P-256 public key point".to_string()))?;
 
-        // Perform ECDH
         let classical_shared_secret = ephemeral_secret.diffie_hellman(&recipient_public);
 
-        // Post-quantum ML-KEM encapsulation
         if pk.post_quantum.0.len() != sizes::ML_KEM_768_PUBLIC {
             return Err(HybridKemError::PostQuantumError(
                 format!("Invalid ML-KEM-768 public key size: expected {}, got {}", 
@@ -174,7 +159,6 @@ impl HybridKemEngine for P256MlKem768 {
         let (pq_ciphertext, pq_shared_secret) = MlKem768::encapsulate(&pq_public_key)
             .map_err(|e| HybridKemError::PostQuantumError(format!("{:?}", e)))?;
 
-        // Derive final shared secret using HKDF
         let combined_secret = [
             classical_shared_secret.raw_secret_bytes().as_slice(),
             pq_shared_secret.expose_secret().as_slice(),
@@ -201,14 +185,12 @@ impl HybridKemEngine for P256MlKem768 {
         ct: &Self::HybridCiphertext,
         sk: &Self::CompositeSecretKey,
     ) -> Result<Self::SharedSecret, Self::Error> {
-        // Classical ECDH decapsulation
         let ephemeral_encoded = EncodedPoint::from_bytes(&ct.classical_ephemeral)
             .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
         let ephemeral_public = P256PublicKey::from_encoded_point(&ephemeral_encoded)
             .into_option()
             .ok_or_else(|| HybridKemError::ClassicalError("Invalid P-256 public key point".to_string()))?;
 
-        // Use the secret key from the composite secret key
         let classical_secret = &sk.classical.expose_secret().0;
         let classical_shared_secret = ecdh::diffie_hellman(
             classical_secret.to_nonzero_scalar(),
@@ -216,7 +198,6 @@ impl HybridKemEngine for P256MlKem768 {
         );
         let classical_shared_secret_bytes = classical_shared_secret.raw_secret_bytes();
 
-        // Post-quantum ML-KEM decapsulation
         if ct.post_quantum_ciphertext.len() != sizes::ML_KEM_768_CIPHERTEXT {
             return Err(HybridKemError::InvalidCiphertext( 
                 format!("Invalid ML-KEM-768 ciphertext size: expected {}, got {}", 
@@ -243,7 +224,6 @@ impl HybridKemEngine for P256MlKem768 {
         let pq_shared_secret = MlKem768::decapsulate(&pq_ciphertext, &pq_secret_key)
             .map_err(|e| HybridKemError::PostQuantumError(format!("{:?}", e)))?;
 
-        // Derive final shared secret using HKDF
         let combined_secret = [
             classical_shared_secret_bytes.as_slice(),
             pq_shared_secret.expose_secret().as_slice(),

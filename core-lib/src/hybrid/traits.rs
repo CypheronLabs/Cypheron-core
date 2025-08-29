@@ -58,8 +58,6 @@ pub enum VerificationPolicy {
 
 pub trait HybridScheme: HybridEngine {}
 
-/// Trait for hybrid Key Encapsulation Mechanisms (KEM)
-/// Combines classical and post-quantum key agreement
 pub trait HybridKemEngine {
     type ClassicalPublicKey: Clone + Debug + Send + Sync + 'static;
     type ClassicalSecretKey: Zeroize + Debug + Send + Sync + 'static;

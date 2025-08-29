@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core_lib::sig::sphincs::errors::SphincsError;
-use core_lib::sig::sphincs::sha2_256s::api::*;
-use core_lib::sig::sphincs::sha2_256s::types;
+use cypheron_core::sig::sphincs::errors::SphincsError;
+use cypheron_core::sig::sphincs::sha2_256s::api::*;
+use cypheron_core::sig::sphincs::sha2_256s::types;
 
 const TEST_MESSAGE_SHA2_256S: &[u8] = b"This is a test message for SPHINCS+ SHA2-256s.";
 

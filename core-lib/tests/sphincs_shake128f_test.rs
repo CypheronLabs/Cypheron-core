@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core_lib::sig::sphincs::errors::SphincsError;
-use core_lib::sig::sphincs::shake_128f::api::*;
-use core_lib::sig::sphincs::shake_128f::types;
+use cypheron_core::sig::sphincs::errors::SphincsError;
+use cypheron_core::sig::sphincs::shake_128f::api::*;
+use cypheron_core::sig::sphincs::shake_128f::types;
 
 const TEST_MESSAGE: &[u8] = b"This is a test message for SPHINCS+ SHAKE-192f.";
 

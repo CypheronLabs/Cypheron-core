@@ -14,10 +14,10 @@
 
 
 
-use core_lib::kem::{MlKem512, MlKem768, MlKem1024, Kem};
-use core_lib::sig::{MlDsa44, MlDsa65, MlDsa87};
-use core_lib::sig::traits::SignatureEngine;
-use core_lib::hybrid::{EccDilithium, HybridEngine};
+use cypheron_core::kem::{MlKem512, MlKem768, MlKem1024, Kem};
+use cypheron_core::sig::{MlDsa44, MlDsa65, MlDsa87};
+use cypheron_core::sig::traits::SignatureEngine;
+use cypheron_core::hybrid::{EccDilithium, HybridEngine};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -123,7 +123,7 @@ mod ml_kem_sidechannel_tests {
 
     #[test]
     fn test_ml_kem_512_power_analysis() {
-        println!("⚡ Testing ML-KEM-512 power analysis resistance...");
+        println!(" Testing ML-KEM-512 power analysis resistance...");
         
         let (pk, sk) = MlKem512::keypair();
         let (ct1, _ss1) = MlKem512::encapsulate(&pk);
@@ -154,7 +154,7 @@ mod ml_kem_sidechannel_tests {
             relative_diff * 100.0
         );
         
-        println!("✅ ML-KEM-512 power analysis resistance verified");
+        println!(" ML-KEM-512 power analysis resistance verified");
     }
 
     #[test]
@@ -432,7 +432,7 @@ mod hybrid_sidechannel_tests {
         let message = vec![0xCC; 256];
         let signature = EccDilithium::sign(&message, &sk).expect("Hybrid signing failed");
         
-        use core_lib::hybrid::traits::VerificationPolicy;
+        use cypheron_core::hybrid::traits::VerificationPolicy;
         
         let policies = vec![
             VerificationPolicy::BothRequired,

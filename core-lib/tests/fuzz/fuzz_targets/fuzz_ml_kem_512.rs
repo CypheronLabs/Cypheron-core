@@ -15,7 +15,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use core_lib::kem::{MlKem512, Kem};
+use cypheron_core::kem::{MlKem512, Kem};
 
 fuzz_target!(|data: &[u8]| {
     if data.is_empty() {
@@ -37,7 +37,7 @@ fuzz_target!(|data: &[u8]| {
         let mut pk_data = [0u8; 800];
         pk_data.copy_from_slice(&data[..800]);
         
-        use core_lib::kem::kyber512::KyberPublicKey;
+        use cypheron_core::kem::kyber512::KyberPublicKey;
         let fuzzed_pk = KyberPublicKey(pk_data);
         
         let _result = std::panic::catch_unwind(|| {

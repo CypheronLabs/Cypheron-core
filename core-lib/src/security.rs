@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::ffi::c_void;
 
 pub trait FfiSafe {
     fn is_valid_for_ffi(&self) -> bool;
@@ -54,17 +53,6 @@ impl<T> FfiSafe for Vec<T> {
     }
 }
 
-macro_rules! validate_ffi_buffer {
-    ($buffer:expr, $expected_min_size:expr) => {{
-        if $buffer.len() < $expected_min_size {
-            return Err("Buffer too small for FFI operation".into());
-        }
-        if !$buffer.is_valid_for_ffi() {
-            return Err("Invalid buffer for FFI operation".into());
-        }
-        Ok(())
-    }};
-}
 
 macro_rules! validate_ffi_fixed_buffer {
     ($buffer:expr, $expected_size:expr) => {
@@ -77,13 +65,6 @@ macro_rules! validate_ffi_fixed_buffer {
     };
 }
 
-macro_rules! validate_ffi_pointer {
-    ($ptr:expr) => {
-        if $ptr.is_null() {
-            return Err(crate::sig::falcon::errors::FalconErrors::FfiValidationError("Null pointer passed to FFI function".to_string()));
-        }
-    };
-}
 
 macro_rules! validate_message_bounds {
     ($msg:expr) => {
@@ -105,17 +86,12 @@ macro_rules! safe_cast_to_c_void {
     };
 }
 
-pub(crate) use validate_ffi_buffer;
 pub(crate) use validate_ffi_fixed_buffer;
-pub(crate) use validate_ffi_pointer;
 pub(crate) use validate_message_bounds;
 pub(crate) use safe_cast_to_c_void;
 
 pub fn sanitize_buffer_for_ffi<T>(buffer: &mut [T]) -> bool {
-    if buffer.is_empty() || buffer.as_ptr().is_null() {
-        return false;
-    }
-    true
+    !buffer.is_empty()
 }
 
 pub fn verify_buffer_initialized<T: PartialEq + Default + Copy>(
@@ -132,12 +108,6 @@ pub fn verify_buffer_initialized<T: PartialEq + Default + Copy>(
     !initialized_portion.iter().all(|&x| x == default_val)
 }
 
-#[cfg(debug_assertions)]
-macro_rules! secure_debug {
-    ($($arg:tt)*) => {
-        eprintln!("[DEBUG] {}", format_args!($($arg)*));
-    };
-}
 
 #[cfg(not(debug_assertions))]
 macro_rules! secure_debug {
@@ -156,5 +126,4 @@ macro_rules! secure_warn {
     ($($arg:tt)*) => {};
 }
 
-pub(crate) use secure_debug;
 pub(crate) use secure_warn;

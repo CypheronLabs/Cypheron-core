@@ -15,7 +15,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use core_lib::hybrid::{EccDilithium, HybridEngine};
+use cypheron_core::hybrid::{EccDilithium, HybridEngine};
 
 fuzz_target!(|data: &[u8]| {
     if data.is_empty() {
@@ -47,7 +47,7 @@ fuzz_target!(|data: &[u8]| {
                 if let Ok(signature) = EccDilithium::sign(message, &sk) {
                     let _ = EccDilithium::verify(message, &signature, &pk);
                     
-                    use core_lib::hybrid::traits::VerificationPolicy;
+                    use cypheron_core::hybrid::traits::VerificationPolicy;
                     let policies = [
                         VerificationPolicy::BothRequired,
                         VerificationPolicy::ClassicalOnly,

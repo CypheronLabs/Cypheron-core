@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core_lib::kem::{MlKem512, MlKem768, MlKem1024, Kem};
-use core_lib::sig::{MlDsa44, MlDsa65, MlDsa87};
-use core_lib::sig::traits::SignatureEngine;
+use cypheron_core::kem::{MlKem512, MlKem768, MlKem1024, Kem};
+use cypheron_core::sig::{MlDsa44, MlDsa65, MlDsa87};
+use cypheron_core::sig::traits::SignatureEngine;
 use hex;
 use std::fs;
 
@@ -117,7 +117,7 @@ mod ml_kem_512_kat_tests {
 
     #[test]
     fn test_ml_kem_512_parameter_validation() {
-        use core_lib::kem::sizes::*;
+        use cypheron_core::kem::sizes::*;
         
         assert_eq!(ML_KEM_512_PUBLIC, 800);
         assert_eq!(ML_KEM_512_SECRET, 1632);
@@ -221,7 +221,7 @@ mod ml_dsa_44_kat_tests {
 
     #[test]
     fn test_ml_dsa_44_parameter_validation() {
-        use core_lib::sig::dilithium::common::*;
+        use cypheron_core::sig::dilithium::common::*;
         
         assert_eq!(ML_DSA_44_PUBLIC, 1312);
         assert_eq!(ML_DSA_44_SECRET, 2528);
@@ -261,8 +261,8 @@ mod nist_compliance_tests {
     fn test_algorithm_naming_compliance() {
         println!("NIST Algorithm Naming Compliance Validation");
         
-        use core_lib::kem::{MlKem512, MlKem768, MlKem1024};
-        use core_lib::sig::{MlDsa44, MlDsa65, MlDsa87};
+        use cypheron_core::kem::{MlKem512, MlKem768, MlKem1024};
+        use cypheron_core::sig::{MlDsa44, MlDsa65, MlDsa87};
         
         let _kem_512 = MlKem512::variant();
         let _kem_768 = MlKem768::variant();
