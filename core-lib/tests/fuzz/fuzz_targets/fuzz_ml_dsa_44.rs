@@ -15,8 +15,8 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use core_lib::sig::{MlDsa44};
-use core_lib::sig::traits::SignatureEngine;
+use cypheron_core::sig::{MlDsa44};
+use cypheron_core::sig::traits::SignatureEngine;
 
 fuzz_target!(|data: &[u8]| {
     if data.is_empty() {
@@ -42,7 +42,7 @@ fuzz_target!(|data: &[u8]| {
         let mut sig_data = [0u8; 2420];
         sig_data.copy_from_slice(&data[..2420]);
         
-        use core_lib::sig::dilithium::dilithium2::types::Signature;
+        use cypheron_core::sig::dilithium::dilithium2::types::Signature;
         let fuzzed_sig = Signature(sig_data);
         
         let test_message = b"test message for fuzzing";
@@ -56,7 +56,7 @@ fuzz_target!(|data: &[u8]| {
         let mut pk_data = [0u8; 1312];
         pk_data.copy_from_slice(&data[..1312]);
         
-        use core_lib::sig::dilithium::dilithium2::types::PublicKey;
+        use cypheron_core::sig::dilithium::dilithium2::types::PublicKey;
         let fuzzed_pk = PublicKey(pk_data);
         
         let test_message = b"test message";

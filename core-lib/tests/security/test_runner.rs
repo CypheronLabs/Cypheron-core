@@ -47,7 +47,7 @@ impl SecurityTestRunner {
     }
     
     pub fn run_all_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("🔒 Starting Comprehensive Security Test Suite");
+        println!("Starting Comprehensive Security Test Suite");
         println!("================================================");
         
         self.run_known_answer_tests()?;
@@ -63,7 +63,7 @@ impl SecurityTestRunner {
     }
     
     fn run_known_answer_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("\n📋 Running NIST Known Answer Tests...");
+        println!("\nRunning NIST Known Answer Tests...");
         
         let start = Instant::now();
         let output = Command::new("cargo")
@@ -82,9 +82,9 @@ impl SecurityTestRunner {
         });
         
         if passed {
-            println!("✅ NIST Known Answer Tests: PASSED");
+            println!("NIST Known Answer Tests: PASSED");
         } else {
-            println!("❌ NIST Known Answer Tests: FAILED");
+            println!("NIST Known Answer Tests: FAILED");
             println!("Error: {}", String::from_utf8_lossy(&output.stderr));
         }
         
@@ -111,9 +111,9 @@ impl SecurityTestRunner {
         });
         
         if passed {
-            println!("✅ Property-Based Tests: PASSED");
+            println!("Property-Based Tests: PASSED");
         } else {
-            println!("❌ Property-Based Tests: FAILED");
+            println!("Property-Based Tests: FAILED");
             println!("Error: {}", String::from_utf8_lossy(&output.stderr));
         }
         
@@ -121,7 +121,7 @@ impl SecurityTestRunner {
     }
     
     fn run_timing_analysis_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("\n⏱️  Running Timing Analysis Tests...");
+        println!("\nRunning Timing Analysis Tests...");
         
         let start = Instant::now();
         let output = Command::new("cargo")
@@ -140,9 +140,9 @@ impl SecurityTestRunner {
         });
         
         if passed {
-            println!("✅ Timing Analysis Tests: PASSED");
+            println!("Timing Analysis Tests: PASSED");
         } else {
-            println!("❌ Timing Analysis Tests: FAILED");
+            println!("Timing Analysis Tests: FAILED");
             println!("Error: {}", String::from_utf8_lossy(&output.stderr));
         }
         
@@ -150,7 +150,7 @@ impl SecurityTestRunner {
     }
     
     fn run_memory_safety_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("\n🛡️  Running Memory Safety Tests...");
+        println!("\nRunning Memory Safety Tests...");
         
         let start = Instant::now();
         let output = Command::new("cargo")
@@ -169,9 +169,9 @@ impl SecurityTestRunner {
         });
         
         if passed {
-            println!("✅ Memory Safety Tests: PASSED");
+            println!("Memory Safety Tests: PASSED");
         } else {
-            println!("❌ Memory Safety Tests: FAILED");
+            println!("Memory Safety Tests: FAILED");
             println!("Error: {}", String::from_utf8_lossy(&output.stderr));
         }
         
@@ -198,9 +198,9 @@ impl SecurityTestRunner {
         });
         
         if passed {
-            println!("✅ Side-Channel Analysis Tests: PASSED");
+            println!("Side-Channel Analysis Tests: PASSED");
         } else {
-            println!("❌ Side-Channel Analysis Tests: FAILED");
+            println!("Side-Channel Analysis Tests: FAILED");
             println!("Error: {}", String::from_utf8_lossy(&output.stderr));
         }
         
@@ -208,7 +208,7 @@ impl SecurityTestRunner {
     }
     
     fn run_performance_benchmarks(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("\n⚡ Running Performance Benchmarks...");
+        println!("\nRunning Performance Benchmarks...");
         
         let start = Instant::now();
         let output = Command::new("cargo")
@@ -227,9 +227,9 @@ impl SecurityTestRunner {
         });
         
         if passed {
-            println!("✅ Performance Benchmarks: COMPLETED");
+            println!("Performance Benchmarks: COMPLETED");
         } else {
-            println!("❌ Performance Benchmarks: FAILED");
+            println!("Performance Benchmarks: FAILED");
             println!("Error: {}", String::from_utf8_lossy(&output.stderr));
         }
         
@@ -237,7 +237,7 @@ impl SecurityTestRunner {
     }
     
     fn generate_report(&self) {
-        println!("\n📊 Security Test Report");
+        println!("\nSecurity Test Report");
         println!("========================");
         
         let total_tests = self.results.len();
@@ -253,7 +253,7 @@ impl SecurityTestRunner {
         
         println!("\nDetailed Results:");
         for result in &self.results {
-            let status = if result.passed { "✅ PASS" } else { "❌ FAIL" };
+            let status = if result.passed { "PASS" } else { "FAIL" };
             println!("  {} {} ({:?})", status, result.name, result.duration);
             
             if !result.passed {
@@ -261,16 +261,16 @@ impl SecurityTestRunner {
             }
         }
         
-        println!("\n🔒 Security Assessment:");
+        println!("\nSecurity Assessment:");
         if failed_tests == 0 {
-            println!("  STATUS: ✅ ALL SECURITY TESTS PASSED");
+            println!("  STATUS: ALL SECURITY TESTS PASSED");
             println!("  The cryptographic implementation meets security requirements.");
         } else {
-            println!("  STATUS: ⚠️  SECURITY ISSUES DETECTED");
+            println!("  STATUS: SECURITY ISSUES DETECTED");
             println!("  {} security test(s) failed. Review and fix before production use.", failed_tests);
         }
         
-        println!("\n📋 Recommendations:");
+        println!("\nRecommendations:");
         println!("  1. Run security tests regularly in CI/CD pipeline");
         println!("  2. Monitor performance benchmarks for regressions");
         println!("  3. Update test vectors when NIST releases new versions");

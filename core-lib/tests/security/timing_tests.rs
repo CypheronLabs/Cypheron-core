@@ -26,10 +26,10 @@
  * - Statistical timing analysis with multiple samples
  */
 
-use core_lib::kem::{MlKem512, MlKem768, MlKem1024, Kem};
-use core_lib::sig::{MlDsa44, MlDsa65, MlDsa87};
-use core_lib::sig::traits::SignatureEngine;
-use core_lib::hybrid::{EccDilithium, HybridEngine};
+use cypheron_core::kem::{MlKem512, MlKem768, MlKem1024, Kem};
+use cypheron_core::sig::{MlDsa44, MlDsa65, MlDsa87};
+use cypheron_core::sig::traits::SignatureEngine;
+use cypheron_core::hybrid::{EccDilithium, HybridEngine};
 use std::time::{Duration, Instant};
 
 /// Number of timing samples for statistical analysis
@@ -149,7 +149,7 @@ mod ml_kem_timing_tests {
             "ML-KEM-512 decapsulation shows timing variation that could indicate side-channel vulnerability"
         );
         
-        println!("✅ ML-KEM-512 decapsulation timing test passed");
+        println!(" ML-KEM-512 decapsulation timing test passed");
     }
 
     #[test]
@@ -176,7 +176,7 @@ mod ml_kem_timing_tests {
             "ML-KEM-768 encapsulation shows timing variation between different public keys"
         );
         
-        println!("✅ ML-KEM-768 encapsulation timing test passed");
+        println!(" ML-KEM-768 encapsulation timing test passed");
     }
 
     #[test]
@@ -198,7 +198,7 @@ mod ml_kem_timing_tests {
             cv
         );
         
-        println!("✅ ML-KEM-1024 key generation timing test passed");
+        println!(" ML-KEM-1024 key generation timing test passed");
     }
 }
 
@@ -243,7 +243,7 @@ mod ml_dsa_timing_tests {
         // Note: Different message sizes may have different timing due to processing
         // but the variation should not leak information about message content
         
-        println!("✅ ML-DSA-44 signing timing test passed");
+        println!(" ML-DSA-44 signing timing test passed");
     }
 
     #[test]
@@ -277,7 +277,7 @@ mod ml_dsa_timing_tests {
             "ML-DSA-65 verification shows timing difference between valid and invalid signatures"
         );
         
-        println!("✅ ML-DSA-65 verification timing test passed");
+        println!(" ML-DSA-65 verification timing test passed");
     }
 }
 
@@ -314,7 +314,7 @@ mod hybrid_timing_tests {
             "Hybrid signature shows excessive timing variation"
         );
         
-        println!("✅ Hybrid signature timing test passed");
+        println!(" Hybrid signature timing test passed");
     }
 
     #[test]
@@ -326,7 +326,7 @@ mod hybrid_timing_tests {
         let signature = EccDilithium::sign(&message, &sk).expect("Hybrid signing failed");
         
         // Test different verification policies
-        use core_lib::hybrid::traits::VerificationPolicy;
+        use cypheron_core::hybrid::traits::VerificationPolicy;
         
         let both_timing = measure_timing(100, || {
             let _result = EccDilithium::verify_with_policy(&message, &signature, &pk, VerificationPolicy::BothRequired);
@@ -353,7 +353,7 @@ mod hybrid_timing_tests {
             "Hybrid verification shows inconsistent timing within policies"
         );
         
-        println!("✅ Hybrid verification timing test passed");
+        println!(" Hybrid verification timing test passed");
     }
 }
 
@@ -364,7 +364,7 @@ mod timing_utilities {
 
     #[test]
     fn test_timing_measurement_infrastructure() {
-        println!("🔧 Testing timing measurement infrastructure...");
+        println!(" Testing timing measurement infrastructure...");
         
         // Test known timing differences
         let fast_timing = measure_timing(100, || {
@@ -386,6 +386,6 @@ mod timing_utilities {
             "Timing infrastructure cannot detect known timing differences"
         );
         
-        println!("✅ Timing measurement infrastructure working correctly");
+        println!(" Timing measurement infrastructure working correctly");
     }
 }

@@ -25,7 +25,6 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     unsafe {
         let mut hprov: HCRYPTPROV = Default::default();
 
-        // Acquire cryptographic context
         let result =
             CryptAcquireContextW(&mut hprov, None, None, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
 
@@ -33,10 +32,8 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
             return Err(Error::new(ErrorKind::Other, "Failed to acquire cryptographic context"));
         }
 
-        // Generate random bytes
         let gen_result = CryptGenRandom(hprov, buffer.len() as u32, buffer.as_mut_ptr());
 
-        // Release context
         let _ = CryptReleaseContext(hprov, 0);
 
         if !gen_result.as_bool() {
@@ -112,7 +109,6 @@ pub fn is_modern_windows() -> bool {
         version_info.dwOSVersionInfoSize = std::mem::size_of::<OSVERSIONINFOW>() as u32;
 
         if GetVersionExW(&mut version_info).as_bool() {
-            // Windows 10 is version 10.0
             version_info.dwMajorVersion >= 10
         } else {
             false

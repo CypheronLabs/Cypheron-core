@@ -20,7 +20,6 @@ use crate::sig::dilithium::errors::DilithiumError;
 use crate::sig::traits::SignatureEngine;
 
 use secrecy::{ExposeSecret, SecretBox};
-use std::mem::MaybeUninit;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Dilithium2Engine;

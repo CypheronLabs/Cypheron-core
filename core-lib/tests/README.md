@@ -218,7 +218,7 @@ const REGRESSION_THRESHOLD: f64 = 0.1; // 10% performance degradation
 
 ### Pass Criteria
 
-✅ **PASS**: All security tests completed successfully
+**PASS**: All security tests completed successfully
 - NIST KAT tests validate against reference implementations
 - Property tests confirm cryptographic correctness
 - Timing tests show constant-time behavior
@@ -227,7 +227,7 @@ const REGRESSION_THRESHOLD: f64 = 0.1; // 10% performance degradation
 
 ### Failure Analysis
 
-❌ **FAIL**: Investigation required
+**FAIL**: Investigation required
 1. **KAT Failures**: Algorithm implementation bug
 2. **Property Failures**: Logic error or edge case
 3. **Timing Failures**: Potential timing attack vulnerability

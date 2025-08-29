@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core_lib::kem::{MlKem512, MlKem768, MlKem1024, Kem};
-use core_lib::sig::{MlDsa44, MlDsa65, MlDsa87};
-use core_lib::sig::traits::SignatureEngine;
-use core_lib::hybrid::{EccDilithium, HybridEngine};
+use cypheron_core::kem::{MlKem512, MlKem768, MlKem1024, Kem};
+use cypheron_core::sig::{MlDsa44, MlDsa65, MlDsa87};
+use cypheron_core::sig::traits::SignatureEngine;
+use cypheron_core::hybrid::{EccDilithium, HybridEngine};
 use proptest::prelude::*;
 
 fn arbitrary_message() -> impl Strategy<Value = Vec<u8>> {
@@ -208,7 +208,7 @@ mod hybrid_properties {
             let (pk, sk) = EccDilithium::keypair().unwrap();
             let signature = EccDilithium::sign(&msg, &sk).unwrap();
             
-            use core_lib::hybrid::traits::VerificationPolicy;
+            use cypheron_core::hybrid::traits::VerificationPolicy;
             
             let both_required = EccDilithium::verify_with_policy(&msg, &signature, &pk, VerificationPolicy::BothRequired);
             prop_assert!(both_required, "Hybrid signature with BothRequired policy failed");

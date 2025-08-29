@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core_lib::kem::{MlKem512, MlKem768, MlKem1024, Kem};
-use core_lib::sig::{MlDsa44, MlDsa65, MlDsa87};
-use core_lib::sig::traits::SignatureEngine;
-use core_lib::hybrid::{EccDilithium, HybridEngine};
+use cypheron_core::kem::{MlKem512, MlKem768, MlKem1024, Kem};
+use cypheron_core::sig::{MlDsa44, MlDsa65, MlDsa87};
+use cypheron_core::sig::traits::SignatureEngine;
+use cypheron_core::hybrid::{EccDilithium, HybridEngine};
 use std::mem;
 
 #[cfg(test)]
@@ -24,7 +24,7 @@ mod ml_kem_memory_safety {
 
     #[test]
     fn test_ml_kem_512_buffer_safety() {
-        println!("🛡️  Testing ML-KEM-512 buffer safety...");
+        println!("Testing ML-KEM-512 buffer safety...");
         
         let (pk, sk) = MlKem512::keypair();
         let (ct, ss1) = MlKem512::encapsulate(&pk);
@@ -41,12 +41,12 @@ mod ml_kem_memory_safety {
         assert_eq!(sk.0.len(), 1632, "ML-KEM-512 secret key buffer size changed");
         assert_eq!(ct.len(), 768, "ML-KEM-512 ciphertext buffer size changed");
         
-        println!("✅ ML-KEM-512 buffer safety verified");
+        println!("ML-KEM-512 buffer safety verified");
     }
 
     #[test]
     fn test_ml_kem_768_memory_bounds() {
-        println!("🛡️  Testing ML-KEM-768 memory bounds...");
+        println!("Testing ML-KEM-768 memory bounds...");
         
         let mut keypairs = Vec::new();
         for i in 0..10 {
@@ -68,12 +68,12 @@ mod ml_kem_memory_safety {
             );
         }
         
-        println!("✅ ML-KEM-768 memory bounds verified");
+        println!("ML-KEM-768 memory bounds verified");
     }
 
     #[test]
     fn test_ml_kem_1024_large_operations() {
-        println!("🛡️  Testing ML-KEM-1024 large operation safety...");
+        println!("Testing ML-KEM-1024 large operation safety...");
         
         let (pk, sk) = MlKem1024::keypair();
         
@@ -90,7 +90,7 @@ mod ml_kem_memory_safety {
             assert_eq!(ct.len(), 1568, "Ciphertext buffer corrupted at iteration {}", i);
         }
         
-        println!("✅ ML-KEM-1024 large operation safety verified");
+        println!("ML-KEM-1024 large operation safety verified");
     }
 }
 
@@ -100,7 +100,7 @@ mod ml_dsa_memory_safety {
 
     #[test]
     fn test_ml_dsa_44_signature_memory_safety() {
-        println!("🛡️  Testing ML-DSA-44 signature memory safety...");
+        println!("  Testing ML-DSA-44 signature memory safety...");
         
         let (pk, sk) = MlDsa44::keypair().expect("Key generation failed");
         
@@ -121,12 +121,12 @@ mod ml_dsa_memory_safety {
             );
         }
         
-        println!("✅ ML-DSA-44 signature memory safety verified");
+        println!(" ML-DSA-44 signature memory safety verified");
     }
 
     #[test]
     fn test_ml_dsa_65_concurrent_operations() {
-        println!("🛡️  Testing ML-DSA-65 concurrent operation safety...");
+        println!("  Testing ML-DSA-65 concurrent operation safety...");
         
         let (pk, sk) = MlDsa65::keypair().expect("Key generation failed");
         let message = vec![0x5A; 1000];
@@ -149,12 +149,12 @@ mod ml_dsa_memory_safety {
             assert_eq!(sig.0.len(), 3309, "Signature {} structure corrupted", i);
         }
         
-        println!("✅ ML-DSA-65 concurrent operation safety verified");
+        println!(" ML-DSA-65 concurrent operation safety verified");
     }
 
     #[test]
     fn test_ml_dsa_87_stress_operations() {
-        println!("🛡️  Testing ML-DSA-87 stress operation safety...");
+        println!("  Testing ML-DSA-87 stress operation safety...");
         
         for iteration in 0..20 {
             let (pk, sk) = MlDsa87::keypair()
@@ -175,7 +175,7 @@ mod ml_dsa_memory_safety {
             drop(pk);
         }
         
-        println!("✅ ML-DSA-87 stress operation safety verified");
+        println!(" ML-DSA-87 stress operation safety verified");
     }
 }
 
@@ -185,7 +185,7 @@ mod hybrid_memory_safety {
 
     #[test]
     fn test_hybrid_composite_memory_safety() {
-        println!("🛡️  Testing hybrid composite memory safety...");
+        println!("  Testing hybrid composite memory safety...");
         
         let (pk, sk) = EccDilithium::keypair().expect("Hybrid key generation failed");
         let message = vec![0x33; 1024];
@@ -199,7 +199,7 @@ mod hybrid_memory_safety {
         let is_valid = EccDilithium::verify(&message, &signature, &pk);
         assert!(is_valid, "Hybrid verification failed");
         
-        use core_lib::hybrid::traits::VerificationPolicy;
+        use cypheron_core::hybrid::traits::VerificationPolicy;
         
         let policies = vec![
             VerificationPolicy::BothRequired,
@@ -213,12 +213,12 @@ mod hybrid_memory_safety {
             assert!(result, "Hybrid verification failed for policy {:?}", policy);
         }
         
-        println!("✅ Hybrid composite memory safety verified");
+        println!(" Hybrid composite memory safety verified");
     }
 
     #[test]
     fn test_hybrid_memory_cleanup() {
-        println!("🛡️  Testing hybrid memory cleanup...");
+        println!("  Testing hybrid memory cleanup...");
         
         for i in 0..25 {
             let (pk, sk) = EccDilithium::keypair()
@@ -236,7 +236,7 @@ mod hybrid_memory_safety {
             mem::drop(pk);
         }
         
-        println!("✅ Hybrid memory cleanup verified");
+        println!(" Hybrid memory cleanup verified");
     }
 }
 
@@ -246,7 +246,7 @@ mod ffi_memory_safety {
 
     #[test]
     fn test_ffi_boundary_safety() {
-        println!("🛡️  Testing FFI boundary memory safety...");
+        println!("  Testing FFI boundary memory safety...");
         
         let (pk, sk) = MlKem512::keypair();
         
@@ -261,12 +261,12 @@ mod ffi_memory_safety {
             );
         }
         
-        println!("✅ FFI boundary safety verified");
+        println!(" FFI boundary safety verified");
     }
 
     #[test]
     fn test_c_library_memory_safety() {
-        println!("🛡️  Testing C library memory safety...");
+        println!("  Testing C library memory safety...");
         
         let (pk_dsa, sk_dsa) = MlDsa44::keypair().expect("DSA key generation failed");
         let message = vec![0x66; 512];
@@ -279,7 +279,7 @@ mod ffi_memory_safety {
             assert!(is_valid, "C library verification failed at iteration {}", i);
         }
         
-        println!("✅ C library memory safety verified");
+        println!(" C library memory safety verified");
     }
 }
 
@@ -289,7 +289,7 @@ mod secret_cleanup_tests {
 
     #[test]
     fn test_secret_key_zeroization() {
-        println!("🔒 Testing secret key zeroization...");
+        println!(" Testing secret key zeroization...");
         
         {
             let (_pk, sk) = MlKem512::keypair();
@@ -306,12 +306,12 @@ mod secret_cleanup_tests {
             drop(sk);
         }
         
-        println!("✅ Secret key zeroization test completed");
+        println!(" Secret key zeroization test completed");
     }
 
     #[test]
     fn test_shared_secret_cleanup() {
-        println!("🔒 Testing shared secret cleanup...");
+        println!(" Testing shared secret cleanup...");
         
         let (pk, sk) = MlKem768::keypair();
         
@@ -331,7 +331,7 @@ mod secret_cleanup_tests {
             "Operations failed after secret cleanup"
         );
         
-        println!("✅ Shared secret cleanup verified");
+        println!(" Shared secret cleanup verified");
     }
 }
 
@@ -341,7 +341,7 @@ mod memory_regression_tests {
 
     #[test]
     fn test_previous_memory_vulnerabilities() {
-        println!("🔄 Testing fixes for previous memory vulnerabilities...");
+        println!(" Testing fixes for previous memory vulnerabilities...");
         
         let (pk, sk) = MlKem1024::keypair();
         let (ct, ss1) = MlKem1024::encapsulate(&pk);
@@ -357,7 +357,7 @@ mod memory_regression_tests {
             "Memory vulnerability regression detected"
         );
         
-        println!("✅ Memory vulnerability regression tests passed");
+        println!(" Memory vulnerability regression tests passed");
     }
 
     #[test]
@@ -378,6 +378,6 @@ mod memory_regression_tests {
             assert!(is_valid, "Verification failed for edge case {}", i);
         }
         
-        println!("✅ Edge case memory handling verified");
+        println!(" Edge case memory handling verified");
     }
 }

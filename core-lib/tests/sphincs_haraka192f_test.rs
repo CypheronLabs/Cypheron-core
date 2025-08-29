@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core_lib::sig::sphincs::errors::SphincsError;
-use core_lib::sig::sphincs::haraka_192f::api::*;
-use core_lib::sig::sphincs::haraka_192f::types;
+use cypheron_core::sig::sphincs::errors::SphincsError;
+use cypheron_core::sig::sphincs::haraka_192f::api::*;
+use cypheron_core::sig::sphincs::haraka_192f::types;
 
 const TEST_MESSAGE: &[u8] = b"Test message for Haraka-192f.";
 
