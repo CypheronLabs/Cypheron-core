@@ -140,7 +140,6 @@ pub fn sign_combined_create(message: &[u8], sk: &SecretKey) -> Result<Vec<u8>, S
         });
     }
 
-    
     if message.len() > u64::MAX as usize {
         return Err(SphincsError::MessageTooLarge);
     }

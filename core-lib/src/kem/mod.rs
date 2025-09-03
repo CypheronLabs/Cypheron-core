@@ -21,11 +21,20 @@ pub use ml_kem_1024::MlKem1024;
 pub use ml_kem_512::MlKem512;
 pub use ml_kem_768::MlKem768;
 
-#[deprecated(since = "0.2.0", note = "Use MlKem1024 instead for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use MlKem1024 instead for NIST FIPS 203 compliance"
+)]
 pub use ml_kem_1024::MlKem1024 as Kyber1024;
-#[deprecated(since = "0.2.0", note = "Use MlKem512 instead for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use MlKem512 instead for NIST FIPS 203 compliance"
+)]
 pub use ml_kem_512::MlKem512 as Kyber512;
-#[deprecated(since = "0.2.0", note = "Use MlKem768 instead for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use MlKem768 instead for NIST FIPS 203 compliance"
+)]
 pub use ml_kem_768::MlKem768 as Kyber768;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -34,11 +43,20 @@ pub enum KemVariant {
     MlKem768,
     MlKem1024,
 
-    #[deprecated(since = "0.2.0", note = "Use MlKem512 instead for NIST FIPS 203 compliance")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use MlKem512 instead for NIST FIPS 203 compliance"
+    )]
     Kyber512,
-    #[deprecated(since = "0.2.0", note = "Use MlKem768 instead for NIST FIPS 203 compliance")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use MlKem768 instead for NIST FIPS 203 compliance"
+    )]
     Kyber768,
-    #[deprecated(since = "0.2.0", note = "Use MlKem1024 instead for NIST FIPS 203 compliance")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use MlKem1024 instead for NIST FIPS 203 compliance"
+    )]
     Kyber1024,
 }
 

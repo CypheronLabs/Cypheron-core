@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::fs;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     if try_getrandom(buffer).is_ok() {
@@ -25,19 +25,16 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
 
 fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
     unsafe {
-        let result = libc::syscall(
-            libc::SYS_getrandom,
-            buffer.as_mut_ptr(),
-            buffer.len(),
-            0,
-        );
+        let result = libc::syscall(libc::SYS_getrandom, buffer.as_mut_ptr(), buffer.len(), 0);
 
         if result < 0 {
-            return Err(Error::new(ErrorKind::Other, "getrandom syscall failed"));
+            return Err(Error::other("getrandom syscall failed"));
         }
 
         if result as usize != buffer.len() {
-            return Err(Error::new(ErrorKind::Other, "getrandom returned insufficient bytes"));
+            return Err(Error::other(
+                "getrandom returned insufficient bytes",
+            ));
         }
     }
 
@@ -48,11 +45,16 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     use std::fs::File;
     use std::io::Read;
 
-    let mut file = File::open("/dev/urandom")
-        .map_err(|e| Error::new(ErrorKind::Other, format!("Failed to open /dev/urandom: {}", e)))?;
+    let mut file = File::open("/dev/urandom").map_err(|e| {
+        Error::other(
+            format!("Failed to open /dev/urandom: {}", e),
+        )
+    })?;
 
     file.read_exact(buffer).map_err(|e| {
-        Error::new(ErrorKind::Other, format!("Failed to read from /dev/urandom: {}", e))
+        Error::other(
+            format!("Failed to read from /dev/urandom: {}", e),
+        )
     })?;
 
     Ok(())
@@ -80,7 +82,11 @@ fn secure_zero_fallback(buffer: &mut [u8]) {
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use libc::{mprotect, PROT_NONE, PROT_READ, PROT_WRITE};
 
-    let protection = if protect { PROT_NONE } else { PROT_READ | PROT_WRITE };
+    let protection = if protect {
+        PROT_NONE
+    } else {
+        PROT_READ | PROT_WRITE
+    };
 
     let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
     let addr = buffer.as_mut_ptr() as usize;
@@ -89,7 +95,7 @@ pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
 
     unsafe {
         if mprotect(aligned_addr as *mut libc::c_void, aligned_len, protection) != 0 {
-            return Err(Error::new(ErrorKind::Other, "Failed to protect memory"));
+            return Err(Error::other("Failed to protect memory"));
         }
     }
 
@@ -194,7 +200,7 @@ fn set_cpu_affinity() -> Result<(), Error> {
         }
 
         if libc::sched_setaffinity(0, std::mem::size_of::<libc::cpu_set_t>(), &cpu_set) != 0 {
-            return Err(Error::new(ErrorKind::Other, "Failed to set CPU affinity"));
+            return Err(Error::other("Failed to set CPU affinity"));
         }
     }
 

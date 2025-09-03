@@ -17,5 +17,8 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 pub mod ffi {
-    include!(concat!(env!("OUT_DIR"), "/sphincsplus_sphincs_sha2_256f_robust_bindings.rs"));
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/sphincsplus_sphincs_sha2_256f_robust_bindings.rs"
+    ));
 }

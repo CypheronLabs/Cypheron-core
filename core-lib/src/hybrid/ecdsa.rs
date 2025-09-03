@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use p256::{ecdsa::{signature::{Signer, Verifier}, Signature as EcdsaSignature, SigningKey, VerifyingKey}, elliptic_curve::rand_core::OsRng, EncodedPoint, FieldBytes};
+use p256::{
+    ecdsa::{
+        signature::{Signer, Verifier},
+        Signature as EcdsaSignature, SigningKey, VerifyingKey,
+    },
+    elliptic_curve::rand_core::OsRng,
+    EncodedPoint, FieldBytes,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
@@ -69,13 +76,19 @@ pub struct EcdsaSignatureWrapper {
 impl EcdsaPrivateKey {
     pub fn generate(domain_separator: String) -> Result<Self, EcdsaError> {
         let inner = SigningKey::random(&mut OsRng);
-        Ok(Self { inner, domain_separator })
+        Ok(Self {
+            inner,
+            domain_separator,
+        })
     }
 
     pub fn from_bytes(bytes: &FieldBytes, domain_separator: String) -> Result<Self, EcdsaError> {
         let inner = SigningKey::from_bytes(bytes)
             .map_err(|e| EcdsaError::InvalidPrivateKey(format!("Invalid key bytes: {}", e)))?;
-        Ok(Self { inner, domain_separator })
+        Ok(Self {
+            inner,
+            domain_separator,
+        })
     }
 
     pub fn public_key(&self) -> EcdsaPublicKey {
@@ -104,7 +117,7 @@ impl EcdsaPrivateKey {
         let mut hasher = Sha256::new();
         hasher.update(b"CYPHERON_HYBRID_ECDSA_V1");
         hasher.update(self.domain_separator.as_bytes());
-        hasher.update(&(message.len() as u64).to_be_bytes());
+        hasher.update((message.len() as u64).to_be_bytes());
         hasher.update(message);
         hasher.finalize().into()
     }
@@ -122,7 +135,10 @@ impl EcdsaPublicKey {
         VerifyingKey::from_encoded_point(&encoded_point)
             .map_err(|e| EcdsaError::InvalidPublicKey(format!("Invalid curve point: {}", e)))?;
 
-        Ok(Self { encoded_point: bytes.to_vec(), domain_separator })
+        Ok(Self {
+            encoded_point: bytes.to_vec(),
+            domain_separator,
+        })
     }
 
     pub fn verify(
@@ -161,7 +177,7 @@ impl EcdsaPublicKey {
         let mut hasher = Sha256::new();
         hasher.update(b"CYPHERON_HYBRID_ECDSA_V1");
         hasher.update(self.domain_separator.as_bytes());
-        hasher.update(&(message.len() as u64).to_be_bytes());
+        hasher.update((message.len() as u64).to_be_bytes());
         hasher.update(message);
         hasher.finalize().into()
     }
@@ -185,7 +201,10 @@ impl EcdsaKeyPair {
         let private_key = EcdsaPrivateKey::generate(domain_separator)?;
         let public_key = private_key.public_key();
 
-        Ok(Self { private_key, public_key })
+        Ok(Self {
+            private_key,
+            public_key,
+        })
     }
 }
 
@@ -194,7 +213,9 @@ pub mod validation {
 
     pub fn validate_private_key(key: &EcdsaPrivateKey) -> Result<(), EcdsaError> {
         if key.domain_separator.is_empty() {
-            return Err(EcdsaError::InvalidPrivateKey("Empty domain separator".to_string()));
+            return Err(EcdsaError::InvalidPrivateKey(
+                "Empty domain separator".to_string(),
+            ));
         }
 
         Ok(())
@@ -202,7 +223,9 @@ pub mod validation {
 
     pub fn validate_public_key(key: &EcdsaPublicKey) -> Result<(), EcdsaError> {
         if key.domain_separator.is_empty() {
-            return Err(EcdsaError::InvalidPublicKey("Empty domain separator".to_string()));
+            return Err(EcdsaError::InvalidPublicKey(
+                "Empty domain separator".to_string(),
+            ));
         }
 
         let encoded_point = EncodedPoint::from_bytes(&key.encoded_point)

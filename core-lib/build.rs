@@ -43,7 +43,10 @@ fn verify_vendor_integrity(manifest_dir: &Path) {
         return;
     }
 
-    let vendor_script = manifest_dir.parent().unwrap().join("scripts/vendor-integrity.sh");
+    let vendor_script = manifest_dir
+        .parent()
+        .unwrap()
+        .join("scripts/vendor-integrity.sh");
 
     if !vendor_script.exists() {
         println!("cargo:warning=Vendor integrity script not found, skipping verification");
@@ -82,7 +85,10 @@ fn build_kyber_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    assert!(ref_dir.join("indcpa.c").exists(), "[build.rs] Missing ML-KEM (Kyber) file: indcpa.c");
+    assert!(
+        ref_dir.join("indcpa.c").exists(),
+        "[build.rs] Missing ML-KEM (Kyber) file: indcpa.c"
+    );
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
         PQBuilder::new(format!("ml_kem_{}", variant), &ref_dir)
             .files(vec![
@@ -113,7 +119,7 @@ fn build_dilithium_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    for level in &[ "2", "3", "5"] {
+    for level in &["2", "3", "5"] {
         PQBuilder::new(format!("ml_dsa_{}", level), &ref_dir)
             .files(vec![
                 "sign.c",
@@ -238,8 +244,10 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                     let thash_str = thash.to_string();
 
                     let param_file = format!("sphincs-{}-{}{}", hash, security, opt);
-                    let defines =
-                        vec![("PARAMS", param_file.as_str()), ("THASH", thash_str.as_str())];
+                    let defines = vec![
+                        ("PARAMS", param_file.as_str()),
+                        ("THASH", thash_str.as_str()),
+                    ];
 
                     PQBuilder::new(lib_name, &ref_dir)
                         .files(c_files)
@@ -274,11 +282,19 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
             for &opt in &optimizations {
                 for &thash in &thash_variants {
                     let param_set = format!("sphincs-{}-{}{}", hash, security, opt);
-                    let lib_name =
-                        format!("sphincsplus_{}_avx2_{}_{}{}_{}", hash, hash, security, opt, thash);
+                    let lib_name = format!(
+                        "sphincsplus_{}_avx2_{}_{}{}_{}",
+                        hash, hash, security, opt, thash
+                    );
 
-                    let mut c_files =
-                        vec!["address.c", "fors.c", "sign.c", "utils.c", "wots.c", "randombytes.c"];
+                    let mut c_files = vec![
+                        "address.c",
+                        "fors.c",
+                        "sign.c",
+                        "utils.c",
+                        "wots.c",
+                        "randombytes.c",
+                    ];
 
                     if hash == "sha2" {
                         c_files.extend(vec![
@@ -296,8 +312,10 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                         ]);
                     }
 
-                    let defines =
-                        vec![("PARAMS", &format!("params-{}.h", param_set)), ("THASH", thash)];
+                    let defines = vec![
+                        ("PARAMS", &format!("params-{}.h", param_set)),
+                        ("THASH", thash),
+                    ];
 
                     PQBuilder::new(lib_name, &avx2_dir)
                         .files(c_files)
@@ -322,8 +340,10 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
         for &opt in &optimizations {
             for &thash in &thash_variants {
                 let param_set = format!("sphincs-haraka-{}{}", security, opt);
-                let lib_name =
-                    format!("sphincsplus_haraka_aesni_haraka_{}{}_{}", security, opt, thash);
+                let lib_name = format!(
+                    "sphincsplus_haraka_aesni_haraka_{}{}_{}",
+                    security, opt, thash
+                );
 
                 let thash_filename = format!("thash_haraka_{}.c", thash);
 
@@ -428,7 +448,10 @@ impl<'a> PQBuilder<'a> {
             .clang_arg(format!("-I{}", self.src_dir.display()));
         let params_dir = self.src_dir.join("params");
         if params_dir.exists() && std::env::var("VERBOSE").is_ok() {
-            println!("cargo:warning=[build.rs] Including params dir: {}", params_dir.display());
+            println!(
+                "cargo:warning=[build.rs] Including params dir: {}",
+                params_dir.display()
+            );
             build.include(&params_dir);
             builder = builder.clang_arg(format!("-I{}", params_dir.display()));
         }
@@ -449,7 +472,10 @@ impl<'a> PQBuilder<'a> {
                     .unwrap_or_else(|_| panic!("Couldn't write bindings for {}", self.lib_name));
             }
             Err(e) => {
-                eprintln!("\n[build.rs] Failed to generate bindings for {}: {}", self.lib_name, e);
+                eprintln!(
+                    "\n[build.rs] Failed to generate bindings for {}: {}",
+                    self.lib_name, e
+                );
                 eprintln!("Make sure libclang is installed and visible.");
                 eprintln!("Try: `sudo apt install libclang-dev`");
                 eprintln!("Or set the environment variable: `LIBCLANG_PATH=/path/to/libclang.so`");
@@ -514,13 +540,19 @@ impl<'a> PQBuilder<'a> {
             build.flag_if_supported("-fomit-frame-pointer");
             build.flag_if_supported("-march=native");
 
-            if std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default().contains("avx2") {
+            if std::env::var("CARGO_CFG_TARGET_FEATURE")
+                .unwrap_or_default()
+                .contains("avx2")
+            {
                 build.flag_if_supported("-mavx2");
             }
         }
     }
 
     fn get_files(&self) -> Vec<PathBuf> {
-        self.c_files.iter().map(|file| self.src_dir.join(file)).collect()
+        self.c_files
+            .iter()
+            .map(|file| self.src_dir.join(file))
+            .collect()
     }
 }

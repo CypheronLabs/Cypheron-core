@@ -36,9 +36,7 @@ impl SignatureEngine for Dilithium2Engine {
 
         let result = unsafe { pqcrystals_dilithium2_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
         match result {
-            0 => {
-                Ok((PublicKey(pk), SecretKey(SecretBox::new(sk.into()))))
-            }
+            0 => Ok((PublicKey(pk), SecretKey(SecretBox::new(sk.into())))),
             code => Err(DilithiumError::from_c_code(code, "keypair")),
         }
     }
@@ -50,7 +48,7 @@ impl SignatureEngine for Dilithium2Engine {
         if !msg.is_valid_for_ffi() && !msg.is_empty() {
             return Err(DilithiumError::InvalidInput);
         }
-        
+
         let mut sig_buffer = [0u8; ML_DSA_44_SIGNATURE];
         let mut siglen = 0usize;
         let sk_bytes = sk.0.expose_secret();
@@ -70,13 +68,13 @@ impl SignatureEngine for Dilithium2Engine {
                 sk_bytes.as_ptr(),
             )
         };
-        
+
         match result {
             0 => {
                 if siglen == 0 || siglen > ML_DSA_44_SIGNATURE {
                     return Err(DilithiumError::SigningInternalError);
                 }
-                
+
                 if !verify_buffer_initialized(&sig_buffer[..siglen], siglen) {
                     return Err(DilithiumError::SigningInternalError);
                 }
@@ -94,14 +92,14 @@ impl SignatureEngine for Dilithium2Engine {
         if !msg.is_valid_for_ffi() && !msg.is_empty() {
             return false;
         }
-        
+
         if sig.0.len() != ML_DSA_44_SIGNATURE {
             return false;
         }
         if pk.0.len() != ML_DSA_44_PUBLIC {
             return false;
         }
-        
+
         let sig_len = sig.0.len();
         let result = unsafe {
             pqcrystals_dilithium2_ref_verify(

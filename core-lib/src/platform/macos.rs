@@ -20,9 +20,10 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
 
     match SecRandom::system_random().copy_bytes(buffer) {
         Ok(_) => Ok(()),
-        Err(e) => {
-            Err(Error::new(ErrorKind::Other, format!("Failed to generate random bytes: {:?}", e)))
-        }
+        Err(e) => Err(Error::new(
+            ErrorKind::Other,
+            format!("Failed to generate random bytes: {:?}", e),
+        )),
     }
 }
 
@@ -37,7 +38,12 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
 
 pub fn secure_zero(buffer: &mut [u8]) {
     unsafe {
-        libc::memset_s(buffer.as_mut_ptr() as *mut libc::c_void, buffer.len(), 0, buffer.len());
+        libc::memset_s(
+            buffer.as_mut_ptr() as *mut libc::c_void,
+            buffer.len(),
+            0,
+            buffer.len(),
+        );
     }
 }
 
@@ -50,7 +56,11 @@ pub fn secure_zero_bzero(buffer: &mut [u8]) {
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use libc::{mprotect, PROT_NONE, PROT_READ, PROT_WRITE};
 
-    let protection = if protect { PROT_NONE } else { PROT_READ | PROT_WRITE };
+    let protection = if protect {
+        PROT_NONE
+    } else {
+        PROT_READ | PROT_WRITE
+    };
 
     let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
     let addr = buffer.as_mut_ptr() as usize;
@@ -89,8 +99,10 @@ pub fn get_apple_silicon_info() -> Option<AppleSiliconInfo> {
 
     use std::process::Command;
 
-    let chip_name = if let Ok(output) =
-        Command::new("sysctl").arg("-n").arg("machdep.cpu.brand_string").output()
+    let chip_name = if let Ok(output) = Command::new("sysctl")
+        .arg("-n")
+        .arg("machdep.cpu.brand_string")
+        .output()
     {
         String::from_utf8(output.stdout)
             .unwrap_or_else(|_| "Apple Silicon".to_string())
@@ -121,7 +133,11 @@ pub struct AppleSiliconInfo {
 fn get_performance_core_count() -> Option<u32> {
     use std::process::Command;
 
-    if let Ok(output) = Command::new("sysctl").arg("-n").arg("hw.perflevel0.logicalcpu").output() {
+    if let Ok(output) = Command::new("sysctl")
+        .arg("-n")
+        .arg("hw.perflevel0.logicalcpu")
+        .output()
+    {
         String::from_utf8(output.stdout).ok()?.trim().parse().ok()
     } else {
         None
@@ -131,7 +147,11 @@ fn get_performance_core_count() -> Option<u32> {
 fn get_efficiency_core_count() -> Option<u32> {
     use std::process::Command;
 
-    if let Ok(output) = Command::new("sysctl").arg("-n").arg("hw.perflevel1.logicalcpu").output() {
+    if let Ok(output) = Command::new("sysctl")
+        .arg("-n")
+        .arg("hw.perflevel1.logicalcpu")
+        .output()
+    {
         String::from_utf8(output.stdout).ok()?.trim().parse().ok()
     } else {
         None
@@ -155,7 +175,11 @@ pub fn optimize_for_apple_silicon() -> Result<(), Error> {
 pub fn is_running_under_rosetta() -> bool {
     use std::process::Command;
 
-    if let Ok(output) = Command::new("sysctl").arg("-n").arg("sysctl.proc_translated").output() {
+    if let Ok(output) = Command::new("sysctl")
+        .arg("-n")
+        .arg("sysctl.proc_translated")
+        .output()
+    {
         if let Ok(result) = String::from_utf8(output.stdout) {
             return result.trim() == "1";
         }

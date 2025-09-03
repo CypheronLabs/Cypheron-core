@@ -14,18 +14,18 @@
 
 use crate::hybrid::composite::{CompositePublicKey, CompositeSecretKey};
 use crate::hybrid::traits::HybridKemEngine;
-use crate::kem::{MlKem768, Kem as KemTrait, sizes};
+use crate::kem::{sizes, Kem as KemTrait, MlKem768};
 use hkdf::Hkdf;
-use sha2::Sha256;
+use p256::elliptic_curve::ecdh;
 use p256::{
     ecdh::EphemeralSecret,
     elliptic_curve::rand_core::OsRng,
     elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint},
     EncodedPoint, PublicKey as P256PublicKey, SecretKey as P256SecretKey,
 };
-use p256::elliptic_curve::ecdh;
 use secrecy::{ExposeSecret, SecretBox};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use std::fmt::Debug;
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
@@ -97,17 +97,17 @@ pub struct P256MlKem768;
 impl HybridKemEngine for P256MlKem768 {
     type ClassicalPublicKey = P256PublicKeyWrapper;
     type ClassicalSecretKey = P256SecretKeyWrapper;
-    
+
     type PqPublicKey = MlKemPublicKeyWrapper;
     type PqSecretKey = MlKemSecretKeyWrapper;
-    
+
     type CompositePublicKey = CompositePublicKey<Self::ClassicalPublicKey, Self::PqPublicKey>;
     type CompositeSecretKey = CompositeSecretKey<Self::ClassicalSecretKey, Self::PqSecretKey>;
     type HybridCiphertext = HybridCiphertext;
     type SharedSecret = HybridSharedSecret;
-    
+
     type Error = HybridKemError;
-    
+
     fn keypair() -> Result<(Self::CompositePublicKey, Self::CompositeSecretKey), Self::Error> {
         let classical_secret = P256SecretKey::random(&mut OsRng);
         let classical_public = classical_secret.public_key();
@@ -117,14 +117,16 @@ impl HybridKemEngine for P256MlKem768 {
 
         let composite_public = CompositePublicKey {
             classical: P256PublicKeyWrapper(
-                classical_public.to_encoded_point(false).as_bytes().to_vec()
+                classical_public.to_encoded_point(false).as_bytes().to_vec(),
             ),
             post_quantum: MlKemPublicKeyWrapper(pq_public.0.to_vec()),
         };
 
         let composite_secret = CompositeSecretKey {
             classical: SecretBox::new(Box::new(P256SecretKeyWrapper(classical_secret))),
-            post_quantum: SecretBox::new(Box::new(MlKemSecretKeyWrapper(pq_secret.0.expose_secret().to_vec()))),
+            post_quantum: SecretBox::new(Box::new(MlKemSecretKeyWrapper(
+                pq_secret.0.expose_secret().to_vec(),
+            ))),
         };
 
         Ok((composite_public, composite_secret))
@@ -140,20 +142,26 @@ impl HybridKemEngine for P256MlKem768 {
             .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
         let recipient_public = P256PublicKey::from_encoded_point(&encoded_point)
             .into_option()
-            .ok_or_else(|| HybridKemError::ClassicalError("Invalid P-256 public key point".to_string()))?;
+            .ok_or_else(|| {
+                HybridKemError::ClassicalError("Invalid P-256 public key point".to_string())
+            })?;
 
         let classical_shared_secret = ephemeral_secret.diffie_hellman(&recipient_public);
 
         if pk.post_quantum.0.len() != sizes::ML_KEM_768_PUBLIC {
-            return Err(HybridKemError::PostQuantumError(
-                format!("Invalid ML-KEM-768 public key size: expected {}, got {}", 
-                    sizes::ML_KEM_768_PUBLIC, pk.post_quantum.0.len())
-            ));
+            return Err(HybridKemError::PostQuantumError(format!(
+                "Invalid ML-KEM-768 public key size: expected {}, got {}",
+                sizes::ML_KEM_768_PUBLIC,
+                pk.post_quantum.0.len()
+            )));
         }
 
         let pq_public_key = crate::kem::ml_kem_768::MlKemPublicKey(
-            pk.post_quantum.0[..sizes::ML_KEM_768_PUBLIC].try_into()
-                .map_err(|_| HybridKemError::PostQuantumError("Invalid public key conversion".to_string()))?,
+            pk.post_quantum.0[..sizes::ML_KEM_768_PUBLIC]
+                .try_into()
+                .map_err(|_| {
+                    HybridKemError::PostQuantumError("Invalid public key conversion".to_string())
+                })?,
         );
 
         let (pq_ciphertext, pq_shared_secret) = MlKem768::encapsulate(&pq_public_key)
@@ -162,7 +170,8 @@ impl HybridKemEngine for P256MlKem768 {
         let combined_secret = [
             classical_shared_secret.raw_secret_bytes().as_slice(),
             pq_shared_secret.expose_secret().as_slice(),
-        ].concat();
+        ]
+        .concat();
 
         let hkdf = Hkdf::<Sha256>::new(None, &combined_secret);
         let mut derived_key = [0u8; 32];
@@ -174,9 +183,7 @@ impl HybridKemEngine for P256MlKem768 {
             post_quantum_ciphertext: pq_ciphertext.clone(),
         };
 
-        let hybrid_shared_secret = HybridSharedSecret {
-            key: derived_key,
-        };
+        let hybrid_shared_secret = HybridSharedSecret { key: derived_key };
 
         Ok((hybrid_ciphertext, hybrid_shared_secret))
     }
@@ -189,54 +196,60 @@ impl HybridKemEngine for P256MlKem768 {
             .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
         let ephemeral_public = P256PublicKey::from_encoded_point(&ephemeral_encoded)
             .into_option()
-            .ok_or_else(|| HybridKemError::ClassicalError("Invalid P-256 public key point".to_string()))?;
+            .ok_or_else(|| {
+                HybridKemError::ClassicalError("Invalid P-256 public key point".to_string())
+            })?;
 
         let classical_secret = &sk.classical.expose_secret().0;
         let classical_shared_secret = ecdh::diffie_hellman(
             classical_secret.to_nonzero_scalar(),
-            ephemeral_public.as_affine()
+            ephemeral_public.as_affine(),
         );
         let classical_shared_secret_bytes = classical_shared_secret.raw_secret_bytes();
 
         if ct.post_quantum_ciphertext.len() != sizes::ML_KEM_768_CIPHERTEXT {
-            return Err(HybridKemError::InvalidCiphertext( 
-                format!("Invalid ML-KEM-768 ciphertext size: expected {}, got {}", 
-                    sizes::ML_KEM_768_CIPHERTEXT, ct.post_quantum_ciphertext.len())
-            ));
+            return Err(HybridKemError::InvalidCiphertext(format!(
+                "Invalid ML-KEM-768 ciphertext size: expected {}, got {}",
+                sizes::ML_KEM_768_CIPHERTEXT,
+                ct.post_quantum_ciphertext.len()
+            )));
         }
 
         let pq_ciphertext = &ct.post_quantum_ciphertext;
 
         let pq_secret_bytes = sk.post_quantum.expose_secret();
         if pq_secret_bytes.0.len() != sizes::ML_KEM_768_SECRET {
-            return Err(HybridKemError::PostQuantumError(
-                format!("Invalid ML-KEM-768 secret key size: expected {}, got {}", 
-                    sizes::ML_KEM_768_SECRET, pq_secret_bytes.0.len())
-            ));
+            return Err(HybridKemError::PostQuantumError(format!(
+                "Invalid ML-KEM-768 secret key size: expected {}, got {}",
+                sizes::ML_KEM_768_SECRET,
+                pq_secret_bytes.0.len()
+            )));
         }
 
-        let secret_array: [u8; sizes::ML_KEM_768_SECRET] = pq_secret_bytes.0[..sizes::ML_KEM_768_SECRET].try_into()
-                .map_err(|_| HybridKemError::PostQuantumError("Invalid secret key conversion".to_string()))?;
-        let pq_secret_key = crate::kem::ml_kem_768::MlKemSecretKey(
-            SecretBox::new(Box::new(secret_array))
-        );
+        let secret_array: [u8; sizes::ML_KEM_768_SECRET] = pq_secret_bytes.0
+            [..sizes::ML_KEM_768_SECRET]
+            .try_into()
+            .map_err(|_| {
+                HybridKemError::PostQuantumError("Invalid secret key conversion".to_string())
+            })?;
+        let pq_secret_key =
+            crate::kem::ml_kem_768::MlKemSecretKey(SecretBox::new(Box::new(secret_array)));
 
-        let pq_shared_secret = MlKem768::decapsulate(&pq_ciphertext, &pq_secret_key)
+        let pq_shared_secret = MlKem768::decapsulate(pq_ciphertext, &pq_secret_key)
             .map_err(|e| HybridKemError::PostQuantumError(format!("{:?}", e)))?;
 
         let combined_secret = [
             classical_shared_secret_bytes.as_slice(),
             pq_shared_secret.expose_secret().as_slice(),
-        ].concat();
+        ]
+        .concat();
 
         let hkdf = Hkdf::<Sha256>::new(None, &combined_secret);
         let mut derived_key = [0u8; 32];
         hkdf.expand(b"CypheronHybridKEM-P256-MLKEM768-v1", &mut derived_key)
             .map_err(|e| HybridKemError::KeyDerivationError(e.to_string()))?;
 
-        Ok(HybridSharedSecret {
-            key: derived_key,
-        })
+        Ok(HybridSharedSecret { key: derived_key })
     }
 }
 
@@ -275,7 +288,7 @@ mod tests {
     fn test_shared_secret_is_32_bytes() {
         let (public_key, _) = P256MlKem768::keypair().unwrap();
         let (_, shared_secret) = P256MlKem768::encapsulate(&public_key).unwrap();
-        
+
         assert_eq!(shared_secret.as_bytes().len(), 32);
     }
 
@@ -288,8 +301,14 @@ mod tests {
         let (ciphertext_2, shared_secret_2) = P256MlKem768::encapsulate(&public_key).unwrap();
 
         // Ciphertexts should be different (randomized)
-        assert_ne!(ciphertext_1.classical_ephemeral, ciphertext_2.classical_ephemeral);
-        assert_ne!(ciphertext_1.post_quantum_ciphertext, ciphertext_2.post_quantum_ciphertext);
+        assert_ne!(
+            ciphertext_1.classical_ephemeral,
+            ciphertext_2.classical_ephemeral
+        );
+        assert_ne!(
+            ciphertext_1.post_quantum_ciphertext,
+            ciphertext_2.post_quantum_ciphertext
+        );
 
         // But both should decrypt correctly to different shared secrets
         let decrypted_1 = P256MlKem768::decapsulate(&ciphertext_1, &secret_key).unwrap();
@@ -310,7 +329,10 @@ mod tests {
         // P-256 public key should be 65 bytes (uncompressed)
         assert_eq!(ciphertext.classical_ephemeral.len(), 65);
         // ML-KEM-768 ciphertext should be 1088 bytes
-        assert_eq!(ciphertext.post_quantum_ciphertext.len(), sizes::ML_KEM_768_CIPHERTEXT);
+        assert_eq!(
+            ciphertext.post_quantum_ciphertext.len(),
+            sizes::ML_KEM_768_CIPHERTEXT
+        );
     }
 
     #[test]
@@ -330,7 +352,7 @@ mod tests {
 
         // Test public key serialization
         let pk_serialized = serde_json::to_vec(&public_key).unwrap();
-        let pk_deserialized: CompositePublicKey<P256PublicKeyWrapper, MlKemPublicKeyWrapper> = 
+        let pk_deserialized: CompositePublicKey<P256PublicKeyWrapper, MlKemPublicKeyWrapper> =
             serde_json::from_slice(&pk_serialized).unwrap();
         assert_eq!(public_key.classical.0, pk_deserialized.classical.0);
         assert_eq!(public_key.post_quantum.0, pk_deserialized.post_quantum.0);
@@ -338,8 +360,14 @@ mod tests {
         // Test ciphertext serialization
         let ct_serialized = serde_json::to_vec(&ciphertext).unwrap();
         let ct_deserialized: HybridCiphertext = serde_json::from_slice(&ct_serialized).unwrap();
-        assert_eq!(ciphertext.classical_ephemeral, ct_deserialized.classical_ephemeral);
-        assert_eq!(ciphertext.post_quantum_ciphertext, ct_deserialized.post_quantum_ciphertext);
+        assert_eq!(
+            ciphertext.classical_ephemeral,
+            ct_deserialized.classical_ephemeral
+        );
+        assert_eq!(
+            ciphertext.post_quantum_ciphertext,
+            ct_deserialized.post_quantum_ciphertext
+        );
     }
 
     #[test]
@@ -380,10 +408,10 @@ mod tests {
         // This test ensures that our HKDF context is properly set up
         let (public_key, _) = P256MlKem768::keypair().unwrap();
         let (_, shared_secret) = P256MlKem768::encapsulate(&public_key).unwrap();
-        
+
         // Should always be 32 bytes due to HKDF expand
         assert_eq!(shared_secret.as_bytes().len(), 32);
-        
+
         // Should not be all zeros (extremely unlikely)
         assert_ne!(shared_secret.as_bytes(), &[0u8; 32]);
     }

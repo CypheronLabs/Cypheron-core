@@ -78,7 +78,10 @@ where
         let (pq_pk, pq_sk) = pq_keypair;
 
         Self {
-            public: CompositePublicKey { classical: classical_pk, post_quantum: pq_pk },
+            public: CompositePublicKey {
+                classical: classical_pk,
+                post_quantum: pq_pk,
+            },
             secret: CompositeSecretKey {
                 classical: SecretBox::new(Box::new(classical_sk)),
                 post_quantum: SecretBox::new(Box::new(pq_sk)),

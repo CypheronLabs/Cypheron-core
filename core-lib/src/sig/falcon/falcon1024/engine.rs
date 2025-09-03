@@ -17,11 +17,11 @@ use std::ffi::c_void;
 use std::mem::MaybeUninit;
 
 use crate::sig::falcon::bindings::*;
+use crate::sig::falcon::errors::FalconErrors;
 use crate::sig::falcon::falcon1024::constants::*;
 use crate::sig::falcon::falcon1024::types::{
     Falcon1024PublicKey, Falcon1024SecretKey, Falcon1024Signature, PublicKey, SecretKey, Signature,
 };
-use crate::sig::falcon::errors::FalconErrors;
 use crate::sig::traits::SignatureEngine;
 use libc::c_int;
 

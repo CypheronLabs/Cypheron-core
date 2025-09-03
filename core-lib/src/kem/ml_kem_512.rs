@@ -30,13 +30,19 @@ use bindings::*;
 
 pub struct MlKemSecretKey(pub SecretBox<[u8; sizes::ML_KEM_512_SECRET]>);
 
-#[deprecated(since = "0.2.0", note = "Use MlKemSecretKey instead for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use MlKemSecretKey instead for NIST FIPS 203 compliance"
+)]
 pub type KyberSecretKey = MlKemSecretKey;
 
 #[derive(Clone)]
 pub struct MlKemPublicKey(pub [u8; sizes::ML_KEM_512_PUBLIC]);
 
-#[deprecated(since = "0.2.0", note = "Use MlKemPublicKey instead for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use MlKemPublicKey instead for NIST FIPS 203 compliance"
+)]
 pub type KyberPublicKey = MlKemPublicKey;
 
 #[derive(Error, Debug)]
@@ -63,7 +69,10 @@ pub enum MlKemError {
     CLibraryError { code: i32 },
 }
 
-#[deprecated(since = "0.2.0", note = "Use MlKemError instead for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use MlKemError instead for NIST FIPS 203 compliance"
+)]
 pub type KyberError = MlKemError;
 
 impl MlKemError {
@@ -89,7 +98,10 @@ impl MlKemError {
 
 pub struct MlKem512;
 
-#[deprecated(since = "0.2.0", note = "Use MlKem512 instead for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use MlKem512 instead for NIST FIPS 203 compliance"
+)]
 pub type Kyber512 = MlKem512;
 
 impl MlKem512 {
@@ -97,7 +109,10 @@ impl MlKem512 {
         KemVariant::MlKem512
     }
 
-    #[deprecated(since = "0.2.0", note = "Use variant() instead for NIST FIPS 203 compliance")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use variant() instead for NIST FIPS 203 compliance"
+    )]
     pub fn legacy_variant() -> KemVariant {
         #[allow(deprecated)]
         KemVariant::Kyber512
@@ -127,7 +142,10 @@ impl Kem for MlKem512 {
             return Err(MlKemError::from_c_code(result, "keypair"));
         }
 
-        Ok((MlKemPublicKey(pk), MlKemSecretKey(SecretBox::new(Box::new(sk)))))
+        Ok((
+            MlKemPublicKey(pk),
+            MlKemSecretKey(SecretBox::new(Box::new(sk))),
+        ))
     }
 
     fn encapsulate(
@@ -173,8 +191,9 @@ impl Kem for MlKem512 {
 
         let mut ss = [0u8; sizes::ML_KEM_512_SHARED];
 
-        let result =
-            unsafe { pqcrystals_kyber512_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.expose_secret().as_ptr()) };
+        let result = unsafe {
+            pqcrystals_kyber512_ref_dec(ss.as_mut_ptr(), ct.as_ptr(), sk.0.expose_secret().as_ptr())
+        };
 
         if result != 0 {
             ss.zeroize();

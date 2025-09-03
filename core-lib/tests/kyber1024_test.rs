@@ -25,9 +25,15 @@ fn test_variant_and_expose() {
     let ss2 = Kyber1024::decapsulate(&ct, &sk).expect("Failed to decapsulate");
 
     println!("Public Key generated successfully (len={})", pk.0.len());
-    println!("Secret Key generated successfully (len={})", sk.0.expose_secret().len());
+    println!(
+        "Secret Key generated successfully (len={})",
+        sk.0.expose_secret().len()
+    );
     println!("Ciphertext generated successfully (len={})", ct.len());
-    println!("Shared secrets match: {}", ss1.expose_secret() == ss2.expose_secret());
+    println!(
+        "Shared secrets match: {}",
+        ss1.expose_secret() == ss2.expose_secret()
+    );
 
     assert_eq!(ss1.expose_secret(), ss2.expose_secret());
 }

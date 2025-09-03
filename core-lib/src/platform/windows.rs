@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::io::{Error, ErrorKind};
-
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     use windows::Win32::Security::Cryptography::{
@@ -29,7 +27,10 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
             CryptAcquireContextW(&mut hprov, None, None, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
 
         if !result.as_bool() {
-            return Err(Error::new(ErrorKind::Other, "Failed to acquire cryptographic context"));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Failed to acquire cryptographic context",
+            ));
         }
 
         let gen_result = CryptGenRandom(hprov, buffer.len() as u32, buffer.as_mut_ptr());
@@ -37,13 +38,15 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
         let _ = CryptReleaseContext(hprov, 0);
 
         if !gen_result.as_bool() {
-            return Err(Error::new(ErrorKind::Other, "Failed to generate random bytes"));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Failed to generate random bytes",
+            ));
         }
 
         Ok(())
     }
 }
-
 
 pub fn secure_zero(buffer: &mut [u8]) {
     use windows::Win32::System::Memory::RtlSecureZeroMemory;
@@ -53,11 +56,14 @@ pub fn secure_zero(buffer: &mut [u8]) {
     }
 }
 
-
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use windows::Win32::System::Memory::{VirtualProtect, PAGE_NOACCESS, PAGE_READWRITE};
 
-    let protection = if protect { PAGE_NOACCESS } else { PAGE_READWRITE };
+    let protection = if protect {
+        PAGE_NOACCESS
+    } else {
+        PAGE_READWRITE
+    };
 
     let mut old_protection = 0u32;
 
@@ -76,7 +82,6 @@ pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
 
     Ok(())
 }
-
 
 pub fn get_windows_version() -> String {
     use windows::Win32::System::SystemInformation::GetVersionExW;
@@ -98,7 +103,6 @@ pub fn get_windows_version() -> String {
         }
     }
 }
-
 
 pub fn is_modern_windows() -> bool {
     use windows::Win32::System::SystemInformation::GetVersionExW;
