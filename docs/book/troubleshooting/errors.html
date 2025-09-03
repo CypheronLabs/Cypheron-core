@@ -1,0 +1,501 @@
+<!DOCTYPE HTML>
+<html lang="en" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Error Codes - Cypheron Core Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Comprehensive documentation for the Cypheron Core post-quantum cryptography library">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/custom.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Cypheron Core Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/CypheronLabs/Cypheron-core" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/src/troubleshooting/errors.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="error-codes-reference"><a class="header" href="#error-codes-reference">Error Codes Reference</a></h1>
+<p>Complete reference for all error codes in Cypheron Core.</p>
+<h2 id="kem-errors"><a class="header" href="#kem-errors">KEM Errors</a></h2>
+<h3 id="error-kem-001"><a class="header" href="#error-kem-001">ERROR-KEM-001</a></h3>
+<p><strong>Key Generation Entropy Failure</strong></p>
+<p><strong>Cause:</strong> Insufficient entropy available for key generation.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Ensure your system has adequate entropy
+// On Linux: check /proc/sys/kernel/random/entropy_avail
+// Consider using hardware RNG if available
+
+use cypheron_core::kem::{MlKem768, Kem};
+
+// Retry with backoff
+for attempt in 1..=3 {
+    match MlKem768::keypair() {
+        Ok(keys) =&gt; return Ok(keys),
+        Err(e) if attempt &lt; 3 =&gt; {
+            std::thread::sleep(std::time::Duration::from_millis(100 * attempt));
+            continue;
+        },
+        Err(e) =&gt; return Err(e),
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="error-kem-002"><a class="header" href="#error-kem-002">ERROR-KEM-002</a></h3>
+<p><strong>Decapsulation Invalid Ciphertext</strong></p>
+<p><strong>Cause:</strong> Ciphertext was corrupted or not generated with the corresponding public key.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use cypheron_core::kem::{MlKem768, Kem};
+
+let (pk, sk) = MlKem768::keypair().unwrap();
+let (ct, ss1) = MlKem768::encapsulate(&amp;pk).unwrap();
+
+// Verify ciphertext length before decapsulation
+if ct.len() != 1088 { // ML-KEM-768 ciphertext size
+    return Err("Invalid ciphertext size");
+}
+
+match MlKem768::decapsulate(&amp;ct, &amp;sk) {
+    Ok(shared_secret) =&gt; { /* success */ },
+    Err(e) =&gt; {
+        // Check if ciphertext is corrupted
+        // Verify it was generated with correct public key
+        eprintln!("Decapsulation failed: {}", e);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="error-kem-003"><a class="header" href="#error-kem-003">ERROR-KEM-003</a></h3>
+<p><strong>Encapsulation Invalid Public Key</strong></p>
+<p><strong>Cause:</strong> Public key format is invalid or corrupted.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Validate public key before use
+use cypheron_core::kem::{MlKem768, Kem};
+
+fn validate_public_key(pk_bytes: &amp;[u8]) -&gt; Result&lt;(), &amp;'static str&gt; {
+    if pk_bytes.len() != 1184 { // ML-KEM-768 public key size
+        return Err("Invalid public key size");
+    }
+    // Additional validation logic...
+    Ok(())
+}
+
+// Use validated public key
+if let Err(e) = validate_public_key(&amp;pk_bytes) {
+    return Err(format!("Public key validation failed: {}", e));
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="signature-errors"><a class="header" href="#signature-errors">Signature Errors</a></h2>
+<h3 id="error-sig-001"><a class="header" href="#error-sig-001">ERROR-SIG-001</a></h3>
+<p><strong>Signature Generation Failed</strong></p>
+<p><strong>Cause:</strong> Internal error during signature generation, possibly due to entropy issues.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use cypheron_core::sig::{MlDsa65, SignatureEngine};
+
+let message = b"message to sign";
+let (pk, sk) = MlDsa65::keypair().unwrap();
+
+match MlDsa65::sign(message, &amp;sk) {
+    Ok(signature) =&gt; { /* success */ },
+    Err(e) =&gt; {
+        // Check message size (ML-DSA has no message size limit)
+        // Verify secret key integrity
+        // Ensure adequate system entropy
+        eprintln!("Signature generation failed: {}", e);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="error-sig-002"><a class="header" href="#error-sig-002">ERROR-SIG-002</a></h3>
+<p><strong>Signature Verification Failed</strong></p>
+<p><strong>Cause:</strong> Signature is invalid, message was modified, or wrong public key used.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use cypheron_core::sig::{MlDsa65, SignatureEngine};
+
+// Ensure exact message match
+let original_message = b"Hello, world!";
+let modified_message = b"Hello, world?"; // Note the different punctuation
+
+let (pk, sk) = MlDsa65::keypair().unwrap();
+let signature = MlDsa65::sign(original_message, &amp;sk).unwrap();
+
+// This will fail
+let valid = MlDsa65::verify(modified_message, &amp;signature, &amp;pk);
+assert!(!valid); // Verification fails due to message modification
+
+// This will succeed  
+let valid = MlDsa65::verify(original_message, &amp;signature, &amp;pk);
+assert!(valid);
+<span class="boring">}</span></code></pre></pre>
+<h2 id="hybrid-errors"><a class="header" href="#hybrid-errors">Hybrid Errors</a></h2>
+<h3 id="error-hybrid-001"><a class="header" href="#error-hybrid-001">ERROR-HYBRID-001</a></h3>
+<p><strong>Composite Key Generation Failed</strong></p>
+<p><strong>Cause:</strong> Failure in either classical or post-quantum key generation.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use cypheron_core::hybrid::{EccDilithium, HybridEngine};
+
+// Retry hybrid key generation with error isolation
+match EccDilithium::keypair() {
+    Ok(keys) =&gt; { /* success */ },
+    Err(e) =&gt; {
+        // Error could be from ECC or ML-DSA component
+        // Check system entropy and crypto library status
+        eprintln!("Hybrid key generation failed: {}", e);
+        
+        // Consider fallback to individual algorithms for debugging
+        use cypheron_core::sig::{MlDsa44, SignatureEngine};
+        let pq_test = MlDsa44::keypair();
+        match pq_test {
+            Ok(_) =&gt; println!("Post-quantum component working"),
+            Err(e) =&gt; println!("Post-quantum issue: {}", e),
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="platform-specific-errors"><a class="header" href="#platform-specific-errors">Platform-Specific Errors</a></h2>
+<h3 id="error-platform-001"><a class="header" href="#error-platform-001">ERROR-PLATFORM-001</a></h3>
+<p><strong>Windows Entropy Source Unavailable</strong></p>
+<p><strong>Cause:</strong> Windows CryptoAPI is not accessible.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Ensure Windows CryptoAPI is available
+// This is rare but can happen in restricted environments
+
+#[cfg(target_os = "windows")]
+fn check_windows_crypto() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // The library will automatically fallback to other entropy sources
+    // but you can manually check availability
+    
+    use cypheron_core::platform::secure_random_bytes;
+    let mut buffer = vec![0u8; 32];
+    secure_random_bytes(&amp;mut buffer)?;
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="memory-errors"><a class="header" href="#memory-errors">Memory Errors</a></h2>
+<h3 id="error-mem-001"><a class="header" href="#error-mem-001">ERROR-MEM-001</a></h3>
+<p><strong>Secure Memory Allocation Failed</strong></p>
+<p><strong>Cause:</strong> System cannot allocate secure memory for sensitive operations.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Reduce memory pressure or increase available memory
+// Check system memory limits and available RAM
+
+use cypheron_core::kem::{MlKem512, Kem}; // Use smaller variant if needed
+
+// Consider using smaller security parameters temporarily
+let (pk, sk) = MlKem512::keypair()?; // Instead of MlKem1024
+<span class="boring">}</span></code></pre></pre>
+<h2 id="ffi-errors"><a class="header" href="#ffi-errors">FFI Errors</a></h2>
+<h3 id="error-ffi-001"><a class="header" href="#error-ffi-001">ERROR-FFI-001</a></h3>
+<p><strong>C Library Binding Failed</strong></p>
+<p><strong>Cause:</strong> Underlying C library call failed.</p>
+<p><strong>Solution:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// This indicates an issue with the vendor C implementations
+// Usually due to memory corruption or invalid parameters
+
+// Enable debug logging to get more details
+std::env::set_var("RUST_LOG", "debug");
+env_logger::init();
+
+// The error will include more detailed information in debug mode
+<span class="boring">}</span></code></pre></pre>
+<h2 id="debugging-tips"><a class="header" href="#debugging-tips">Debugging Tips</a></h2>
+<h3 id="enable-detailed-logging"><a class="header" href="#enable-detailed-logging">Enable Detailed Logging</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021">// Add to your Cargo.toml
+[dependencies]
+env_logger = "0.10"
+
+// In your code
+fn main() {
+    env_logger::init();
+    // Your code here - errors will include more details
+}</code></pre></pre>
+<h3 id="validate-input-data"><a class="header" href="#validate-input-data">Validate Input Data</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use cypheron_core::kem::{MlKem768, Kem};
+
+fn safe_decapsulate(ct: &amp;[u8], sk: &amp;SecretKey) -&gt; Result&lt;SharedSecret, String&gt; {
+    // Validate ciphertext size
+    if ct.len() != 1088 {
+        return Err(format!("Invalid ciphertext size: expected 1088, got {}", ct.len()));
+    }
+    
+    // Additional validation...
+    
+    MlKem768::decapsulate(ct, sk)
+        .map_err(|e| format!("Decapsulation failed: {}", e))
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="test-with-known-good-data"><a class="header" href="#test-with-known-good-data">Test with Known Good Data</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_with_known_vectors() {
+        // Use NIST test vectors for validation
+        // See tests/kat/ directory for examples
+        let (pk, sk) = MlKem768::keypair().unwrap();
+        let (ct, ss1) = MlKem768::encapsulate(&amp;pk).unwrap();
+        let ss2 = MlKem768::decapsulate(&amp;ct, &amp;sk).unwrap();
+        assert_eq!(ss1.expose_secret(), ss2.expose_secret());
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<p>If you encounter an error not covered here:</p>
+<ol>
+<li><strong>Check the <a href="faq.html">FAQ</a></strong> for common solutions</li>
+<li><strong>Enable debug logging</strong> to get more details</li>
+<li><strong>Search <a href="https://github.com/CypheronLabs/Cypheron-core/issues">GitHub Issues</a></strong></li>
+<li><strong>Create a minimal reproduction case</strong></li>
+<li><strong>File a new issue</strong> with full error details</li>
+</ol>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="common.html">Common Issues</a> - Frequent problems and solutions</li>
+<li><a href="debug.html">Debug Guide</a> - Advanced debugging techniques</li>
+<li><a href="../api/errors.html">API Reference</a> - Error type documentation</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../security/model.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../security/model.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

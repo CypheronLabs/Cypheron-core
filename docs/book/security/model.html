@@ -1,0 +1,486 @@
+<!DOCTYPE HTML>
+<html lang="en" class="navy sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Security Model - Cypheron Core Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Comprehensive documentation for the Cypheron Core post-quantum cryptography library">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/custom.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "navy";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Cypheron Core Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/CypheronLabs/Cypheron-core" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/src/security/model.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="security-model"><a class="header" href="#security-model">Security Model</a></h1>
+<blockquote>
+<p><strong>DEVELOPMENT STATUS WARNING</strong></p>
+<p>This security model describes the INTENDED security properties of Cypheron Core v0.1.0.</p>
+<p><strong>CRITICAL</strong>: This library is experimental and has NOT been:</p>
+<ul>
+<li>Independently audited</li>
+<li>Formally verified</li>
+<li>Validated in production environments</li>
+</ul>
+<p>Implementation uses C vendor code with Rust FFI bindings requiring careful security evaluation.</p>
+</blockquote>
+<p>Cypheron Core’s security model describes intended cryptographic foundations and defensive programming practices.</p>
+<h2 id="threat-model"><a class="header" href="#threat-model">Threat Model</a></h2>
+<h3 id="adversarial-capabilities"><a class="header" href="#adversarial-capabilities">Adversarial Capabilities</a></h3>
+<p>We protect against adversaries with the following capabilities:</p>
+<ol>
+<li><strong>Classical Computers</strong>: Unlimited classical computational power</li>
+<li><strong>Quantum Computers</strong>: Large-scale fault-tolerant quantum computers</li>
+<li><strong>Side-Channel Attacks</strong>: Timing, power, and electromagnetic analysis</li>
+<li><strong>Memory Attacks</strong>: Cold boot attacks, memory dumps, swap file analysis</li>
+</ol>
+<h3 id="security-goals"><a class="header" href="#security-goals">Security Goals</a></h3>
+<ul>
+<li><strong>Confidentiality</strong>: Encrypted data remains secret</li>
+<li><strong>Authenticity</strong>: Signatures prove message origin</li>
+<li><strong>Integrity</strong>: Tampering is detectable</li>
+<li><strong>Forward Secrecy</strong>: Past communications remain secure if keys are compromised</li>
+</ul>
+<h2 id="cryptographic-security"><a class="header" href="#cryptographic-security">Cryptographic Security</a></h2>
+<h3 id="post-quantum-resistance"><a class="header" href="#post-quantum-resistance">Post-Quantum Resistance</a></h3>
+<p>All algorithms are designed to resist quantum computer attacks:</p>
+<ul>
+<li><strong>ML-KEM</strong>: Based on Module Learning With Errors (M-LWE)</li>
+<li><strong>ML-DSA</strong>: Based on Module Short Integer Solution (M-SIS)</li>
+<li><strong>Falcon</strong>: Based on NTRU lattices and Gaussian sampling</li>
+<li><strong>SPHINCS+</strong>: Based on hash functions and one-time signatures</li>
+</ul>
+<h3 id="security-levels"><a class="header" href="#security-levels">Security Levels</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Level</th><th>Classical Security</th><th>Quantum Security</th><th>Real-World Equivalent</th></tr></thead><tbody>
+<tr><td>1</td><td>128-bit</td><td>64-bit</td><td>AES-128</td></tr>
+<tr><td>2</td><td>128-bit</td><td>64-bit</td><td>SHA-256</td></tr>
+<tr><td>3</td><td>192-bit</td><td>96-bit</td><td>AES-192</td></tr>
+<tr><td>4</td><td>192-bit</td><td>96-bit</td><td>SHA-256</td></tr>
+<tr><td>5</td><td>256-bit</td><td>128-bit</td><td>AES-256</td></tr>
+</tbody></table>
+</div>
+<h2 id="implementation-security"><a class="header" href="#implementation-security">Implementation Security</a></h2>
+<h3 id="constant-time-operations"><a class="header" href="#constant-time-operations">Constant-Time Operations</a></h3>
+<p>All cryptographic operations execute in constant time:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Example: Constant-time secret key usage
+let (pk, sk) = MlKem768::keypair()?;
+let (ct, ss) = MlKem768::encapsulate(&amp;pk)?;
+
+// Decapsulation time is independent of:
+// - Secret key content
+// - Ciphertext validity  
+// - Previous operations
+let result = MlKem768::decapsulate(&amp;ct, &amp;sk)?;
+<span class="boring">}</span></code></pre></pre>
+<h3 id="memory-protection"><a class="header" href="#memory-protection">Memory Protection</a></h3>
+<p>Sensitive data is automatically protected:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use secrecy::ExposeSecret;
+
+{
+    let (pk, sk) = MlKem768::keypair()?;
+    
+    // Secret key is in protected memory
+    let secret_data = sk.0.expose_secret();
+    
+    // Use secret_data...
+    
+} // Secret key memory is zeroized automatically
+<span class="boring">}</span></code></pre></pre>
+<h3 id="randomness-requirements"><a class="header" href="#randomness-requirements">Randomness Requirements</a></h3>
+<p>Cryptographic operations require high-quality randomness:</p>
+<ul>
+<li><strong>Entropy Sources</strong>: Hardware RNG, OS entropy pools</li>
+<li><strong>Seeding</strong>: Proper CSPRNG initialization</li>
+<li><strong>Reseeding</strong>: Regular entropy pool updates</li>
+</ul>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Entropy failure is handled gracefully
+match MlKem768::keypair() {
+    Ok((pk, sk)) =&gt; { /* success */ },
+    Err(MlKemError::KeyGenerationEntropyFailure) =&gt; {
+        // Handle insufficient entropy
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        // Retry...
+    },
+    Err(e) =&gt; return Err(e),
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="side-channel-protection"><a class="header" href="#side-channel-protection">Side-Channel Protection</a></h2>
+<h3 id="timing-attacks"><a class="header" href="#timing-attacks">Timing Attacks</a></h3>
+<p>All operations use constant-time algorithms:</p>
+<ul>
+<li><strong>No secret-dependent branches</strong>: Control flow is independent of secrets</li>
+<li><strong>No secret-dependent memory access</strong>: Memory patterns are predictable</li>
+<li><strong>No secret-dependent loop bounds</strong>: Iteration counts are fixed</li>
+</ul>
+<h3 id="power-analysis"><a class="header" href="#power-analysis">Power Analysis</a></h3>
+<p>Operations are designed to minimize power analysis vulnerabilities:</p>
+<ul>
+<li><strong>Uniform operations</strong>: Similar power consumption patterns</li>
+<li><strong>Masked arithmetic</strong>: Secret values are never used directly</li>
+<li><strong>Randomized execution</strong>: Some operations include deliberate randomness</li>
+</ul>
+<h3 id="fault-injection"><a class="header" href="#fault-injection">Fault Injection</a></h3>
+<p>Critical operations include integrity checks:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Example: Built-in integrity verification
+let (pk, sk) = MlKem768::keypair()?;
+let (ct, ss1) = MlKem768::encapsulate(&amp;pk)?;
+
+// Decapsulation includes implicit ciphertext validation
+match MlKem768::decapsulate(&amp;ct, &amp;sk) {
+    Ok(ss2) =&gt; {
+        // ss1 and ss2 are identical if no faults occurred
+        assert_eq!(ss1.expose_secret(), ss2.expose_secret());
+    },
+    Err(MlKemError::DecapsulationInvalidCiphertext) =&gt; {
+        // Ciphertext was corrupted or maliciously modified
+    },
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="key-management"><a class="header" href="#key-management">Key Management</a></h2>
+<h3 id="key-lifecycle"><a class="header" href="#key-lifecycle">Key Lifecycle</a></h3>
+<ol>
+<li><strong>Generation</strong>: High-entropy key creation</li>
+<li><strong>Storage</strong>: Encrypted at rest when possible</li>
+<li><strong>Usage</strong>: Minimal exposure time</li>
+<li><strong>Destruction</strong>: Cryptographic erasure</li>
+</ol>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Proper key lifecycle management
+fn secure_key_usage() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // 1. Generation
+    let (pk, sk) = MlKem768::keypair()?;
+    
+    // 2. Usage (minimize exposure time)
+    let (ct, ss) = MlKem768::encapsulate(&amp;pk)?;
+    
+    // 3. Destruction is automatic when variables go out of scope
+    Ok(())
+} // Keys are zeroized here
+<span class="boring">}</span></code></pre></pre>
+<h3 id="key-rotation"><a class="header" href="#key-rotation">Key Rotation</a></h3>
+<p>Regular key rotation is recommended:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::time::{Duration, Instant};
+
+struct KeyManager {
+    current_keys: (MlKemPublicKey, MlKemSecretKey),
+    created_at: Instant,
+    rotation_interval: Duration,
+}
+
+impl KeyManager {
+    fn should_rotate(&amp;self) -&gt; bool {
+        self.created_at.elapsed() &gt; self.rotation_interval
+    }
+    
+    fn rotate(&amp;mut self) -&gt; Result&lt;(), MlKemError&gt; {
+        if self.should_rotate() {
+            self.current_keys = MlKem768::keypair()?;
+            self.created_at = Instant::now();
+        }
+        Ok(())
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="compliance-and-standards"><a class="header" href="#compliance-and-standards">Compliance and Standards</a></h2>
+<h3 id="nist-standardization"><a class="header" href="#nist-standardization">NIST Standardization</a></h3>
+<p>All algorithms implement NIST-standardized specifications:</p>
+<ul>
+<li><strong>FIPS 203</strong>: ML-KEM standard</li>
+<li><strong>FIPS 204</strong>: ML-DSA standard</li>
+<li><strong>FIPS 205</strong>: SPHINCS+ standard</li>
+</ul>
+<h3 id="security-validations"><a class="header" href="#security-validations">Security Validations</a></h3>
+<ul>
+<li><strong>Known Answer Tests (KAT)</strong>: Validation against NIST test vectors</li>
+<li><strong>Monte Carlo Testing</strong>: Statistical randomness validation</li>
+<li><strong>Side-Channel Testing</strong>: Timing and power analysis resistance</li>
+</ul>
+<h2 id="limitations-and-assumptions"><a class="header" href="#limitations-and-assumptions">Limitations and Assumptions</a></h2>
+<h3 id="trust-assumptions"><a class="header" href="#trust-assumptions">Trust Assumptions</a></h3>
+<ul>
+<li><strong>Implementation Correctness</strong>: No bugs in cryptographic implementations</li>
+<li><strong>Hardware Security</strong>: CPU and memory provide basic security guarantees</li>
+<li><strong>Random Number Generation</strong>: OS provides cryptographically secure randomness</li>
+</ul>
+<h3 id="known-limitations"><a class="header" href="#known-limitations">Known Limitations</a></h3>
+<ul>
+<li><strong>No Perfect Forward Secrecy</strong>: KEM schemes don’t provide PFS by default</li>
+<li><strong>Post-Quantum Assumptions</strong>: Security relies on unproven mathematical assumptions</li>
+<li><strong>Implementation Attacks</strong>: Hardware vulnerabilities could compromise security</li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="application-security"><a class="header" href="#application-security">Application Security</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ Good: Validate all inputs
+if ciphertext.len() != EXPECTED_CIPHERTEXT_SIZE {
+    return Err("Invalid ciphertext size");
+}
+
+// ✅ Good: Handle errors appropriately  
+match MlKem768::decapsulate(&amp;ct, &amp;sk) {
+    Ok(ss) =&gt; use_shared_secret(ss),
+    Err(e) =&gt; log_security_event(e),
+}
+
+// ❌ Bad: Ignoring security-critical errors
+let ss = MlKem768::decapsulate(&amp;ct, &amp;sk).unwrap(); // Don't do this!
+<span class="boring">}</span></code></pre></pre>
+<h3 id="operational-security"><a class="header" href="#operational-security">Operational Security</a></h3>
+<ol>
+<li><strong>Monitor Entropy</strong>: Check system entropy levels</li>
+<li><strong>Log Security Events</strong>: Record cryptographic failures</li>
+<li><strong>Update Regularly</strong>: Keep libraries up to date</li>
+<li><strong>Test Thoroughly</strong>: Validate all error paths</li>
+</ol>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<ul>
+<li><a href="side-channels.html">Side-Channel Protection</a> - Detailed protection mechanisms</li>
+<li><a href="memory.html">Memory Safety</a> - Memory security guarantees</li>
+<li><a href="compliance.html">Compliance</a> - Standards compliance</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../api/types.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../troubleshooting/errors.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../api/types.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../troubleshooting/errors.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../theme/custom.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -92,7 +92,7 @@ impl SecurityTestRunner {
     }
     
     fn run_property_based_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("\n🎲 Running Property-Based Tests...");
+        println!("\nRunning Property-Based Tests...");
         
         let start = Instant::now();
         let output = Command::new("cargo")
@@ -179,7 +179,7 @@ impl SecurityTestRunner {
     }
     
     fn run_sidechannel_tests(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("\n📡 Running Side-Channel Analysis Tests...");
+        println!("\nRunning Side-Channel Analysis Tests...");
         
         let start = Instant::now();
         let output = Command::new("cargo")
@@ -277,7 +277,7 @@ impl SecurityTestRunner {
         println!("  4. Consider additional fuzzing with external tools");
         println!("  5. Perform professional security audit before production");
         
-        println!("\n🏁 Security test suite completed!");
+        println!("\nSecurity test suite completed!");
     }
 }
 
