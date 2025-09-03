@@ -63,7 +63,8 @@ impl SecureRngState {
 
     fn as_mut_ptr(&mut self) -> *mut shake256_context {
         if !self.initialized {
-            panic!("Attempting to use uninitialized RNG state");
+            debug_assert!(false, "Attempting to use uninitialized RNG state");
+            return std::ptr::null_mut();
         }
         self.state.as_mut_ptr()
     }

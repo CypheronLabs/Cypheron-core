@@ -20,6 +20,7 @@ pub mod security;
 pub mod sig;
 
 pub use platform::{get_platform_info, secure_random_bytes, secure_zero, PlatformInfo};
+pub use security::benchmark_utils::{BenchmarkResult, bench_crypto_op, bench_validate};
 
 pub use hybrid::traits::{HybridEngine, HybridKemEngine, VerificationPolicy};
 pub use kem::{Kem, KemVariant};

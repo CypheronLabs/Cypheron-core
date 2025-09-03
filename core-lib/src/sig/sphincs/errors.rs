@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use thiserror::Error;
+use crate::security::ValidationError;
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum SphincsError {
     #[error("Invalid public key length: expected {expected}, got {actual}")]
@@ -41,4 +42,6 @@ pub enum SphincsError {
     MessageTooLarge,
     #[error("Integer overflow detected in size conversion")]
     IntegerOverflow,
+    #[error("Input validation error: {0}")]
+    ValidationError(#[from] ValidationError),
 }

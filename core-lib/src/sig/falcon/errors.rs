@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use thiserror::Error;
+use crate::security::ValidationError;
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum FalconErrors {
@@ -51,12 +52,18 @@ pub enum FalconErrors {
 
     #[error("Falcon C library returned error code: {code}")]
     CLibraryError { code: i32 },
+    
+    #[error("Input validation error: {0}")]
+    ValidationError(#[from] ValidationError),
 }
 
 impl FalconErrors {
     pub fn from_c_code(code: i32, operation: &str) -> Self {
         match code {
-            0 => panic!("Should not map success code 0 to error"),
+            0 => {
+                debug_assert!(false, "Should not map success code 0 to error");
+                FalconErrors::CLibraryError { code: 0 }
+            },
             -1 => match operation {
                 "keypair" => FalconErrors::KeyGenerationInternalError,
                 "sign" => FalconErrors::SigningInternalError,

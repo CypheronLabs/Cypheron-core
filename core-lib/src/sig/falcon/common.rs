@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub const fn logn_from_bit_level(bits: usize) -> u32 {
+pub const fn logn_from_bit_level(bits: usize) -> Option<u32> {
     match bits {
-        512 => 9,
-        1024 => 10,
-        _ => panic!("Unsupported Falcon variant"),
+        512 => Some(9),
+        1024 => Some(10),
+        _ => None,
     }
 }

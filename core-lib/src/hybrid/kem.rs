@@ -29,6 +29,7 @@ use sha2::Sha256;
 use std::fmt::Debug;
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
+use crate::security::{validate_buffer_non_empty, validate_key_size, ValidationError};
 
 #[derive(Error, Debug)]
 pub enum HybridKemError {
@@ -42,6 +43,8 @@ pub enum HybridKemError {
     SerializationError(String),
     #[error("Invalid ciphertext format: {0}")]
     InvalidCiphertext(String),
+    #[error("Input validation error: {0}")]
+    ValidationError(#[from] ValidationError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -135,6 +138,11 @@ impl HybridKemEngine for P256MlKem768 {
     fn encapsulate(
         pk: &Self::CompositePublicKey,
     ) -> Result<(Self::HybridCiphertext, Self::SharedSecret), Self::Error> {
+        validate_buffer_non_empty(&pk.classical.0)?;
+        validate_buffer_non_empty(&pk.post_quantum.0)?;
+        validate_key_size(&pk.classical.0, &[65])?;
+        validate_key_size(&pk.post_quantum.0, &[sizes::ML_KEM_768_PUBLIC])?;
+
         let ephemeral_secret = EphemeralSecret::random(&mut OsRng);
         let ephemeral_public = ephemeral_secret.public_key();
 
@@ -192,6 +200,11 @@ impl HybridKemEngine for P256MlKem768 {
         ct: &Self::HybridCiphertext,
         sk: &Self::CompositeSecretKey,
     ) -> Result<Self::SharedSecret, Self::Error> {
+        validate_buffer_non_empty(&ct.classical_ephemeral)?;
+        validate_buffer_non_empty(&ct.post_quantum_ciphertext)?;
+        validate_key_size(&ct.classical_ephemeral, &[65])?;
+        validate_key_size(&ct.post_quantum_ciphertext, &[sizes::ML_KEM_768_CIPHERTEXT])?;
+
         let ephemeral_encoded = EncodedPoint::from_bytes(&ct.classical_ephemeral)
             .map_err(|e| HybridKemError::ClassicalError(e.to_string()))?;
         let ephemeral_public = P256PublicKey::from_encoded_point(&ephemeral_encoded)

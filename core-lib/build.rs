@@ -23,34 +23,36 @@ const _OS_SUFFIX: &str = "macos";
 #[cfg(target_os = "linux")]
 const _OS_SUFFIX: &str = "linux";
 
-fn main() {
-    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR")
+        .map_err(|_| "CARGO_MANIFEST_DIR environment variable not set")?);
     let sphincs_dir = manifest_dir.join("vendor/sphincsplus");
 
-    verify_vendor_integrity(&manifest_dir);
+    verify_vendor_integrity(&manifest_dir)?;
 
-    build_kyber_all(&manifest_dir);
-    build_dilithium_all(&manifest_dir);
-    build_falcon_all(&manifest_dir);
-    build_sphincsplus_all(&sphincs_dir);
+    build_kyber_all(&manifest_dir)?;
+    build_dilithium_all(&manifest_dir)?;
+    build_falcon_all(&manifest_dir)?;
+    build_sphincsplus_all(&sphincs_dir)?;
 
     println!("cargo:rerun-if-changed=build.rs");
+    Ok(())
 }
 
-fn verify_vendor_integrity(manifest_dir: &Path) {
+fn verify_vendor_integrity(manifest_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     if env::var("SKIP_VENDOR_INTEGRITY").is_ok() {
         println!("cargo:warning=Skipping vendor integrity verification");
-        return;
+        return Ok(());
     }
 
     let vendor_script = manifest_dir
         .parent()
-        .unwrap()
+        .ok_or("Manifest directory has no parent directory")?
         .join("scripts/vendor-integrity.sh");
 
     if !vendor_script.exists() {
         println!("cargo:warning=Vendor integrity script not found, skipping verification");
-        return;
+        return Ok(());
     }
 
     println!("cargo:warning=Verifying vendor code integrity...");
@@ -58,37 +60,38 @@ fn verify_vendor_integrity(manifest_dir: &Path) {
     let output = Command::new("bash")
         .arg(&vendor_script)
         .arg("verify")
-        .current_dir(manifest_dir.parent().unwrap())
+        .current_dir(manifest_dir.parent().ok_or("No parent directory")?)
         .output();
 
     match output {
         Ok(result) => {
             if !result.status.success() {
-                eprintln!("Vendor integrity verification failed!");
-                eprintln!("STDOUT: {}", String::from_utf8_lossy(&result.stdout));
-                eprintln!("STDERR: {}", String::from_utf8_lossy(&result.stderr));
-                eprintln!("Set SKIP_VENDOR_INTEGRITY=1 to skip this check (not recommended)");
-                std::process::exit(1);
+                return Err(format!(
+                    "Vendor integrity verification failed!\nSTDOUT: {}\nSTDERR: {}\nSet SKIP_VENDOR_INTEGRITY=1 to skip this check (not recommended)",
+                    String::from_utf8_lossy(&result.stdout),
+                    String::from_utf8_lossy(&result.stderr)
+                ).into());
             } else {
                 println!("cargo:warning=Vendor integrity verification passed");
             }
         }
         Err(e) => {
-            eprintln!("Failed to run vendor integrity verification: {}", e);
-            eprintln!("Set SKIP_VENDOR_INTEGRITY=1 to skip this check (not recommended)");
-            std::process::exit(1);
+            return Err(format!(
+                "Failed to run vendor integrity verification: {}\nSet SKIP_VENDOR_INTEGRITY=1 to skip this check (not recommended)",
+                e
+            ).into());
         }
     }
+    Ok(())
 }
 
-fn build_kyber_all(manifest_dir: &Path) {
+fn build_kyber_all(manifest_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let ref_dir = manifest_dir.join("vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    assert!(
-        ref_dir.join("indcpa.c").exists(),
-        "[build.rs] Missing ML-KEM (Kyber) file: indcpa.c"
-    );
+    if !ref_dir.join("indcpa.c").exists() {
+        return Err("[build.rs] Missing ML-KEM (Kyber) file: indcpa.c".into());
+    }
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
         PQBuilder::new(format!("ml_kem_{}", variant), &ref_dir)
             .files(vec![
@@ -111,11 +114,12 @@ fn build_kyber_all(manifest_dir: &Path) {
                 format!("pqcrystals_kyber{}_ref_enc", variant),
                 format!("pqcrystals_kyber{}_ref_dec", variant),
             ])
-            .build();
+            .build()?;
     }
+    Ok(())
 }
 
-fn build_dilithium_all(manifest_dir: &Path) {
+fn build_dilithium_all(manifest_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let ref_dir = manifest_dir.join("vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
@@ -140,11 +144,12 @@ fn build_dilithium_all(manifest_dir: &Path) {
                 format!("pqcrystals_dilithium{}_ref_signature", level),
                 format!("pqcrystals_dilithium{}_ref_verify", level),
             ])
-            .build();
+            .build()?;
     }
+    Ok(())
 }
 
-fn build_falcon_all(manifest_dir: &Path) {
+fn build_falcon_all(manifest_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let ref_dir = manifest_dir.join("vendor/falcon");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
@@ -176,10 +181,11 @@ fn build_falcon_all(manifest_dir: &Path) {
             "FALCON_SIG_PADDED".into(),
             "FALCON_SIG_CT".into(),
         ])
-        .build();
+        .build()?;
+    Ok(())
 }
 
-fn build_sphincsplus_all(sphincs_dir: &Path) {
+fn build_sphincsplus_all(sphincs_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let ref_dir = sphincs_dir.join("ref");
 
     let hash_functions = ["sha2", "shake", "haraka"];
@@ -224,21 +230,24 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                             owned_files.push(format!("thash_sha2_{}.c", thash));
                             c_files.push("sha2.c");
                             c_files.push("hash_sha2.c");
-                            c_files.push(owned_files.last().unwrap());
+                            c_files.push(owned_files.last()
+                                .ok_or("No files in owned_files vector")?);
                         }
                         "shake" => {
                             owned_files.push(format!("thash_shake_{}.c", thash));
                             c_files.push("fips202.c");
                             c_files.push("hash_shake.c");
-                            c_files.push(owned_files.last().unwrap());
+                            c_files.push(owned_files.last()
+                                .ok_or("No files in owned_files vector")?);
                         }
                         "haraka" => {
                             owned_files.push(format!("thash_haraka_{}.c", thash));
                             c_files.push("haraka.c");
                             c_files.push("hash_haraka.c");
-                            c_files.push(owned_files.last().unwrap());
+                            c_files.push(owned_files.last()
+                                .ok_or("No files in owned_files vector")?);
                         }
-                        _ => panic!("Unsupported hash function"),
+                        _ => return Err(format!("Unsupported hash function: {}", hash).into()),
                     }
 
                     let thash_str = thash.to_string();
@@ -254,7 +263,7 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                         .defines(defines)
                         .header("api.h")
                         .allowlist(api_functions.clone())
-                        .build();
+                        .build()?;
                 }
             }
         }
@@ -266,6 +275,7 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
     build_aesni_variants(sphincs_dir, &api_functions);
 
     println!("cargo:rerun-if-changed={}", sphincs_dir.display());
+    Ok(())
 }
 
 #[cfg(target_feature = "avx2")]
@@ -322,7 +332,7 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                         .defines(defines)
                         .header("api.h")
                         .allowlist(api_functions.clone())
-                        .build();
+                        .build()?;
                 }
             }
         }
@@ -368,7 +378,7 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     .defines(defines)
                     .header("api.h")
                     .allowlist(api_functions.to_vec())
-                    .build();
+                    .build()?;
 
                 println!("Built SPHINCS+ AESNI variant: {}-{}", param_set, thash);
             }
@@ -416,8 +426,9 @@ impl<'a> PQBuilder<'a> {
         self
     }
 
-    fn build(self) {
-        let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    fn build(self) -> Result<(), Box<dyn std::error::Error>> {
+        let out_dir = PathBuf::from(env::var("OUT_DIR")
+            .map_err(|_| "OUT_DIR environment variable not set")?);
         let out_bindings = out_dir.join(format!("{}_bindings.rs", self.lib_name));
 
         let mut build = cc::Build::new();
@@ -439,12 +450,15 @@ impl<'a> PQBuilder<'a> {
         println!("cargo:rustc-link-search=native={}", out_dir.display());
 
         let Some(header_file) = self.header else {
-            eprintln!("[build.rs] No header file specified for {}", self.lib_name);
-            std::process::exit(1);
+            return Err(format!("[build.rs] No header file specified for {}", self.lib_name).into());
         };
 
+        let header_path = self.src_dir.join(header_file);
+        let header_str = header_path.to_str()
+            .ok_or_else(|| format!("Header path contains invalid UTF-8: {:?}", header_path))?;
+        
         let mut builder = bindgen::Builder::default()
-            .header(self.src_dir.join(header_file).to_str().unwrap())
+            .header(header_str)
             .clang_arg(format!("-I{}", self.src_dir.display()));
         let params_dir = self.src_dir.join("params");
         if params_dir.exists() && std::env::var("VERBOSE").is_ok() {
@@ -464,24 +478,13 @@ impl<'a> PQBuilder<'a> {
             builder = builder.allowlist_function(func);
         }
 
-        let bindings = builder.generate();
-        match bindings {
-            Ok(bindings) => {
-                bindings
-                    .write_to_file(&out_bindings)
-                    .unwrap_or_else(|_| panic!("Couldn't write bindings for {}", self.lib_name));
-            }
-            Err(e) => {
-                eprintln!(
-                    "\n[build.rs] Failed to generate bindings for {}: {}",
-                    self.lib_name, e
-                );
-                eprintln!("Make sure libclang is installed and visible.");
-                eprintln!("Try: `sudo apt install libclang-dev`");
-                eprintln!("Or set the environment variable: `LIBCLANG_PATH=/path/to/libclang.so`");
-                std::process::exit(1);
-            }
-        }
+        let bindings = builder.generate()
+            .map_err(|e| format!("Failed to generate bindings for {}: {}\nMake sure libclang is installed and visible.\nTry: `sudo apt install libclang-dev`\nOr set the environment variable: `LIBCLANG_PATH=/path/to/libclang.so`", self.lib_name, e))?;
+        
+        bindings.write_to_file(&out_bindings)
+            .map_err(|e| format!("Couldn't write bindings for {}: {}", self.lib_name, e))?;
+        
+        Ok(())
     }
 
     fn configure_cross_platform(&self, build: &mut cc::Build) {

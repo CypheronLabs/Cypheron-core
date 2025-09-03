@@ -37,7 +37,10 @@ pub enum DilithiumError {
 impl DilithiumError {
     pub fn from_c_code(code: i32, operation: &str) -> Self {
         match code {
-            0 => panic!("Should not map success code 0 to error"),
+            0 => {
+                debug_assert!(false, "Should not map success code 0 to error");
+                DilithiumError::CLibraryError { code: 0 }
+            },
             -1 => match operation {
                 "keypair" => DilithiumError::KeyGenerationInternalError,
                 "sign" => DilithiumError::SigningInternalError,

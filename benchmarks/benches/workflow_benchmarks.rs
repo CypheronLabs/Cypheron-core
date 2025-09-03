@@ -16,15 +16,27 @@ use core_lib::prelude::*;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use serde::{Serialize, Deserialize};
 
+fn safe_crypto_op<T, E>(result: Result<T, E>, operation: &str) -> T
+where 
+    E: std::fmt::Display,
+{
+    match result {
+        Ok(value) => value,
+        Err(e) => {
+            panic!("Critical workflow benchmark failure in {}: {}. This indicates a fundamental crypto library issue that requires immediate attention.", operation, e);
+        }
+    }
+}
+
 fn benchmark_complete_kem_workflows(c: &mut Criterion) {
     let mut group = c.benchmark_group("Complete KEM Workflows");
 
     
     group.bench_function("ML-KEM-512 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem512::keypair().expect("Failed to generate keypair");
-            let (ct, ss1) = MlKem512::encapsulate(&pk).expect("Failed to encapsulate");
-            let ss2 = MlKem512::decapsulate(&ct, &sk).expect("Failed to decapsulate");
+            let (pk, sk) = safe_crypto_op(MlKem512::keypair(), "ML-KEM-512 complete workflow keypair");
+            let (ct, ss1) = safe_crypto_op(MlKem512::encapsulate(&pk), "ML-KEM-512 complete workflow encapsulate");
+            let ss2 = safe_crypto_op(MlKem512::decapsulate(&ct, &sk), "ML-KEM-512 complete workflow decapsulate");
             assert_eq!(MlKem512::expose_shared(&ss1), MlKem512::expose_shared(&ss2));
             black_box(())
         })
@@ -33,9 +45,9 @@ fn benchmark_complete_kem_workflows(c: &mut Criterion) {
     
     group.bench_function("ML-KEM-768 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem768::keypair().expect("Failed to generate keypair");
-            let (ct, ss1) = MlKem768::encapsulate(&pk).expect("Failed to encapsulate");
-            let ss2 = MlKem768::decapsulate(&ct, &sk).expect("Failed to decapsulate");
+            let (pk, sk) = safe_crypto_op(MlKem768::keypair(), "ML-KEM-768 complete workflow keypair");
+            let (ct, ss1) = safe_crypto_op(MlKem768::encapsulate(&pk), "ML-KEM-768 complete workflow encapsulate");
+            let ss2 = safe_crypto_op(MlKem768::decapsulate(&ct, &sk), "ML-KEM-768 complete workflow decapsulate");
             assert_eq!(MlKem768::expose_shared(&ss1), MlKem768::expose_shared(&ss2));
             black_box(())
         })
@@ -44,9 +56,9 @@ fn benchmark_complete_kem_workflows(c: &mut Criterion) {
     
     group.bench_function("ML-KEM-1024 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = MlKem1024::keypair().expect("Failed to generate keypair");
-            let (ct, ss1) = MlKem1024::encapsulate(&pk).expect("Failed to encapsulate");
-            let ss2 = MlKem1024::decapsulate(&ct, &sk).expect("Failed to decapsulate");
+            let (pk, sk) = safe_crypto_op(MlKem1024::keypair(), "ML-KEM-1024 complete workflow keypair");
+            let (ct, ss1) = safe_crypto_op(MlKem1024::encapsulate(&pk), "ML-KEM-1024 complete workflow encapsulate");
+            let ss2 = safe_crypto_op(MlKem1024::decapsulate(&ct, &sk), "ML-KEM-1024 complete workflow decapsulate");
             assert_eq!(MlKem1024::expose_shared(&ss1), MlKem1024::expose_shared(&ss2));
             black_box(())
         })
@@ -62,8 +74,8 @@ fn benchmark_complete_signature_workflows(c: &mut Criterion) {
     
     group.bench_function("ML-DSA-44 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = MlDsa44::keypair().expect("Key generation failed");
-            let signature = MlDsa44::sign(black_box(test_message), &sk).expect("Signing failed");
+            let (pk, sk) = safe_crypto_op(MlDsa44::keypair(), "ML-DSA-44 complete workflow keypair");
+            let signature = safe_crypto_op(MlDsa44::sign(black_box(test_message), &sk), "ML-DSA-44 complete workflow sign");
             let result = MlDsa44::verify(black_box(test_message), &signature, &pk);
             assert!(result);
             black_box(())
@@ -72,8 +84,8 @@ fn benchmark_complete_signature_workflows(c: &mut Criterion) {
 
     group.bench_function("ML-DSA-65 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = MlDsa65::keypair().expect("Key generation failed");
-            let signature = MlDsa65::sign(black_box(test_message), &sk).expect("Signing failed");
+            let (pk, sk) = safe_crypto_op(MlDsa65::keypair(), "ML-DSA-65 complete workflow keypair");
+            let signature = safe_crypto_op(MlDsa65::sign(black_box(test_message), &sk), "ML-DSA-65 complete workflow sign");
             let result = MlDsa65::verify(black_box(test_message), &signature, &pk);
             assert!(result);
             black_box(())
@@ -82,8 +94,8 @@ fn benchmark_complete_signature_workflows(c: &mut Criterion) {
 
     group.bench_function("ML-DSA-87 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = MlDsa87::keypair().expect("Key generation failed");
-            let signature = MlDsa87::sign(black_box(test_message), &sk).expect("Signing failed");
+            let (pk, sk) = safe_crypto_op(MlDsa87::keypair(), "ML-DSA-87 complete workflow keypair");
+            let signature = safe_crypto_op(MlDsa87::sign(black_box(test_message), &sk), "ML-DSA-87 complete workflow sign");
             let result = MlDsa87::verify(black_box(test_message), &signature, &pk);
             assert!(result);
             black_box(())
@@ -93,8 +105,8 @@ fn benchmark_complete_signature_workflows(c: &mut Criterion) {
     
     group.bench_function("Falcon-512 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = Falcon512::keypair().expect("Key generation failed");
-            let signature = Falcon512::sign(black_box(test_message), &sk).expect("Signing failed");
+            let (pk, sk) = safe_crypto_op(Falcon512::keypair(), "Falcon-512 complete workflow keypair");
+            let signature = safe_crypto_op(Falcon512::sign(black_box(test_message), &sk), "Falcon-512 complete workflow sign");
             let result = Falcon512::verify(black_box(test_message), &signature, &pk);
             assert!(result);
             black_box(())
@@ -103,8 +115,8 @@ fn benchmark_complete_signature_workflows(c: &mut Criterion) {
 
     group.bench_function("Falcon-1024 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = Falcon1024::keypair().expect("Key generation failed");
-            let signature = Falcon1024::sign(black_box(test_message), &sk).expect("Signing failed");
+            let (pk, sk) = safe_crypto_op(Falcon1024::keypair(), "Falcon-1024 complete workflow keypair");
+            let signature = safe_crypto_op(Falcon1024::sign(black_box(test_message), &sk), "Falcon-1024 complete workflow sign");
             let result = Falcon1024::verify(black_box(test_message), &signature, &pk);
             assert!(result);
             black_box(())
@@ -114,11 +126,10 @@ fn benchmark_complete_signature_workflows(c: &mut Criterion) {
     
     group.bench_function("SPHINCS+-SHAKE-128f Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = core_lib::sig::sphincs::shake_128f::keypair()
-                .expect("Key generation failed");
-            let signature = core_lib::sig::sphincs::shake_128f::sign_detached(
+            let (pk, sk) = safe_crypto_op(core_lib::sig::sphincs::shake_128f::keypair(), "SPHINCS+-SHAKE-128f complete workflow keypair");
+            let signature = safe_crypto_op(core_lib::sig::sphincs::shake_128f::sign_detached(
                 black_box(test_message), &sk
-            ).expect("Signing failed");
+            ), "SPHINCS+-SHAKE-128f complete workflow sign");
             let result = core_lib::sig::sphincs::shake_128f::verify_detached(
                 &signature, black_box(test_message), &pk
             );
@@ -137,9 +148,8 @@ fn benchmark_hybrid_complete_workflows(c: &mut Criterion) {
     
     group.bench_function("ECC+Dilithium Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = EccDilithium::keypair().expect("Hybrid key generation failed");
-            let signature = EccDilithium::sign(black_box(test_message), &sk)
-                .expect("Hybrid signing failed");
+            let (pk, sk) = safe_crypto_op(EccDilithium::keypair(), "ECC+Dilithium hybrid keypair");
+            let signature = safe_crypto_op(EccDilithium::sign(black_box(test_message), &sk), "ECC+Dilithium hybrid sign");
             let result = EccDilithium::verify(black_box(test_message), &signature, &pk);
             assert!(result);
             black_box(())
@@ -148,9 +158,8 @@ fn benchmark_hybrid_complete_workflows(c: &mut Criterion) {
 
     group.bench_function("ECC+Falcon Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = EccFalcon::keypair().expect("Hybrid key generation failed");
-            let signature = EccFalcon::sign(black_box(test_message), &sk)
-                .expect("Hybrid signing failed");
+            let (pk, sk) = safe_crypto_op(EccFalcon::keypair(), "ECC+Falcon hybrid keypair");
+            let signature = safe_crypto_op(EccFalcon::sign(black_box(test_message), &sk), "ECC+Falcon hybrid sign");
             let result = EccFalcon::verify(black_box(test_message), &signature, &pk);
             assert!(result);
             black_box(())
@@ -159,9 +168,8 @@ fn benchmark_hybrid_complete_workflows(c: &mut Criterion) {
 
     group.bench_function("ECC+SPHINCS+ Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = EccSphincs::keypair().expect("Hybrid key generation failed");
-            let signature = EccSphincs::sign(black_box(test_message), &sk)
-                .expect("Hybrid signing failed");
+            let (pk, sk) = safe_crypto_op(EccSphincs::keypair(), "ECC+SPHINCS+ hybrid keypair");
+            let signature = safe_crypto_op(EccSphincs::sign(black_box(test_message), &sk), "ECC+SPHINCS+ hybrid sign");
             let result = EccSphincs::verify(black_box(test_message), &signature, &pk);
             assert!(result);
             black_box(())
@@ -171,9 +179,9 @@ fn benchmark_hybrid_complete_workflows(c: &mut Criterion) {
     
     group.bench_function("P256+ML-KEM-768 Complete Workflow", |b| {
         b.iter(|| {
-            let (pk, sk) = P256MlKem768::keypair().expect("Hybrid KEM key generation failed");
-            let (ct, ss1) = P256MlKem768::encapsulate(&pk).expect("Hybrid encapsulation failed");
-            let ss2 = P256MlKem768::decapsulate(&ct, &sk).expect("Hybrid decapsulation failed");
+            let (pk, sk) = safe_crypto_op(P256MlKem768::keypair(), "P256+ML-KEM-768 hybrid keypair");
+            let (ct, ss1) = safe_crypto_op(P256MlKem768::encapsulate(&pk), "P256+ML-KEM-768 hybrid encapsulate");
+            let ss2 = safe_crypto_op(P256MlKem768::decapsulate(&ct, &sk), "P256+ML-KEM-768 hybrid decapsulate");
             assert_eq!(ss1.as_bytes(), ss2.as_bytes());
             black_box(())
         })
@@ -191,21 +199,19 @@ fn benchmark_real_world_scenarios(c: &mut Criterion) {
         
         b.iter(|| {
             
-            let (alice_kem_pk, alice_kem_sk) = MlKem768::keypair().expect("Failed to generate KEM keys");
-            let (alice_sig_pk, alice_sig_sk) = MlDsa44::keypair().expect("Failed to generate signature keys");
+            let (alice_kem_pk, alice_kem_sk) = safe_crypto_op(MlKem768::keypair(), "Alice KEM keys");
+            let (alice_sig_pk, alice_sig_sk) = safe_crypto_op(MlDsa44::keypair(), "Alice signature keys");
             
             
-            let (bob_kem_pk, bob_kem_sk) = MlKem768::keypair().expect("Failed to generate KEM keys");
-            let (bob_sig_pk, _bob_sig_sk) = MlDsa44::keypair().expect("Failed to generate signature keys");
+            let (bob_kem_pk, bob_kem_sk) = safe_crypto_op(MlKem768::keypair(), "Bob KEM keys");
+            let (bob_sig_pk, _bob_sig_sk) = safe_crypto_op(MlDsa44::keypair(), "Bob signature keys");
             
             
-            let (ciphertext, shared_secret) = MlKem768::encapsulate(&bob_kem_pk)
-                .expect("Failed to encapsulate");
-            let signature = MlDsa44::sign(document, &alice_sig_sk).expect("Failed to sign");
+            let (ciphertext, shared_secret) = safe_crypto_op(MlKem768::encapsulate(&bob_kem_pk), "secure communication encapsulate");
+            let signature = safe_crypto_op(MlDsa44::sign(document, &alice_sig_sk), "secure communication sign");
             
             
-            let decrypted_secret = MlKem768::decapsulate(&ciphertext, &bob_kem_sk)
-                .expect("Failed to decapsulate");
+            let decrypted_secret = safe_crypto_op(MlKem768::decapsulate(&ciphertext, &bob_kem_sk), "secure communication decapsulate");
             let is_valid = MlDsa44::verify(document, &signature, &alice_sig_pk);
             
             assert_eq!(MlKem768::expose_shared(&shared_secret), MlKem768::expose_shared(&decrypted_secret));
@@ -221,16 +227,14 @@ fn benchmark_real_world_scenarios(c: &mut Criterion) {
             
             
             let parties: Vec<_> = (0..5)
-                .map(|_| MlKem768::keypair().expect("Failed to generate keypair"))
+                .map(|_| safe_crypto_op(MlKem768::keypair(), "multi-party key agreement setup"))
                 .collect();
             
             
             for i in 0..parties.len() {
                 for j in (i + 1)..parties.len() {
-                    let (ct, ss) = MlKem768::encapsulate(&parties[j].0)
-                        .expect("Failed to encapsulate");
-                    let ss_decrypted = MlKem768::decapsulate(&ct, &parties[j].1)
-                        .expect("Failed to decapsulate");
+                    let (ct, ss) = safe_crypto_op(MlKem768::encapsulate(&parties[j].0), "multi-party encapsulate");
+                    let ss_decrypted = safe_crypto_op(MlKem768::decapsulate(&ct, &parties[j].1), "multi-party decapsulate");
                     
                     assert_eq!(MlKem768::expose_shared(&ss), MlKem768::expose_shared(&ss_decrypted));
                     shared_secrets.push(ss);

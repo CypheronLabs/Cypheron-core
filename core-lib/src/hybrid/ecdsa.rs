@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use zeroize::Zeroize;
+use crate::security::{validate_buffer_non_empty, ValidationError};
 
 #[derive(Error, Debug)]
 pub enum EcdsaError {
@@ -39,6 +40,8 @@ pub enum EcdsaError {
     SerializationFailed(String),
     #[error("Key deserialization failed: {0}")]
     DeserializationFailed(String),
+    #[error("Input validation error: {0}")]
+    ValidationError(#[from] ValidationError),
 }
 
 #[derive(Clone, Debug)]
@@ -102,6 +105,8 @@ impl EcdsaPrivateKey {
     }
 
     pub fn sign(&self, message: &[u8]) -> Result<EcdsaSignatureWrapper, EcdsaError> {
+        validate_buffer_non_empty(message)?;
+        
         let domain_separated_hash = self.create_domain_separated_hash(message);
 
         let signature: EcdsaSignature = self.inner.sign(&domain_separated_hash);
@@ -146,6 +151,9 @@ impl EcdsaPublicKey {
         message: &[u8],
         signature: &EcdsaSignatureWrapper,
     ) -> Result<bool, EcdsaError> {
+        validate_buffer_non_empty(message)?;
+        validate_buffer_non_empty(&signature.signature)?;
+        
         if signature.domain_separator != self.domain_separator {
             return Ok(false);
         }

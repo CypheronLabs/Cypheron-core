@@ -14,6 +14,7 @@
 
 use crate::kem::sizes;
 use crate::kem::{Kem, KemVariant};
+use crate::security::{validate_ffi_kem_buffer, validate_ffi_kem_ptr, FfiSafe};
 
 use secrecy::{ExposeSecret, SecretBox};
 use thiserror::Error;
@@ -78,7 +79,10 @@ pub type KyberError = MlKemError;
 impl MlKemError {
     pub fn from_c_code(code: i32, operation: &str) -> Self {
         match code {
-            0 => panic!("Should not map success code 0 to error"),
+            0 => {
+                debug_assert!(false, "Should not map success code 0 to error");
+                MlKemError::CLibraryError { code: 0 }
+            },
             -1 => match operation {
                 "keypair" => MlKemError::KeyGenerationInternalError,
                 "encapsulate" => MlKemError::EncapsulationInternalError,
@@ -134,6 +138,11 @@ impl Kem for MlKem1024 {
         let mut pk = [0u8; sizes::ML_KEM_1024_PUBLIC];
         let mut sk = [0u8; sizes::ML_KEM_1024_SECRET];
 
+        validate_ffi_kem_buffer!(&pk, sizes::ML_KEM_1024_PUBLIC);
+        validate_ffi_kem_buffer!(&sk, sizes::ML_KEM_1024_SECRET);
+        validate_ffi_kem_ptr!(pk.as_mut_ptr());
+        validate_ffi_kem_ptr!(sk.as_mut_ptr());
+
         let result = unsafe { pqcrystals_kyber1024_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
 
         if result != 0 {
@@ -151,15 +160,16 @@ impl Kem for MlKem1024 {
     fn encapsulate(
         pk: &Self::PublicKey,
     ) -> Result<(Self::Ciphertext, Self::SharedSecret), Self::Error> {
-        if pk.0.len() != sizes::ML_KEM_1024_PUBLIC {
-            return Err(MlKemError::InvalidPublicKeyLength {
-                expected: sizes::ML_KEM_1024_PUBLIC,
-                actual: pk.0.len(),
-            });
-        }
+        validate_ffi_kem_buffer!(&pk.0, sizes::ML_KEM_1024_PUBLIC);
 
         let mut ct = vec![0u8; sizes::ML_KEM_1024_CIPHERTEXT];
         let mut ss = [0u8; sizes::ML_KEM_1024_SHARED];
+
+        validate_ffi_kem_buffer!(&ct, sizes::ML_KEM_1024_CIPHERTEXT);
+        validate_ffi_kem_buffer!(&ss, sizes::ML_KEM_1024_SHARED);
+        validate_ffi_kem_ptr!(ct.as_mut_ptr());
+        validate_ffi_kem_ptr!(ss.as_mut_ptr());
+        validate_ffi_kem_ptr!(pk.0.as_ptr());
 
         let result = unsafe {
             pqcrystals_kyber1024_ref_enc(ct.as_mut_ptr(), ss.as_mut_ptr(), pk.0.as_ptr())
@@ -177,26 +187,22 @@ impl Kem for MlKem1024 {
         ct: &Self::Ciphertext,
         sk: &Self::SecretKey,
     ) -> Result<Self::SharedSecret, Self::Error> {
-        if ct.len() != sizes::ML_KEM_1024_CIPHERTEXT {
-            return Err(MlKemError::InvalidCiphertextLength {
-                expected: sizes::ML_KEM_1024_CIPHERTEXT,
-                actual: ct.len(),
-            });
-        }
-        if sk.0.expose_secret().len() != sizes::ML_KEM_1024_SECRET {
-            return Err(MlKemError::InvalidSecretKeyLength {
-                expected: sizes::ML_KEM_1024_SECRET,
-                actual: sk.0.expose_secret().len(),
-            });
-        }
+        validate_ffi_kem_buffer!(ct, sizes::ML_KEM_1024_CIPHERTEXT);
+        let sk_bytes = sk.0.expose_secret();
+        validate_ffi_kem_buffer!(sk_bytes, sizes::ML_KEM_1024_SECRET);
 
         let mut ss = [0u8; sizes::ML_KEM_1024_SHARED];
+        validate_ffi_kem_buffer!(&ss, sizes::ML_KEM_1024_SHARED);
+        
+        validate_ffi_kem_ptr!(ss.as_mut_ptr());
+        validate_ffi_kem_ptr!(ct.as_ptr());
+        validate_ffi_kem_ptr!(sk_bytes.as_ptr());
 
         let result = unsafe {
             pqcrystals_kyber1024_ref_dec(
                 ss.as_mut_ptr(),
                 ct.as_ptr(),
-                sk.0.expose_secret().as_ptr(),
+                sk_bytes.as_ptr(),
             )
         };
 

@@ -14,8 +14,14 @@
 
 use std::fs;
 use std::io::Error;
+use crate::security::{validate_buffer_non_empty, validate_buffer_max_size, ValidationError};
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
+    validate_buffer_non_empty(buffer)
+        .map_err(|e| Error::other(format!("Invalid buffer: {}", e)))?;
+    validate_buffer_max_size(buffer, 1024 * 1024)
+        .map_err(|e| Error::other(format!("Buffer too large: {}", e)))?;
+
     if try_getrandom(buffer).is_ok() {
         return Ok(());
     }
@@ -24,8 +30,26 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
 }
 
 fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
+    if buffer.is_empty() {
+        return Ok(());
+    }
+    
+    if buffer.len() > libc::c_int::MAX as usize {
+        return Err(Error::other("Buffer too large for getrandom syscall"));
+    }
+    
+    let ptr = buffer.as_mut_ptr();
+    if ptr.is_null() {
+        return Err(Error::other("Null buffer pointer in getrandom"));
+    }
+    
     unsafe {
-        let result = libc::syscall(libc::SYS_getrandom, buffer.as_mut_ptr(), buffer.len(), 0);
+        let result = libc::syscall(
+            libc::SYS_getrandom, 
+            ptr as *mut libc::c_void, 
+            buffer.len(), 
+            0
+        );
 
         if result < 0 {
             return Err(Error::other("getrandom syscall failed"));
@@ -43,6 +67,11 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     use std::fs::File;
     use std::io::Read;
 
+    validate_buffer_non_empty(buffer)
+        .map_err(|e| Error::other(format!("Invalid buffer: {}", e)))?;
+    validate_buffer_max_size(buffer, 1024 * 1024)
+        .map_err(|e| Error::other(format!("Buffer too large: {}", e)))?;
+
     let mut file = File::open("/dev/urandom")
         .map_err(|e| Error::other(format!("Failed to open /dev/urandom: {}", e)))?;
 
@@ -53,9 +82,29 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
 }
 
 pub fn secure_zero(buffer: &mut [u8]) {
+    if buffer.is_empty() {
+        return;
+    }
+
+    if let Err(e) = validate_buffer_max_size(buffer, 10 * 1024 * 1024) {
+        eprintln!("Warning: Large buffer in secure_zero: {}", e);
+    }
+
+    let ptr = buffer.as_mut_ptr();
+    if ptr.is_null() {
+        eprintln!("Warning: Null pointer in secure_zero, skipping");
+        return;
+    }
+    
+    if buffer.len() > isize::MAX as usize {
+        eprintln!("Warning: Buffer too large for secure_zero: {} bytes", buffer.len());
+        secure_zero_fallback(buffer);
+        return;
+    }
+    
     unsafe {
         if has_explicit_bzero() {
-            libc::explicit_bzero(buffer.as_mut_ptr() as *mut libc::c_void, buffer.len());
+            libc::explicit_bzero(ptr as *mut libc::c_void, buffer.len());
         } else {
             secure_zero_fallback(buffer);
         }
@@ -74,16 +123,46 @@ fn secure_zero_fallback(buffer: &mut [u8]) {
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use libc::{mprotect, PROT_NONE, PROT_READ, PROT_WRITE};
 
+    validate_buffer_non_empty(buffer)
+        .map_err(|e| Error::other(format!("Invalid buffer: {}", e)))?;
+    validate_buffer_max_size(buffer, 100 * 1024 * 1024)
+        .map_err(|e| Error::other(format!("Buffer too large for memory protection: {}", e)))?;
+
     let protection = if protect {
         PROT_NONE
     } else {
         PROT_READ | PROT_WRITE
     };
 
-    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as usize;
+    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    if page_size <= 0 {
+        return Err(Error::other("Failed to get page size"));
+    }
+    let page_size = page_size as usize;
+
     let addr = buffer.as_mut_ptr() as usize;
+    if addr == 0 {
+        return Err(Error::other("Buffer has null pointer"));
+    }
+
+    if !page_size.is_power_of_two() {
+        return Err(Error::other("Invalid page size - not a power of two"));
+    }
+    
+    if addr % page_size != 0 {
+        eprintln!("Warning: Buffer address {:#x} not page-aligned (page size: {:#x})", addr, page_size);
+    }
+
     let aligned_addr = addr & !(page_size - 1);
-    let aligned_len = ((addr + buffer.len() + page_size - 1) & !(page_size - 1)) - aligned_addr;
+    let end_addr = addr.checked_add(buffer.len())
+        .ok_or_else(|| Error::other("Buffer address calculation overflow"))?;
+    let aligned_len = ((end_addr + page_size - 1) & !(page_size - 1))
+        .checked_sub(aligned_addr)
+        .ok_or_else(|| Error::other("Aligned length calculation overflow"))?;
+    
+    if aligned_len > 100 * 1024 * 1024 {
+        return Err(Error::other("Aligned memory region too large for protection"));
+    }
 
     unsafe {
         if mprotect(aligned_addr as *mut libc::c_void, aligned_len, protection) != 0 {

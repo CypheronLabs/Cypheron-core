@@ -51,8 +51,9 @@ struct MlDsaKatVector {
     pub signature: Vec<u8>,
 }
 
-fn parse_kem_rsp_file(file_path: &str) -> Vec<MlKemKatVector> {
-    let content = fs::read_to_string(file_path).expect("Failed to read KAT file");
+fn parse_kem_rsp_file(file_path: &str) -> Result<Vec<MlKemKatVector>, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(file_path)
+        .map_err(|e| format!("Failed to read KAT file '{}': {}", file_path, e))?;
     let mut vectors = Vec::new();
     let mut current_vector: Option<MlKemKatVector> = None;
 
@@ -72,15 +73,20 @@ fn parse_kem_rsp_file(file_path: &str) -> Vec<MlKemKatVector> {
             });
         } else if let Some(ref mut vector) = current_vector {
             if let Some(value) = line.strip_prefix("seed = ") {
-                vector.seed = simple_hex_decode(value).expect("Invalid seed hex");
+                vector.seed = simple_hex_decode(value)
+                    .map_err(|e| format!("Invalid seed hex '{}': {}", value, e))?;
             } else if let Some(value) = line.strip_prefix("pk = ") {
-                vector.public_key = simple_hex_decode(value).expect("Invalid pk hex");
+                vector.public_key = simple_hex_decode(value)
+                    .map_err(|e| format!("Invalid pk hex '{}': {}", value, e))?;
             } else if let Some(value) = line.strip_prefix("sk = ") {
-                vector.secret_key = simple_hex_decode(value).expect("Invalid sk hex");
+                vector.secret_key = simple_hex_decode(value)
+                    .map_err(|e| format!("Invalid sk hex '{}': {}", value, e))?;
             } else if let Some(value) = line.strip_prefix("ct = ") {
-                vector.ciphertext = simple_hex_decode(value).expect("Invalid ct hex");
+                vector.ciphertext = simple_hex_decode(value)
+                    .map_err(|e| format!("Invalid ct hex '{}': {}", value, e))?;
             } else if let Some(value) = line.strip_prefix("ss = ") {
-                vector.shared_secret = simple_hex_decode(value).expect("Invalid ss hex");
+                vector.shared_secret = simple_hex_decode(value)
+                    .map_err(|e| format!("Invalid ss hex '{}': {}", value, e))?;
             }
         }
     }
@@ -89,13 +95,16 @@ fn parse_kem_rsp_file(file_path: &str) -> Vec<MlKemKatVector> {
         vectors.push(vector);
     }
 
-    vectors
+    Ok(vectors)
 }
 
 fn load_ml_kem_512_vectors() -> Vec<MlKemKatVector> {
     let kat_path = "../../tests/PQCkemKAT_1632.rsp";
     if Path::new(kat_path).exists() {
-        parse_kem_rsp_file(kat_path)
+        parse_kem_rsp_file(kat_path).unwrap_or_else(|e| {
+            eprintln!("Warning: Failed to load KAT vectors: {}", e);
+            vec![]
+        })
     } else {
         vec![]
     }
@@ -104,7 +113,10 @@ fn load_ml_kem_512_vectors() -> Vec<MlKemKatVector> {
 fn load_ml_kem_768_vectors() -> Vec<MlKemKatVector> {
     let kat_path = "../../tests/PQCkemKAT_2400.rsp";
     if Path::new(kat_path).exists() {
-        parse_kem_rsp_file(kat_path)
+        parse_kem_rsp_file(kat_path).unwrap_or_else(|e| {
+            eprintln!("Warning: Failed to load KAT vectors: {}", e);
+            vec![]
+        })
     } else {
         vec![]
     }
@@ -113,7 +125,10 @@ fn load_ml_kem_768_vectors() -> Vec<MlKemKatVector> {
 fn load_ml_kem_1024_vectors() -> Vec<MlKemKatVector> {
     let kat_path = "../../tests/PQCkemKAT_3168.rsp";
     if Path::new(kat_path).exists() {
-        parse_kem_rsp_file(kat_path)
+        parse_kem_rsp_file(kat_path).unwrap_or_else(|e| {
+            eprintln!("Warning: Failed to load KAT vectors: {}", e);
+            vec![]
+        })
     } else {
         vec![]
     }

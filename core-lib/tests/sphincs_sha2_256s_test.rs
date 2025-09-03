@@ -15,34 +15,37 @@
 use cypheron_core::sig::sphincs::errors::SphincsError;
 use cypheron_core::sig::sphincs::sha2_256s::api::*;
 use cypheron_core::sig::sphincs::sha2_256s::types;
+use cypheron_core::security::{TestResult, test_assert_eq, test_assert_ne, crypto_operation};
 
 const TEST_MESSAGE_SHA2_256S: &[u8] = b"This is a test message for SPHINCS+ SHA2-256s.";
 
 #[test]
-fn sha2256s_test_keypair_generation_lengths() {
-    let (pk, sk) = keypair().expect("SHA2-256s: Keypair generation failed");
+fn sha2256s_test_keypair_generation_lengths() -> TestResult<()> {
+    let (pk, sk) = crypto_operation!(keypair(), "SHA2-256s keypair generation");
 
-    assert_eq!(
+    test_assert_eq!(
         pk.as_bytes().len(),
         public_key_bytes(),
-        "SHA2-256s: Public key length mismatch"
+        "SHA2-256s public key length"
     );
-    assert_eq!(
+    test_assert_eq!(
         sk.as_bytes().len(),
         secret_key_bytes(),
-        "SHA2-256s: Secret key length mismatch"
+        "SHA2-256s secret key length"
     );
 
-    assert_eq!(
+    test_assert_eq!(
         pk.as_bytes().len(),
         types::PublicKey::length(),
-        "SHA2-256s: Public key type length() mismatch"
+        "SHA2-256s public key type length"
     );
-    assert_eq!(
+    test_assert_eq!(
         sk.as_bytes().len(),
         types::SecretKey::length(),
-        "SHA2-256s: Secret key type length() mismatch"
+        "SHA2-256s secret key type length"
     );
+    
+    Ok(())
 }
 
 #[test]
