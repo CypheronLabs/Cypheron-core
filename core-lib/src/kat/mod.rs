@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::kem::{MlKem512, MlKem768, MlKem1024, Kem};
-use crate::sig::{MlDsa44, MlDsa65, MlDsa87};
+use crate::kem::{Kem, MlKem1024, MlKem512, MlKem768};
 use crate::sig::traits::SignatureEngine;
+use crate::sig::{MlDsa44, MlDsa65, MlDsa87};
 use secrecy::ExposeSecret;
 use std::fs;
 use std::path::Path;
@@ -23,7 +23,7 @@ fn simple_hex_decode(s: &str) -> Result<Vec<u8>, String> {
     if s.len() % 2 != 0 {
         return Err("Odd hex string length".to_string());
     }
-    
+
     let mut result = Vec::with_capacity(s.len() / 2);
     for chunk in s.as_bytes().chunks_exact(2) {
         let hex_byte = std::str::from_utf8(chunk).map_err(|_| "Invalid UTF-8")?;
@@ -55,10 +55,10 @@ fn parse_kem_rsp_file(file_path: &str) -> Vec<MlKemKatVector> {
     let content = fs::read_to_string(file_path).expect("Failed to read KAT file");
     let mut vectors = Vec::new();
     let mut current_vector: Option<MlKemKatVector> = None;
-    
+
     for line in content.lines() {
         let line = line.trim();
-        
+
         if line.starts_with("count = ") {
             if let Some(vector) = current_vector.take() {
                 vectors.push(vector);
@@ -84,11 +84,11 @@ fn parse_kem_rsp_file(file_path: &str) -> Vec<MlKemKatVector> {
             }
         }
     }
-    
+
     if let Some(vector) = current_vector {
         vectors.push(vector);
     }
-    
+
     vectors
 }
 
@@ -138,7 +138,7 @@ mod ml_kem_512_kat_tests {
     #[test]
     fn test_ml_kem_512_kat_vectors() {
         let vectors = load_ml_kem_512_vectors();
-        
+
         if vectors.is_empty() {
             println!("[WARN] ML-KEM-512 KAT vectors not found, testing basic functionality");
             let (pk, sk) = MlKem512::keypair().expect("Keypair generation failed");
@@ -147,26 +147,30 @@ mod ml_kem_512_kat_tests {
             assert_eq!(MlKem512::expose_shared(&ss1), MlKem512::expose_shared(&ss2));
             return;
         }
-        
+
         for (i, _vector) in vectors.iter().enumerate() {
             println!("[INFO] Testing ML-KEM-512 vector {}", i);
-            
+
             let (pk, sk) = MlKem512::keypair().expect("Keypair generation failed");
-            
+
             assert_eq!(pk.0.len(), 800, "ML-KEM-512 public key size mismatch");
-            assert_eq!(sk.0.expose_secret().len(), 1632, "ML-KEM-512 secret key size mismatch");
-            
+            assert_eq!(
+                sk.0.expose_secret().len(),
+                1632,
+                "ML-KEM-512 secret key size mismatch"
+            );
+
             let (ct, ss1) = MlKem512::encapsulate(&pk).expect("Encapsulation failed");
             let ss2 = MlKem512::decapsulate(&ct, &sk).expect("Decapsulation failed");
-            
+
             assert_eq!(
                 MlKem512::expose_shared(&ss1),
                 MlKem512::expose_shared(&ss2),
                 "ML-KEM-512 shared secret mismatch"
             );
-            
+
             assert_eq!(ct.len(), 768, "ML-KEM-512 ciphertext size mismatch");
-            
+
             println!("[INFO] ML-KEM-512 vector {}: PASS", i);
         }
     }
@@ -174,12 +178,12 @@ mod ml_kem_512_kat_tests {
     #[test]
     fn test_ml_kem_512_parameter_validation() {
         use cypheron_core::kem::sizes::*;
-        
+
         assert_eq!(ML_KEM_512_PUBLIC, 800);
         assert_eq!(ML_KEM_512_SECRET, 1632);
         assert_eq!(ML_KEM_512_CIPHERTEXT, 768);
         assert_eq!(ML_KEM_512_SHARED, 32);
-        
+
         println!("[INFO] ML-KEM-512 parameter validation: PASS");
     }
 }
@@ -191,7 +195,7 @@ mod ml_kem_768_kat_tests {
     #[test]
     fn test_ml_kem_768_kat_vectors() {
         let vectors = load_ml_kem_768_vectors();
-        
+
         if vectors.is_empty() {
             println!("[WARN] ML-KEM-768 KAT vectors not found, testing basic functionality");
             let (pk, sk) = MlKem768::keypair().expect("Keypair generation failed");
@@ -200,26 +204,30 @@ mod ml_kem_768_kat_tests {
             assert_eq!(MlKem768::expose_shared(&ss1), MlKem768::expose_shared(&ss2));
             return;
         }
-        
+
         for (i, _vector) in vectors.iter().enumerate() {
             println!("[INFO] Testing ML-KEM-768 vector {}", i);
-            
+
             let (pk, sk) = MlKem768::keypair().expect("Keypair generation failed");
-            
+
             assert_eq!(pk.0.len(), 1184, "ML-KEM-768 public key size mismatch");
-            assert_eq!(sk.0.expose_secret().len(), 2400, "ML-KEM-768 secret key size mismatch");
-            
+            assert_eq!(
+                sk.0.expose_secret().len(),
+                2400,
+                "ML-KEM-768 secret key size mismatch"
+            );
+
             let (ct, ss1) = MlKem768::encapsulate(&pk).expect("Encapsulation failed");
             let ss2 = MlKem768::decapsulate(&ct, &sk).expect("Decapsulation failed");
-            
+
             assert_eq!(
                 MlKem768::expose_shared(&ss1),
                 MlKem768::expose_shared(&ss2),
                 "ML-KEM-768 shared secret mismatch"
             );
-            
+
             assert_eq!(ct.len(), 1088, "ML-KEM-768 ciphertext size mismatch");
-            
+
             println!("[INFO] ML-KEM-768 vector {}: PASS", i);
         }
     }
@@ -232,35 +240,42 @@ mod ml_kem_1024_kat_tests {
     #[test]
     fn test_ml_kem_1024_kat_vectors() {
         let vectors = load_ml_kem_1024_vectors();
-        
+
         if vectors.is_empty() {
             println!("[WARN] ML-KEM-1024 KAT vectors not found, testing basic functionality");
             let (pk, sk) = MlKem1024::keypair().expect("Keypair generation failed");
             let (ct, ss1) = MlKem1024::encapsulate(&pk).expect("Encapsulation failed");
             let ss2 = MlKem1024::decapsulate(&ct, &sk).expect("Decapsulation failed");
-            assert_eq!(MlKem1024::expose_shared(&ss1), MlKem1024::expose_shared(&ss2));
+            assert_eq!(
+                MlKem1024::expose_shared(&ss1),
+                MlKem1024::expose_shared(&ss2)
+            );
             return;
         }
-        
+
         for (i, _vector) in vectors.iter().enumerate() {
             println!("[INFO] Testing ML-KEM-1024 vector {}", i);
-            
+
             let (pk, sk) = MlKem1024::keypair().expect("Keypair generation failed");
-            
+
             assert_eq!(pk.0.len(), 1568, "ML-KEM-1024 public key size mismatch");
-            assert_eq!(sk.0.expose_secret().len(), 3168, "ML-KEM-1024 secret key size mismatch");
-            
+            assert_eq!(
+                sk.0.expose_secret().len(),
+                3168,
+                "ML-KEM-1024 secret key size mismatch"
+            );
+
             let (ct, ss1) = MlKem1024::encapsulate(&pk).expect("Encapsulation failed");
             let ss2 = MlKem1024::decapsulate(&ct, &sk).expect("Decapsulation failed");
-            
+
             assert_eq!(
                 MlKem1024::expose_shared(&ss1),
                 MlKem1024::expose_shared(&ss2),
                 "ML-KEM-1024 shared secret mismatch"
             );
-            
+
             assert_eq!(ct.len(), 1568, "ML-KEM-1024 ciphertext size mismatch");
-            
+
             println!("[INFO] ML-KEM-1024 vector {}: PASS", i);
         }
     }
@@ -273,22 +288,22 @@ mod ml_dsa_44_kat_tests {
     #[test]
     fn test_ml_dsa_44_kat_vectors() {
         let vectors = load_ml_dsa_44_vectors();
-        
+
         for (i, vector) in vectors.iter().enumerate() {
             println!("[INFO] Testing ML-DSA-44 vector {}", i);
-            
+
             let (pk, sk) = MlDsa44::keypair().expect("ML-DSA-44 key generation failed");
-            
+
             assert_eq!(pk.0.len(), 1312, "ML-DSA-44 public key size mismatch");
-            
+
             let message = &vector.message;
             let signature = MlDsa44::sign(message, &sk).expect("ML-DSA-44 signing failed");
-            
+
             let is_valid = MlDsa44::verify(message, &signature, &pk);
             assert!(is_valid, "ML-DSA-44 signature verification failed");
-            
+
             assert_eq!(signature.0.len(), 2420, "ML-DSA-44 signature size mismatch");
-            
+
             println!("[INFO] ML-DSA-44 vector {}: PASS", i);
         }
     }
@@ -296,11 +311,11 @@ mod ml_dsa_44_kat_tests {
     #[test]
     fn test_ml_dsa_44_parameter_validation() {
         use crate::sig::dilithium::common::*;
-        
+
         assert_eq!(ML_DSA_44_PUBLIC, 1312);
         assert_eq!(ML_DSA_44_SECRET, 2528);
         assert_eq!(ML_DSA_44_SIGNATURE, 2420);
-        
+
         println!("[INFO] ML-DSA-44 parameter validation: PASS");
     }
 }
@@ -312,36 +327,36 @@ mod nist_compliance_tests {
     #[test]
     fn test_fips_203_compliance() {
         println!("[INFO] NIST FIPS 203 (ML-KEM) Compliance Validation");
-        
+
         let _ml_kem_512 = MlKem512::keypair();
-        let _ml_kem_768 = MlKem768::keypair(); 
+        let _ml_kem_768 = MlKem768::keypair();
         let _ml_kem_1024 = MlKem1024::keypair();
-        
+
         println!("[INFO] All ML-KEM variants functional: PASS");
     }
 
     #[test]
     fn test_fips_204_compliance() {
         println!("[INFO] NIST FIPS 204 (ML-DSA) Compliance Validation");
-        
+
         let _ml_dsa_44 = MlDsa44::keypair().expect("ML-DSA-44 failed");
         let _ml_dsa_65 = MlDsa65::keypair().expect("ML-DSA-65 failed");
         let _ml_dsa_87 = MlDsa87::keypair().expect("ML-DSA-87 failed");
-        
+
         println!("[INFO] All ML-DSA variants functional: PASS");
     }
 
     #[test]
     fn test_algorithm_naming_compliance() {
         println!("[INFO] NIST Algorithm Naming Compliance Validation");
-        
-        use cypheron_core::kem::{MlKem512, MlKem768, MlKem1024};
+
+        use cypheron_core::kem::{MlKem1024, MlKem512, MlKem768};
         use cypheron_core::sig::{MlDsa44, MlDsa65, MlDsa87};
-        
+
         let _kem_512 = MlKem512::variant();
         let _kem_768 = MlKem768::variant();
         let _kem_1024 = MlKem1024::variant();
-        
+
         println!("[INFO] NIST FIPS 203/204/205 naming compliance: PASS");
     }
 }

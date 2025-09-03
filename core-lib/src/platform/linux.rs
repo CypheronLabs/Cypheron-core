@@ -32,9 +32,7 @@ fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
         }
 
         if result as usize != buffer.len() {
-            return Err(Error::other(
-                "getrandom returned insufficient bytes",
-            ));
+            return Err(Error::other("getrandom returned insufficient bytes"));
         }
     }
 
@@ -45,17 +43,11 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     use std::fs::File;
     use std::io::Read;
 
-    let mut file = File::open("/dev/urandom").map_err(|e| {
-        Error::other(
-            format!("Failed to open /dev/urandom: {}", e),
-        )
-    })?;
+    let mut file = File::open("/dev/urandom")
+        .map_err(|e| Error::other(format!("Failed to open /dev/urandom: {}", e)))?;
 
-    file.read_exact(buffer).map_err(|e| {
-        Error::other(
-            format!("Failed to read from /dev/urandom: {}", e),
-        )
-    })?;
+    file.read_exact(buffer)
+        .map_err(|e| Error::other(format!("Failed to read from /dev/urandom: {}", e)))?;
 
     Ok(())
 }
