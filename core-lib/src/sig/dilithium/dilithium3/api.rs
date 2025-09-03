@@ -27,7 +27,7 @@ impl SignatureEngine for Dilithium3 {
     type Error = DilithiumError;
 
     fn keypair() -> Result<(Self::PublicKey, Self::SecretKey), Self::Error> {
-        Ok(Dilithium3Engine::keypair()?)
+        Dilithium3Engine::keypair()
     }
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error> {
         Dilithium3Engine::sign(msg, sk)

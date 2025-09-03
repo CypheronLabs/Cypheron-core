@@ -63,7 +63,10 @@ impl fmt::Debug for PublicKey {
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",
-                &self.0.get(..std::cmp::min(self.0.len(), 8)).unwrap_or_default(),
+                &self
+                    .0
+                    .get(..std::cmp::min(self.0.len(), 8))
+                    .unwrap_or_default(),
             )
             .finish_non_exhaustive()
     }
@@ -106,7 +109,9 @@ impl SecretKey {
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SecretKeyShake192f").field("len", &Self::length()).finish_non_exhaustive()
+        f.debug_struct("SecretKeyShake192f")
+            .field("len", &Self::length())
+            .finish_non_exhaustive()
     }
 }
 
@@ -150,7 +155,10 @@ impl fmt::Debug for Signature {
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",
-                &self.0.get(..std::cmp::min(self.0.len(), 8)).unwrap_or_default(),
+                &self
+                    .0
+                    .get(..std::cmp::min(self.0.len(), 8))
+                    .unwrap_or_default(),
             )
             .finish_non_exhaustive()
     }
@@ -162,7 +170,10 @@ pub struct Seed(Vec<u8>);
 impl Seed {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, SphincsError> {
         if bytes.len() != *SEED_BYTES_REF {
-            Err(SphincsError::InvalidSeedLength { expected: *SEED_BYTES_REF, actual: bytes.len() })
+            Err(SphincsError::InvalidSeedLength {
+                expected: *SEED_BYTES_REF,
+                actual: bytes.len(),
+            })
         } else {
             Ok(Seed(bytes.to_vec()))
         }
@@ -182,6 +193,8 @@ impl Seed {
 }
 impl fmt::Debug for Seed {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SeedSha2_256fRobust").field("len", &Self::length()).finish_non_exhaustive()
+        f.debug_struct("SeedSha2_256fRobust")
+            .field("len", &Self::length())
+            .finish_non_exhaustive()
     }
 }

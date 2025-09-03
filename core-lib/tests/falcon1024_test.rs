@@ -25,13 +25,27 @@ const TEST_MESSAGE_FALCON1024: &[u8] = b"This is a test message for Falcon-1024 
 #[test]
 fn falcon1024_test_keypair_generation_lengths() {
     let result = Falcon1024::keypair();
-    assert!(result.is_ok(), "Falcon-1024: Keypair generation failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Falcon-1024: Keypair generation failed: {:?}",
+        result.err()
+    );
     let (pk, sk) = result.unwrap();
 
-    println!("Falcon-1024 Public Key generated successfully (len={})", pk.0.len());
-    println!("Falcon-1024 Secret Key generated successfully (len={})", sk.0.expose_secret().len());
+    println!(
+        "Falcon-1024 Public Key generated successfully (len={})",
+        pk.0.len()
+    );
+    println!(
+        "Falcon-1024 Secret Key generated successfully (len={})",
+        sk.0.expose_secret().len()
+    );
 
-    assert_eq!(pk.0.len(), FALCON_PUBLIC, "Falcon-1024: Public key length mismatch");
+    assert_eq!(
+        pk.0.len(),
+        FALCON_PUBLIC,
+        "Falcon-1024: Public key length mismatch"
+    );
     assert_eq!(
         sk.0.expose_secret().len(),
         FALCON_SECRET,
@@ -50,14 +64,22 @@ fn falcon1024_test_sign_verify_roundtrip() {
     let (pk, sk) = keypair_result.unwrap();
 
     let sign_result = Falcon1024::sign(TEST_MESSAGE_FALCON1024, &sk);
-    assert!(sign_result.is_ok(), "Falcon-1024: Signing failed: {:?}", sign_result.err());
+    assert!(
+        sign_result.is_ok(),
+        "Falcon-1024: Signing failed: {:?}",
+        sign_result.err()
+    );
     let signature = sign_result.unwrap();
 
     println!(
         "Falcon-1024 Message: {:?}",
         std::str::from_utf8(TEST_MESSAGE_FALCON1024).unwrap_or("Invalid UTF-8")
     );
-    println!("Falcon-1024 Signature (len={}): {:02x?}", signature.0.len(), &signature.0[..32]);
+    println!(
+        "Falcon-1024 Signature (len={}): {:02x?}",
+        signature.0.len(),
+        &signature.0[..32]
+    );
 
     let mut actual_sig_len = signature.0.len();
     while actual_sig_len > 0 && signature.0[actual_sig_len - 1] == 0 {
@@ -65,10 +87,17 @@ fn falcon1024_test_sign_verify_roundtrip() {
     }
     println!("Falcon-1024 Actual Signature Length: {}", actual_sig_len);
 
-    assert_eq!(signature.0.len(), FALCON_SIGNATURE, "Falcon-1024: Signature length mismatch");
+    assert_eq!(
+        signature.0.len(),
+        FALCON_SIGNATURE,
+        "Falcon-1024: Signature length mismatch"
+    );
 
     let is_valid = Falcon1024::verify(TEST_MESSAGE_FALCON1024, &signature, &pk);
-    assert!(is_valid, "Falcon-1024: Verification failed for a valid signature");
+    assert!(
+        is_valid,
+        "Falcon-1024: Verification failed for a valid signature"
+    );
 }
 
 #[test]
@@ -92,7 +121,10 @@ fn falcon1024_test_verify_failure_wrong_message() {
     let wrong_message: &[u8] = b"This is definitely not the original message for Falcon-1024.";
     let is_valid = Falcon1024::verify(wrong_message, &signature, &pk);
 
-    assert!(!is_valid, "Falcon-1024: Verification should fail for a wrong message");
+    assert!(
+        !is_valid,
+        "Falcon-1024: Verification should fail for a wrong message"
+    );
 }
 
 #[test]
@@ -114,11 +146,18 @@ fn falcon1024_test_verify_failure_wrong_public_key() {
     let (pk2, _sk2) = keypair2_result.unwrap();
 
     let sign_result = Falcon1024::sign(TEST_MESSAGE_FALCON1024, &sk1);
-    assert!(sign_result.is_ok(), "Falcon-1024: Signing with sk1 failed: {:?}", sign_result.err());
+    assert!(
+        sign_result.is_ok(),
+        "Falcon-1024: Signing with sk1 failed: {:?}",
+        sign_result.err()
+    );
     let signature = sign_result.unwrap();
 
     let is_valid = Falcon1024::verify(TEST_MESSAGE_FALCON1024, &signature, &pk2);
-    assert!(!is_valid, "Falcon-1024: Verification should fail for a wrong public key");
+    assert!(
+        !is_valid,
+        "Falcon-1024: Verification should fail for a wrong public key"
+    );
 }
 
 #[test]
@@ -150,5 +189,8 @@ fn falcon1024_test_verify_failure_corrupted_signature() {
     let corrupted_signature: Signature<1462> = Signature(signature_array);
 
     let is_valid = Falcon1024::verify(TEST_MESSAGE_FALCON1024, &corrupted_signature, &pk);
-    assert!(!is_valid, "Falcon-1024: Verification should fail for a corrupted signature");
+    assert!(
+        !is_valid,
+        "Falcon-1024: Verification should fail for a corrupted signature"
+    );
 }

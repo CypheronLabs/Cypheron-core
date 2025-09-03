@@ -19,7 +19,7 @@ pub mod schemes;
 pub mod traits;
 
 pub use composite::{CompositeKeypair, CompositeSignature};
-pub use kem::{P256MlKem768, HybridCiphertext, HybridSharedSecret};
+pub use kem::{HybridCiphertext, HybridSharedSecret, P256MlKem768};
 pub use schemes::{EccDilithium, EccFalcon, EccSphincs};
 pub use traits::{HybridEngine, HybridKemEngine, HybridScheme};
 
@@ -32,12 +32,24 @@ pub enum HybridVariant {
     EccFalcon1024,
     EccSlhDsa,
 
-    #[deprecated(since = "0.2.0", note = "Use EccMlDsa44 instead for NIST FIPS 204 compliance")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use EccMlDsa44 instead for NIST FIPS 204 compliance"
+    )]
     EccDilithium2,
-    #[deprecated(since = "0.2.0", note = "Use EccMlDsa65 instead for NIST FIPS 204 compliance")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use EccMlDsa65 instead for NIST FIPS 204 compliance"
+    )]
     EccDilithium3,
-    #[deprecated(since = "0.2.0", note = "Use EccMlDsa87 instead for NIST FIPS 204 compliance")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use EccMlDsa87 instead for NIST FIPS 204 compliance"
+    )]
     EccDilithium5,
-    #[deprecated(since = "0.2.0", note = "Use EccSlhDsa instead for NIST FIPS 205 compliance")]
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use EccSlhDsa instead for NIST FIPS 205 compliance"
+    )]
     EccSphincs,
 }

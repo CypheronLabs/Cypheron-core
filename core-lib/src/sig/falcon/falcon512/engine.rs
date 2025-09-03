@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::security::{validate_ffi_fixed_buffer, validate_message_bounds, safe_cast_to_c_void, FfiSafe};
+use crate::security::{
+    safe_cast_to_c_void, validate_ffi_fixed_buffer, validate_message_bounds, FfiSafe,
+};
 use crate::sig::falcon::bindings::shake256_context;
 use libc::c_int;
 use rand::TryRngCore;
@@ -39,9 +41,9 @@ impl SecureRngState {
         let mut seed = [0u8; FALCON_SEED_LENGTH];
         let mut state = MaybeUninit::<shake256_context>::uninit();
 
-        rand::rng().try_fill_bytes(&mut seed).map_err(|_| {
-            FalconErrors::RngInitializationFailed
-        })?;
+        rand::rng()
+            .try_fill_bytes(&mut seed)
+            .map_err(|_| FalconErrors::RngInitializationFailed)?;
 
         unsafe {
             shake256_init_prng_from_seed(
@@ -52,7 +54,7 @@ impl SecureRngState {
         }
 
         seed.zeroize();
-        
+
         Ok(SecureRngState {
             state,
             initialized: true,
@@ -117,12 +119,15 @@ impl SignatureEngine for Falcon512Engine {
             return Err(FalconErrors::from_c_code(keygen_result, "keypair"));
         }
 
-        Ok((PublicKey(pk_buf), SecretKey(SecretBox::new(Box::from(sk_buf)))))
+        Ok((
+            PublicKey(pk_buf),
+            SecretKey(SecretBox::new(Box::from(sk_buf))),
+        ))
     }
 
     fn sign(msg: &[u8], sk: &Self::SecretKey) -> Result<Self::Signature, Self::Error> {
         validate_message_bounds!(msg);
-        
+
         let sk_bytes = sk.0.expose_secret();
         let mut sig_buf = [0u8; FALCON_SIGNATURE];
         let mut siglen: usize = FALCON_SIGNATURE;
@@ -162,11 +167,11 @@ impl SignatureEngine for Falcon512Engine {
 
         let mut actual_sig = [0u8; FALCON_SIGNATURE];
         actual_sig[..siglen].copy_from_slice(&sig_buf[..siglen]);
-        
-        for i in siglen..FALCON_SIGNATURE {
-            actual_sig[i] = 0;
+
+        for item in actual_sig.iter_mut().take(FALCON_SIGNATURE).skip(siglen) {
+            *item = 0;
         }
-        
+
         sig_buf.zeroize();
         Ok(Signature(actual_sig))
     }

@@ -43,7 +43,12 @@ impl<const N: usize> fmt::Debug for Signature<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let len = self.0.len();
         let display_len = std::cmp::min(len, 16);
-        write!(f, "Signature({:02X?}... {} bytes total ...)", &self.0[..display_len], len)
+        write!(
+            f,
+            "Signature({:02X?}... {} bytes total ...)",
+            &self.0[..display_len],
+            len
+        )
     }
 }
 use crate::sig::falcon::falcon512::constants::{FALCON_PUBLIC, FALCON_SECRET, FALCON_SIGNATURE};

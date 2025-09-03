@@ -68,7 +68,10 @@ impl fmt::Debug for PublicKey {
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",
-                &self.0.get(..std::cmp::min(self.0.len(), 8)).unwrap_or_default(),
+                &self
+                    .0
+                    .get(..std::cmp::min(self.0.len(), 8))
+                    .unwrap_or_default(),
             )
             .finish_non_exhaustive()
     }
@@ -113,7 +116,9 @@ impl SecretKey {
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SecretKeyShake192f").field("len", &Self::length()).finish_non_exhaustive()
+        f.debug_struct("SecretKeyShake192f")
+            .field("len", &Self::length())
+            .finish_non_exhaustive()
     }
 }
 
@@ -159,7 +164,10 @@ impl fmt::Debug for Signature {
             .field("len", &self.0.len())
             .field(
                 "bytes_prefix",
-                &self.0.get(..std::cmp::min(self.0.len(), 8)).unwrap_or_default(),
+                &self
+                    .0
+                    .get(..std::cmp::min(self.0.len(), 8))
+                    .unwrap_or_default(),
             )
             .finish_non_exhaustive()
     }
@@ -196,6 +204,8 @@ impl Seed {
 
 impl fmt::Debug for Seed {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SeedShake192f").field("len", &Self::length()).finish_non_exhaustive()
+        f.debug_struct("SeedShake192f")
+            .field("len", &Self::length())
+            .finish_non_exhaustive()
     }
 }

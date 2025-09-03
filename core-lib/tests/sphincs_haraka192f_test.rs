@@ -83,7 +83,10 @@ fn haraka192f_test_verify_detached_failure_wrong_message() {
     let wrong_message: &[u8] = b"This is a different message.";
     let verification_result = verify_detached(&signature, wrong_message, &pk);
 
-    assert!(verification_result.is_err(), "Verification should fail for a wrong message");
+    assert!(
+        verification_result.is_err(),
+        "Verification should fail for a wrong message"
+    );
     match verification_result.err().unwrap() {
         SphincsError::VerificationFailed => {}
         e => panic!("Unexpected error type for wrong message: {:?}", e),
@@ -98,7 +101,10 @@ fn haraka192f_test_verify_detached_failure_wrong_public_key() {
     let signature = sign_detached(TEST_MESSAGE, &sk1).expect("Signing with sk1 failed");
 
     let verification_result = verify_detached(&signature, TEST_MESSAGE, &pk2);
-    assert!(verification_result.is_err(), "Verification should fail for a wrong public key");
+    assert!(
+        verification_result.is_err(),
+        "Verification should fail for a wrong public key"
+    );
     match verification_result.err().unwrap() {
         SphincsError::VerificationFailed => { /* Expected error */ }
         e => panic!("Unexpected error type for wrong public key: {:?}", e),
@@ -108,8 +114,10 @@ fn haraka192f_test_verify_detached_failure_wrong_public_key() {
 #[test]
 fn haraka192f_test_verify_detached_failure_corrupted_signature() {
     let (pk, sk) = keypair().expect("Keypair generation failed");
-    let mut signature_bytes_vec =
-        sign_detached(TEST_MESSAGE, &sk).expect("Signing failed").as_bytes().to_vec();
+    let mut signature_bytes_vec = sign_detached(TEST_MESSAGE, &sk)
+        .expect("Signing failed")
+        .as_bytes()
+        .to_vec();
 
     if !signature_bytes_vec.is_empty() {
         signature_bytes_vec[0] ^= 0x01;
@@ -119,7 +127,10 @@ fn haraka192f_test_verify_detached_failure_corrupted_signature() {
     let corrupted_signature = types::Signature::from_bytes(&signature_bytes_vec).unwrap();
 
     let verification_result = verify_detached(&corrupted_signature, TEST_MESSAGE, &pk);
-    assert!(verification_result.is_err(), "Verification should fail for a corrupted signature");
+    assert!(
+        verification_result.is_err(),
+        "Verification should fail for a corrupted signature"
+    );
     match verification_result.err().unwrap() {
         SphincsError::VerificationFailed => { /* Expected error */ }
         e => panic!("Unexpected error type for corrupted signature: {:?}", e),
@@ -143,7 +154,10 @@ fn haraka192f_test_sign_open_combined_roundtrip() {
     );
 
     let opened_message = opened_message_result.unwrap();
-    assert_eq!(opened_message, TEST_MESSAGE, "Opened message does not match original message");
+    assert_eq!(
+        opened_message, TEST_MESSAGE,
+        "Opened message does not match original message"
+    );
 }
 
 #[test]
@@ -154,10 +168,16 @@ fn haraka192f_test_open_combined_failure_wrong_pk() {
     let signed_message = sign_combined(TEST_MESSAGE, &sk1).expect("Combined signing failed");
 
     let opened_message_result = open_combined(&signed_message, &pk2);
-    assert!(opened_message_result.is_err(), "Opening combined message should fail with wrong PK");
+    assert!(
+        opened_message_result.is_err(),
+        "Opening combined message should fail with wrong PK"
+    );
     match opened_message_result.err().unwrap() {
         SphincsError::OpenFailed(_) => { /* Expected error */ }
-        e => panic!("Unexpected error type for open_combined with wrong PK: {:?}", e),
+        e => panic!(
+            "Unexpected error type for open_combined with wrong PK: {:?}",
+            e
+        ),
     }
 }
 

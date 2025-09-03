@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use secrecy::{SecretBox, ExposeSecret};
 use crate::hybrid::composite::{CompositePublicKey, CompositeSecretKey, CompositeSignature};
-use crate::hybrid::ecdsa::{EcdsaPublicKey, EcdsaPrivateKey, EcdsaSignatureWrapper, EcdsaKeyPair};
+use crate::hybrid::ecdsa::{EcdsaKeyPair, EcdsaPrivateKey, EcdsaPublicKey, EcdsaSignatureWrapper};
 use crate::hybrid::traits::{HybridEngine, VerificationPolicy};
-use crate::sig::{Dilithium2, Falcon512};
 use crate::sig::traits::SignatureEngine;
+use crate::sig::{Dilithium2, Falcon512};
+use secrecy::{ExposeSecret, SecretBox};
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
@@ -69,11 +69,13 @@ impl HybridEngine for EccDilithium {
         let domain_separator = "CYPHERON_HYBRID_ML_DSA_44".to_string();
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
-        let (dilithium_pk, dilithium_sk) =
-            <Dilithium2 as SignatureEngine>::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let (dilithium_pk, dilithium_sk) = <Dilithium2 as SignatureEngine>::keypair()
+            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
-        let composite_pk =
-            CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: dilithium_pk };
+        let composite_pk = CompositePublicKey {
+            classical: ecdsa_keypair.public_key,
+            post_quantum: dilithium_pk,
+        };
 
         let composite_sk = CompositeSecretKey {
             classical: SecretBox::new(Box::new(ecdsa_keypair.private_key)),
@@ -105,8 +107,9 @@ impl HybridEngine for EccDilithium {
         let ecc_signature = ecc_sk.sign(&message_with_timestamp)?;
 
         let dilithium_sk = sk.post_quantum.expose_secret();
-        let dilithium_signature = <Dilithium2 as SignatureEngine>::sign(&message_with_timestamp, dilithium_sk)
-            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let dilithium_signature =
+            <Dilithium2 as SignatureEngine>::sign(&message_with_timestamp, dilithium_sk)
+                .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         Ok(CompositeSignature {
             classical: ecc_signature,
@@ -140,11 +143,16 @@ impl HybridEngine for EccDilithium {
         message_with_timestamp.extend_from_slice(&sig.nonce);
         message_with_timestamp.extend_from_slice(msg);
 
-        let ecc_valid =
-            pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
+        let ecc_valid = pk
+            .classical
+            .verify(&message_with_timestamp, &sig.classical)
+            .unwrap_or(false);
 
-        let dilithium_valid =
-            <Dilithium2 as SignatureEngine>::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
+        let dilithium_valid = <Dilithium2 as SignatureEngine>::verify(
+            &message_with_timestamp,
+            &sig.post_quantum,
+            &pk.post_quantum,
+        );
 
         match policy {
             VerificationPolicy::BothRequired => ecc_valid && dilithium_valid,
@@ -175,11 +183,13 @@ impl HybridEngine for EccFalcon {
         let domain_separator = "CYPHERON_HYBRID_FALCON_512".to_string();
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
-        let (falcon_pk, falcon_sk) =
-            <Falcon512 as SignatureEngine>::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let (falcon_pk, falcon_sk) = <Falcon512 as SignatureEngine>::keypair()
+            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
-        let composite_pk =
-            CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: falcon_pk };
+        let composite_pk = CompositePublicKey {
+            classical: ecdsa_keypair.public_key,
+            post_quantum: falcon_pk,
+        };
 
         let composite_sk = CompositeSecretKey {
             classical: SecretBox::new(Box::new(ecdsa_keypair.private_key)),
@@ -210,8 +220,9 @@ impl HybridEngine for EccFalcon {
         let ecc_signature = ecc_sk.sign(&message_with_timestamp)?;
 
         let falcon_sk = sk.post_quantum.expose_secret();
-        let falcon_signature = <Falcon512 as SignatureEngine>::sign(&message_with_timestamp, falcon_sk)
-            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let falcon_signature =
+            <Falcon512 as SignatureEngine>::sign(&message_with_timestamp, falcon_sk)
+                .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
         Ok(CompositeSignature {
             classical: ecc_signature,
@@ -243,11 +254,16 @@ impl HybridEngine for EccFalcon {
         message_with_timestamp.extend_from_slice(&sig.nonce);
         message_with_timestamp.extend_from_slice(msg);
 
-        let ecc_valid =
-            pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
+        let ecc_valid = pk
+            .classical
+            .verify(&message_with_timestamp, &sig.classical)
+            .unwrap_or(false);
 
-        let falcon_valid =
-            <Falcon512 as SignatureEngine>::verify(&message_with_timestamp, &sig.post_quantum, &pk.post_quantum);
+        let falcon_valid = <Falcon512 as SignatureEngine>::verify(
+            &message_with_timestamp,
+            &sig.post_quantum,
+            &pk.post_quantum,
+        );
 
         match policy {
             VerificationPolicy::BothRequired => ecc_valid && falcon_valid,
@@ -276,11 +292,13 @@ impl HybridEngine for EccSphincs {
         let domain_separator = "CYPHERON_HYBRID_SPHINCS_SHAKE_128F".to_string();
         let ecdsa_keypair = EcdsaKeyPair::generate(domain_separator)?;
 
-        let (sphincs_pk, sphincs_sk) =
-            crate::sig::sphincs::shake_128f::keypair().map_err(|e| HybridError::PostQuantum(e.to_string()))?;
+        let (sphincs_pk, sphincs_sk) = crate::sig::sphincs::shake_128f::keypair()
+            .map_err(|e| HybridError::PostQuantum(e.to_string()))?;
 
-        let composite_pk =
-            CompositePublicKey { classical: ecdsa_keypair.public_key, post_quantum: sphincs_pk };
+        let composite_pk = CompositePublicKey {
+            classical: ecdsa_keypair.public_key,
+            post_quantum: sphincs_pk,
+        };
 
         let composite_sk = CompositeSecretKey {
             classical: SecretBox::new(Box::new(ecdsa_keypair.private_key)),
@@ -345,8 +363,10 @@ impl HybridEngine for EccSphincs {
         message_with_timestamp.extend_from_slice(&sig.nonce);
         message_with_timestamp.extend_from_slice(msg);
 
-        let ecc_valid =
-            pk.classical.verify(&message_with_timestamp, &sig.classical).unwrap_or(false);
+        let ecc_valid = pk
+            .classical
+            .verify(&message_with_timestamp, &sig.classical)
+            .unwrap_or(false);
 
         let shake_128f_valid = crate::sig::sphincs::shake_128f::verify_detached(
             &sig.post_quantum,

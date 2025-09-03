@@ -27,29 +27,65 @@ pub const ML_KEM_1024_SECRET: usize = 3168;
 pub const ML_KEM_1024_CIPHERTEXT: usize = 1568;
 pub const ML_KEM_1024_SHARED: usize = 32;
 
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_512_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_512_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER512_PUBLIC: usize = ML_KEM_512_PUBLIC;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_512_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_512_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER512_SECRET: usize = ML_KEM_512_SECRET;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_512_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_512_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER512_CIPHERTEXT: usize = ML_KEM_512_CIPHERTEXT;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_512_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_512_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER512_SHARED: usize = ML_KEM_512_SHARED;
 
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_768_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_768_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER768_PUBLIC: usize = ML_KEM_768_PUBLIC;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_768_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_768_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER768_SECRET: usize = ML_KEM_768_SECRET;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_768_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_768_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER768_CIPHERTEXT: usize = ML_KEM_768_CIPHERTEXT;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_768_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_768_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER768_SHARED: usize = ML_KEM_768_SHARED;
 
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_1024_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_1024_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER1024_PUBLIC: usize = ML_KEM_1024_PUBLIC;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_1024_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_1024_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER1024_SECRET: usize = ML_KEM_1024_SECRET;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_1024_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_1024_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER1024_CIPHERTEXT: usize = ML_KEM_1024_CIPHERTEXT;
-#[deprecated(since = "0.2.0", note = "Use ML_KEM_1024_* constants for NIST FIPS 203 compliance")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ML_KEM_1024_* constants for NIST FIPS 203 compliance"
+)]
 pub const KYBER1024_SHARED: usize = ML_KEM_1024_SHARED;

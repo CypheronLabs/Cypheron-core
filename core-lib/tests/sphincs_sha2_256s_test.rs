@@ -22,8 +22,16 @@ const TEST_MESSAGE_SHA2_256S: &[u8] = b"This is a test message for SPHINCS+ SHA2
 fn sha2256s_test_keypair_generation_lengths() {
     let (pk, sk) = keypair().expect("SHA2-256s: Keypair generation failed");
 
-    assert_eq!(pk.as_bytes().len(), public_key_bytes(), "SHA2-256s: Public key length mismatch");
-    assert_eq!(sk.as_bytes().len(), secret_key_bytes(), "SHA2-256s: Secret key length mismatch");
+    assert_eq!(
+        pk.as_bytes().len(),
+        public_key_bytes(),
+        "SHA2-256s: Public key length mismatch"
+    );
+    assert_eq!(
+        sk.as_bytes().len(),
+        secret_key_bytes(),
+        "SHA2-256s: Secret key length mismatch"
+    );
 
     assert_eq!(
         pk.as_bytes().len(),
@@ -116,7 +124,10 @@ fn sha2256s_test_verify_detached_failure_wrong_message() {
     );
     match verification_result.err().unwrap() {
         SphincsError::VerificationFailed => { /* Expected error */ }
-        e => panic!("SHA2-256s: Unexpected error type for wrong message: {:?}", e),
+        e => panic!(
+            "SHA2-256s: Unexpected error type for wrong message: {:?}",
+            e
+        ),
     }
 }
 
@@ -135,7 +146,10 @@ fn sha2256s_test_verify_detached_failure_wrong_public_key() {
     );
     match verification_result.err().unwrap() {
         SphincsError::VerificationFailed => { /* Expected error */ }
-        e => panic!("SHA2-256s: Unexpected error type for wrong public key: {:?}", e),
+        e => panic!(
+            "SHA2-256s: Unexpected error type for wrong public key: {:?}",
+            e
+        ),
     }
 }
 
@@ -161,7 +175,10 @@ fn sha2256s_test_verify_detached_failure_corrupted_signature() {
     );
     match verification_result.err().unwrap() {
         SphincsError::VerificationFailed => { /* Expected error */ }
-        e => panic!("SHA2-256s: Unexpected error type for corrupted signature: {:?}", e),
+        e => panic!(
+            "SHA2-256s: Unexpected error type for corrupted signature: {:?}",
+            e
+        ),
     }
 }
 
@@ -211,7 +228,10 @@ fn sha2256s_test_open_combined_failure_wrong_pk() {
     );
     match opened_message_result.err().unwrap() {
         SphincsError::OpenFailed(_) => { /* Expected error */ }
-        e => panic!("SHA2-256s: Unexpected error type for open_combined with wrong PK: {:?}", e),
+        e => panic!(
+            "SHA2-256s: Unexpected error type for open_combined with wrong PK: {:?}",
+            e
+        ),
     }
 }
 
@@ -222,17 +242,26 @@ fn sha2256s_test_invalid_seed_length() {
 
     if seed_len > 0 {
         let result = keypair_from_seed(&invalid_seed_data);
-        assert!(result.is_err(), "SHA2-256s: keypair_from_seed should fail with short seed");
+        assert!(
+            result.is_err(),
+            "SHA2-256s: keypair_from_seed should fail with short seed"
+        );
         match result.err().unwrap() {
             SphincsError::InvalidSeedLength { expected, actual } => {
-                assert_eq!(expected, seed_len, "SHA2-256s: Expected seed length mismatch in error");
+                assert_eq!(
+                    expected, seed_len,
+                    "SHA2-256s: Expected seed length mismatch in error"
+                );
                 assert_eq!(
                     actual,
                     invalid_seed_data.len(),
                     "SHA2-256s: Actual seed length mismatch in error"
                 );
             }
-            e => panic!("SHA2-256s: Unexpected error type for invalid seed length: {:?}", e),
+            e => panic!(
+                "SHA2-256s: Unexpected error type for invalid seed length: {:?}",
+                e
+            ),
         }
     } else {
         println!("SHA2-256s: Seed length is 0, skipping invalid_seed_length test logic for too short seed.");
