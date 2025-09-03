@@ -1,5 +1,19 @@
 # Cypheron Core
 
+> **IMPORTANT DEVELOPMENT STATUS NOTICE**
+> 
+> **This library is currently in ACTIVE DEVELOPMENT (v0.1.0) and is EXPERIMENTAL.**
+> 
+> **This is a Rust wrapper around official NIST reference implementations** - not custom cryptography.
+> The core algorithms are NIST-certified, but the Rust integration layer has NOT undergone:
+> - Independent security audits of FFI bindings
+> - Formal verification of memory safety wrappers
+> - Production environment validation
+> 
+> **DO NOT USE IN PRODUCTION** without comprehensive integration review and testing.
+> 
+> Risk areas: FFI safety, memory management, build system - NOT the underlying NIST algorithms.
+
 Post-quantum cryptography library providing NIST-standardized quantum-resistant algorithms for secure applications.
 
 ## Overview
@@ -84,9 +98,33 @@ Run `cargo doc --open` to build and view complete API documentation locally.
 - **Algorithm Specifications:** NIST standardized implementations
 - **Performance Benchmarks:** Run `cargo bench` for platform-specific metrics
 
+## Community Security Audit
+
+**We invite security researchers and cryptography experts to audit this library.**
+
+This experimental implementation includes:
+- **Comprehensive test suite** - NIST KAT, timing analysis, side-channel detection
+- **Security tooling** - Fuzzing infrastructure, memory safety validation
+- **Open methodology** - Full source code, build reproducibility, test transparency
+
+### Audit Resources
+- **Test Suite**: Run `cargo test --test test_runner` for comprehensive security validation
+- **Fuzzing**: Use `cargo fuzz` for robustness testing
+- **Documentation**: Complete API and security model documentation available
+- **Vendor Code**: C implementations from NIST reference sources with integrity verification
+
+### Security Review Areas
+- FFI boundary safety between Rust and C vendor code
+- Constant-time implementation validation
+- Memory safety and zeroization verification
+- Side-channel resistance analysis
+- NIST compliance validation
+
+**Security findings welcome**: Report to security@cypheronlabs.com following our [Security Policy](SECURITY.md).
+
 ## Contributing
 
-We welcome contributions! Please see our contribution guidelines and code of conduct.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 

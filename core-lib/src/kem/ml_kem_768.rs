@@ -41,17 +41,17 @@ pub type KyberPublicKey = MlKemPublicKey;
 
 #[derive(Error, Debug)]
 pub enum MlKemError {
-    #[error("Key generation failed - entropy failure")]
+    #[error("Key generation failed - entropy failure (ERROR-KEM-001)\nSee: https://docs.rs/cypheron-core/troubleshooting/errors.html#error-kem-001")]
     KeyGenerationEntropyFailure,
-    #[error("Key generation failed - internal error")]
+    #[error("Key generation failed - internal error (ERROR-KEM-004)\nSee: https://docs.rs/cypheron-core/troubleshooting/errors.html#error-kem-004")]
     KeyGenerationInternalError,
-    #[error("Encapsulation failed - invalid public key")]
+    #[error("Encapsulation failed - invalid public key (ERROR-KEM-003)\nSee: https://docs.rs/cypheron-core/troubleshooting/errors.html#error-kem-003")]
     EncapsulationInvalidKey,
-    #[error("Encapsulation failed - internal error")]
+    #[error("Encapsulation failed - internal error (ERROR-KEM-005)\nSee: https://docs.rs/cypheron-core/troubleshooting/errors.html#error-kem-005")]
     EncapsulationInternalError,
-    #[error("Decapsulation failed - invalid ciphertext")]
+    #[error("Decapsulation failed - invalid ciphertext (ERROR-KEM-002)\nSee: https://docs.rs/cypheron-core/troubleshooting/errors.html#error-kem-002")]
     DecapsulationInvalidCiphertext,
-    #[error("Decapsulation failed - internal error")]
+    #[error("Decapsulation failed - internal error (ERROR-KEM-006)\nSee: https://docs.rs/cypheron-core/troubleshooting/errors.html#error-kem-006")]
     DecapsulationInternalError,
     #[error("Invalid ciphertext length: expected {expected}, got {actual}")]
     InvalidCiphertextLength { expected: usize, actual: usize },

@@ -1,0 +1,99 @@
+:root {
+    --cypheron-primary: #1a237e;
+    --cypheron-secondary: #3949ab;
+    --cypheron-accent: #00e676;
+    --cypheron-warning: #ff9800;
+    --cypheron-error: #f44336;
+}
+
+.cypheron-logo {
+    display: inline-block;
+    font-weight: bold;
+    color: var(--cypheron-primary);
+    font-size: 1.2em;
+}
+
+.algorithm-badge {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+    background-color: var(--cypheron-secondary);
+    color: white;
+    border-radius: 0.3em;
+    font-size: 0.8em;
+    margin: 0.2em;
+}
+
+.security-level {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+    border-radius: 0.3em;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin: 0.2em;
+}
+
+.security-level-1 { background-color: #4caf50; color: white; }
+.security-level-3 { background-color: #ff9800; color: white; }
+.security-level-5 { background-color: #f44336; color: white; }
+
+.code-example {
+    border-left: 4px solid var(--cypheron-accent);
+    padding-left: 1em;
+    margin: 1em 0;
+}
+
+.warning-box {
+    border: 1px solid var(--cypheron-warning);
+    background-color: rgba(255, 152, 0, 0.1);
+    padding: 1em;
+    border-radius: 0.5em;
+    margin: 1em 0;
+}
+
+.error-box {
+    border: 1px solid var(--cypheron-error);
+    background-color: rgba(244, 67, 54, 0.1);
+    padding: 1em;
+    border-radius: 0.5em;
+    margin: 1em 0;
+}
+
+.api-section {
+    border: 1px solid #ddd;
+    border-radius: 0.5em;
+    padding: 1em;
+    margin: 1em 0;
+}
+
+.api-section h3 {
+    margin-top: 0;
+    color: var(--cypheron-primary);
+}
+
+.performance-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+.performance-table th,
+.performance-table td {
+    border: 1px solid #ddd;
+    padding: 0.5em;
+    text-align: left;
+}
+
+.performance-table th {
+    background-color: var(--cypheron-secondary);
+    color: white;
+}
+
+.nav-chapters {
+    color: var(--sidebar-fg);
+}
+
+.chapter li.part-title {
+    color: var(--cypheron-primary);
+    margin: 15px 0 0 0;
+    font-weight: bold;
+}
