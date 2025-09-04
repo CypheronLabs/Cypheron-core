@@ -145,7 +145,7 @@ mod tests {
     fn test_nist_vectors() {
         // Test against official NIST ML-KEM test vectors
         // See tests/kat/ directory for complete vectors
-        let (pk, sk) = MlKem768::keypair().unwrap();
+        let (pk, sk) = MlKem768::keypair().unwrap(); 
         let (ct, ss1) = MlKem768::encapsulate(&pk).unwrap();
         let ss2 = MlKem768::decapsulate(&ct, &sk).unwrap();
         assert_eq!(ss1.expose_secret(), ss2.expose_secret());
