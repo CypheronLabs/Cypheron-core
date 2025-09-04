@@ -244,6 +244,13 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                     let thash_str = thash.to_string();
 
                     let param_file = format!("sphincs-{}-{}{}", hash, security, opt);
+                    
+                    let param_file_path = ref_dir.join("params").join(format!("params-{}.h", param_file));
+                    if !param_file_path.exists() {
+                        eprintln!("[build.rs] Missing SPHINCS+ parameter file: {}", param_file_path.display());
+                        std::process::exit(1);
+                    }
+                    
                     let defines = vec![
                         ("PARAMS", param_file.as_str()),
                         ("THASH", thash_str.as_str()),
@@ -287,6 +294,12 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                         hash, hash, security, opt, thash
                     );
 
+                    let param_file_path = avx2_dir.join("params").join(format!("params-{}.h", param_set));
+                    if !param_file_path.exists() {
+                        eprintln!("[build.rs] Missing SPHINCS+ AVX2 parameter file: {}", param_file_path.display());
+                        std::process::exit(1);
+                    }
+
                     let mut c_files = vec![
                         "address.c",
                         "fors.c",
@@ -313,7 +326,7 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     }
 
                     let defines = vec![
-                        ("PARAMS", &format!("params-{}.h", param_set)),
+                        ("PARAMS", &param_set),
                         ("THASH", thash),
                     ];
 
@@ -345,6 +358,12 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     security, opt, thash
                 );
 
+                let param_file_path = aesni_dir.join("params").join(format!("params-{}.h", param_set));
+                if !param_file_path.exists() {
+                    eprintln!("[build.rs] Missing SPHINCS+ AESNI parameter file: {}", param_file_path.display());
+                    std::process::exit(1);
+                }
+
                 let thash_filename = format!("thash_haraka_{}.c", thash);
 
                 let c_files = vec![
@@ -358,10 +377,9 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     "hash_haraka.c",
                     thash_filename.as_str(),
                 ];
-                let param_h = format!("params-{}.h", param_set);
                 let thash_str = thash.to_string();
 
-                let defines = vec![("PARAMS", param_h.as_str()), ("THASH", thash_str.as_str())];
+                let defines = vec![("PARAMS", &param_set), ("THASH", thash_str.as_str())];
 
                 PQBuilder::new(lib_name, &aesni_dir)
                     .files(c_files)
