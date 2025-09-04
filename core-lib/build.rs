@@ -85,10 +85,16 @@ fn build_kyber_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    assert!(
-        ref_dir.join("indcpa.c").exists(),
-        "[build.rs] Missing ML-KEM (Kyber) file: indcpa.c"
-    );
+    let required_files = ["indcpa.c", "kem.c", "ntt.c", "poly.c", "polyvec.c", 
+                          "reduce.c", "verify.c", "symmetric-shake.c", "randombytes.c", 
+                          "fips202.c", "cbd.c"];
+    for file in &required_files {
+        assert!(
+            ref_dir.join(file).exists(),
+            "[build.rs] Missing ML-KEM (Kyber) file: {}",
+            file
+        );
+    }
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
         PQBuilder::new(format!("ml_kem_{}", variant), &ref_dir)
             .files(vec![
@@ -119,6 +125,16 @@ fn build_dilithium_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
+    let required_files = ["sign.c", "polyvec.c", "poly.c", "packing.c", "ntt.c", 
+                          "reduce.c", "rounding.c", "symmetric-shake.c", "fips202.c", "randombytes.c"];
+    for file in &required_files {
+        assert!(
+            ref_dir.join(file).exists(),
+            "[build.rs] Missing ML-DSA (Dilithium) file: {}",
+            file
+        );
+    }
+
     for level in &["2", "3", "5"] {
         PQBuilder::new(format!("ml_dsa_{}", level), &ref_dir)
             .files(vec![
@@ -147,6 +163,16 @@ fn build_dilithium_all(manifest_dir: &Path) {
 fn build_falcon_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/falcon");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
+
+    let required_files = ["codec.c", "common.c", "deterministic.c", "falcon.c", "fft.c", 
+                          "fpr.c", "keygen.c", "rng.c", "shake.c", "sign.c", "vrfy.c"];
+    for file in &required_files {
+        assert!(
+            ref_dir.join(file).exists(),
+            "[build.rs] Missing Falcon file: {}",
+            file
+        );
+    }
 
     PQBuilder::new("falcon".into(), &ref_dir)
         .files(vec![
@@ -260,22 +286,26 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                         .files(c_files)
                         .defines(defines)
                         .header("api.h")
-                        .allowlist(api_functions.clone())
+                        .allowlist(api_functions.to_vec())
                         .build();
                 }
             }
         }
     }
-    #[cfg(target_feature = "avx2")]
-    build_avx2_variants(sphincs_dir, &api_functions);
+    if std::env::var("CYPHERON_DISABLE_AVX2").is_err() && 
+       sphincs_dir.join("sha2-avx2").exists() && 
+       sphincs_dir.join("shake-avx2").exists() {
+        build_avx2_variants(sphincs_dir, &api_functions);
+    }
 
-    #[cfg(target_feature = "aes")]
-    build_aesni_variants(sphincs_dir, &api_functions);
+    if std::env::var("CYPHERON_DISABLE_AESNI").is_err() && 
+       sphincs_dir.join("haraka-aesni").exists() {
+        build_aesni_variants(sphincs_dir, &api_functions);
+    }
 
     println!("cargo:rerun-if-changed={}", sphincs_dir.display());
 }
 
-#[cfg(target_feature = "avx2")]
 fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
     let hash_functions = ["sha2", "shake"];
     let security_levels = ["128", "192", "256"];
@@ -300,6 +330,17 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                         std::process::exit(1);
                     }
 
+                    let base_files = ["address.c", "fors.c", "sign.c", "utils.c", "wots.c", "randombytes.c"];
+                    for file in &base_files {
+                        if !avx2_dir.join(file).exists() {
+                            eprintln!("[build.rs] Missing SPHINCS+ AVX2 C file: {}", avx2_dir.join(file).display());
+                            std::process::exit(1);
+                        }
+                    }
+
+                    let thash_file = format!("thash_{}_{}x{}.c", hash, thash, 
+                                             if hash == "sha2" { "8" } else { "4" });
+                    
                     let mut c_files = vec![
                         "address.c",
                         "fors.c",
@@ -312,21 +353,21 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     if hash == "sha2" {
                         c_files.extend(vec![
                             "sha2.c",
-                            "sha2x8.c",
+                            "sha256x8.c", 
                             "hash_sha2.c",
-                            &format!("thash_sha2_{}x8.c", thash),
                         ]);
                     } else if hash == "shake" {
                         c_files.extend(vec![
                             "fips202.c",
                             "fips202x4.c",
                             "hash_shake.c",
-                            &format!("thash_shake_{}x4.c", thash),
                         ]);
                     }
+                    
+                    c_files.push(thash_file.as_str());
 
                     let defines = vec![
-                        ("PARAMS", &param_set),
+                        ("PARAMS", param_set.as_str()),
                         ("THASH", thash),
                     ];
 
@@ -334,7 +375,7 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                         .files(c_files)
                         .defines(defines)
                         .header("api.h")
-                        .allowlist(api_functions.clone())
+                        .allowlist(api_functions.to_vec())
                         .build();
                 }
             }
@@ -342,7 +383,6 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
     }
 }
 
-#[cfg(target_feature = "aes")]
 fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
     let aesni_dir = sphincs_dir.join("haraka-aesni");
     let security_levels = ["128", "192", "256"];
@@ -364,6 +404,15 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     std::process::exit(1);
                 }
 
+                let base_files = ["address.c", "fors.c", "sign.c", "utils.c", "wots.c", 
+                                 "randombytes.c", "haraka.c", "hash_haraka.c"];
+                for file in &base_files {
+                    if !aesni_dir.join(file).exists() {
+                        eprintln!("[build.rs] Missing SPHINCS+ AESNI C file: {}", aesni_dir.join(file).display());
+                        std::process::exit(1);
+                    }
+                }
+
                 let thash_filename = format!("thash_haraka_{}.c", thash);
 
                 let c_files = vec![
@@ -377,9 +426,8 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     "hash_haraka.c",
                     thash_filename.as_str(),
                 ];
-                let thash_str = thash.to_string();
 
-                let defines = vec![("PARAMS", &param_set), ("THASH", thash_str.as_str())];
+                let defines = vec![("PARAMS", param_set.as_str()), ("THASH", thash)];
 
                 PQBuilder::new(lib_name, &aesni_dir)
                     .files(c_files)
