@@ -292,31 +292,13 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
             }
         }
     }
-    let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
-    let is_x86_64 = target_arch == "x86_64";
-    
-    if is_x86_64 && 
-       std::env::var("CYPHERON_DISABLE_AVX2").is_err() && 
-       sphincs_dir.join("sha2-avx2").exists() && 
-       sphincs_dir.join("shake-avx2").exists() {
-        println!("cargo:warning=Building AVX2 variants for x86_64");
-        build_avx2_variants(sphincs_dir, &api_functions);
-    } else if !is_x86_64 {
-        println!("cargo:warning=Skipping AVX2 variants - not x86_64 architecture (detected: {})", target_arch);
-    }
-
-    if is_x86_64 && 
-       std::env::var("CYPHERON_DISABLE_AESNI").is_err() && 
-       sphincs_dir.join("haraka-aesni").exists() {
-        println!("cargo:warning=Building AESNI variants for x86_64");
-        build_aesni_variants(sphincs_dir, &api_functions);
-    } else if !is_x86_64 {
-        println!("cargo:warning=Skipping AESNI variants - not x86_64 architecture (detected: {})", target_arch);
-    }
+    println!("cargo:warning=SPHINCS+ optimized variants disabled for v0.1.0 - using reference implementation only");
+    println!("cargo:warning=AVX2/AESNI variants will be available in future releases after proper testing");
 
     println!("cargo:rerun-if-changed={}", sphincs_dir.display());
 }
 
+/* Disabled for v0.1.0 - will be re-enabled in future releases with proper file handling
 fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
     let hash_functions = ["sha2", "shake"];
     let security_levels = ["128", "192", "256"];
@@ -393,7 +375,9 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
         }
     }
 }
+*/
 
+/* Disabled for v0.1.0 - will be re-enabled in future releases with proper file handling  
 fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
     let aesni_dir = sphincs_dir.join("haraka-aesni");
     let security_levels = ["128", "192", "256"];
@@ -452,6 +436,8 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
         }
     }
 }
+*/
+
 struct PQBuilder<'a> {
     lib_name: String,
     src_dir: &'a Path,
