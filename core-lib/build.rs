@@ -33,6 +33,20 @@ fn main() {
     build_dilithium_all(&manifest_dir);
     build_falcon_all(&manifest_dir);
     build_sphincsplus_all(&sphincs_dir);
+    // Enable Haraka-AESNI SPHINCS+ variant build
+    let api_functions = vec![
+        "crypto_sign_keypair".to_string(),
+        "crypto_sign_seed_keypair".to_string(),
+        "crypto_sign".to_string(),
+        "crypto_sign_open".to_string(),
+        "crypto_sign_signature".to_string(),
+        "crypto_sign_verify".to_string(),
+        "crypto_sign_bytes".to_string(),
+        "crypto_sign_publickeybytes".to_string(),
+        "crypto_sign_secretkeybytes".to_string(),
+        "crypto_sign_seedbytes".to_string(),
+    ];
+    build_aesni_variants(&sphincs_dir, &api_functions);
 
     println!("cargo:rerun-if-changed=build.rs");
 }
@@ -377,7 +391,6 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
 }
 */
 
-/* Disabled for v0.1.0 - will be re-enabled in future releases with proper file handling  
 fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
     let aesni_dir = sphincs_dir.join("haraka-aesni");
     let security_levels = ["128", "192", "256"];
