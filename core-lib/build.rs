@@ -99,9 +99,19 @@ fn build_kyber_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    let required_files = ["indcpa.c", "kem.c", "ntt.c", "poly.c", "polyvec.c", 
-                          "reduce.c", "verify.c", "symmetric-shake.c", "randombytes.c", 
-                          "fips202.c", "cbd.c"];
+    let required_files = [
+        "indcpa.c",
+        "kem.c",
+        "ntt.c",
+        "poly.c",
+        "polyvec.c",
+        "reduce.c",
+        "verify.c",
+        "symmetric-shake.c",
+        "randombytes.c",
+        "fips202.c",
+        "cbd.c",
+    ];
     for file in &required_files {
         assert!(
             ref_dir.join(file).exists(),
@@ -139,8 +149,18 @@ fn build_dilithium_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    let required_files = ["sign.c", "polyvec.c", "poly.c", "packing.c", "ntt.c", 
-                          "reduce.c", "rounding.c", "symmetric-shake.c", "fips202.c", "randombytes.c"];
+    let required_files = [
+        "sign.c",
+        "polyvec.c",
+        "poly.c",
+        "packing.c",
+        "ntt.c",
+        "reduce.c",
+        "rounding.c",
+        "symmetric-shake.c",
+        "fips202.c",
+        "randombytes.c",
+    ];
     for file in &required_files {
         assert!(
             ref_dir.join(file).exists(),
@@ -178,8 +198,19 @@ fn build_falcon_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/falcon");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    let required_files = ["codec.c", "common.c", "deterministic.c", "falcon.c", "fft.c", 
-                          "fpr.c", "keygen.c", "rng.c", "shake.c", "sign.c", "vrfy.c"];
+    let required_files = [
+        "codec.c",
+        "common.c",
+        "deterministic.c",
+        "falcon.c",
+        "fft.c",
+        "fpr.c",
+        "keygen.c",
+        "rng.c",
+        "shake.c",
+        "sign.c",
+        "vrfy.c",
+    ];
     for file in &required_files {
         assert!(
             ref_dir.join(file).exists(),
@@ -284,13 +315,18 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                     let thash_str = thash.to_string();
 
                     let param_file = format!("sphincs-{}-{}{}", hash, security, opt);
-                    
-                    let param_file_path = ref_dir.join("params").join(format!("params-{}.h", param_file));
+
+                    let param_file_path = ref_dir
+                        .join("params")
+                        .join(format!("params-{}.h", param_file));
                     if !param_file_path.exists() {
-                        eprintln!("[build.rs] Missing SPHINCS+ parameter file: {}", param_file_path.display());
+                        eprintln!(
+                            "[build.rs] Missing SPHINCS+ parameter file: {}",
+                            param_file_path.display()
+                        );
                         std::process::exit(1);
                     }
-                    
+
                     let defines = vec![
                         ("PARAMS", param_file.as_str()),
                         ("THASH", thash_str.as_str()),
@@ -345,9 +381,9 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                         }
                     }
 
-                    let thash_file = format!("thash_{}_{}x{}.c", hash, thash, 
+                    let thash_file = format!("thash_{}_{}x{}.c", hash, thash,
                                              if hash == "sha2" { "8" } else { "4" });
-                    
+
                     let mut c_files = vec![
                         "address.c",
                         "fors.c",
@@ -360,7 +396,7 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     if hash == "sha2" {
                         c_files.extend(vec![
                             "sha2.c",
-                            "sha256x8.c", 
+                            "sha256x8.c",
                             "hash_sha2.c",
                         ]);
                     } else if hash == "shake" {
@@ -370,7 +406,7 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                             "hash_shake.c",
                         ]);
                     }
-                    
+
                     c_files.push(thash_file.as_str());
 
                     let defines = vec![
@@ -406,17 +442,33 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     security, opt, thash
                 );
 
-                let param_file_path = aesni_dir.join("params").join(format!("params-{}.h", param_set));
+                let param_file_path = aesni_dir
+                    .join("params")
+                    .join(format!("params-{}.h", param_set));
                 if !param_file_path.exists() {
-                    eprintln!("[build.rs] Missing SPHINCS+ AESNI parameter file: {}", param_file_path.display());
+                    eprintln!(
+                        "[build.rs] Missing SPHINCS+ AESNI parameter file: {}",
+                        param_file_path.display()
+                    );
                     std::process::exit(1);
                 }
 
-                let base_files = ["address.c", "fors.c", "sign.c", "utils.c", "wots.c", 
-                                 "randombytes.c", "haraka.c", "hash_haraka.c"];
+                let base_files = [
+                    "address.c",
+                    "fors.c",
+                    "sign.c",
+                    "utils.c",
+                    "wots.c",
+                    "randombytes.c",
+                    "haraka.c",
+                    "hash_haraka.c",
+                ];
                 for file in &base_files {
                     if !aesni_dir.join(file).exists() {
-                        eprintln!("[build.rs] Missing SPHINCS+ AESNI C file: {}", aesni_dir.join(file).display());
+                        eprintln!(
+                            "[build.rs] Missing SPHINCS+ AESNI C file: {}",
+                            aesni_dir.join(file).display()
+                        );
                         std::process::exit(1);
                     }
                 }
