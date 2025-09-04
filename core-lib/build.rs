@@ -449,7 +449,6 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
         }
     }
 }
-*/
 
 struct PQBuilder<'a> {
     lib_name: String,
