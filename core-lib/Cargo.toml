@@ -12,8 +12,8 @@ authors = ["Cypheron Labs"]
 rust-version = "1.80"
 keywords = ["post-quantum-cryptography", "quantum-resistant", "enterprise-crypto", "pqc", "nist"]
 categories = ["cryptography", "api-bindings"]
-readme = "README.md"
-exclude = ["vendor/", "target/", "benchmarks/target/", "tests/fuzz/target/"]
+readme = "../README.md"
+exclude = ["target/", "benchmarks/target/", "tests/fuzz/target/"]
 
 [dependencies]
 secrecy = "0.10.3"
