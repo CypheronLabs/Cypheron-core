@@ -272,16 +272,12 @@ mod tests {
 
     #[test]
     fn test_hybrid_kem_roundtrip() {
-        // Generate keypair
         let (public_key, secret_key) = P256MlKem768::keypair().unwrap();
 
-        // Encapsulate
         let (ciphertext, shared_secret_1) = P256MlKem768::encapsulate(&public_key).unwrap();
 
-        // Decapsulate
         let shared_secret_2 = P256MlKem768::decapsulate(&ciphertext, &secret_key).unwrap();
 
-        // Verify shared secrets match
         assert_eq!(shared_secret_1.as_bytes(), shared_secret_2.as_bytes());
     }
 
@@ -293,7 +289,6 @@ mod tests {
         let (_, shared_secret_1) = P256MlKem768::encapsulate(&public_key_1).unwrap();
         let (_, shared_secret_2) = P256MlKem768::encapsulate(&public_key_2).unwrap();
 
-        // Different keys should produce different shared secrets
         assert_ne!(shared_secret_1.as_bytes(), shared_secret_2.as_bytes());
     }
 
@@ -309,11 +304,9 @@ mod tests {
     fn test_multiple_encapsulations_different_ciphertexts() {
         let (public_key, secret_key) = P256MlKem768::keypair().unwrap();
 
-        // Same public key should produce different ciphertexts due to randomness
         let (ciphertext_1, shared_secret_1) = P256MlKem768::encapsulate(&public_key).unwrap();
         let (ciphertext_2, shared_secret_2) = P256MlKem768::encapsulate(&public_key).unwrap();
 
-        // Ciphertexts should be different (randomized)
         assert_ne!(
             ciphertext_1.classical_ephemeral,
             ciphertext_2.classical_ephemeral
@@ -323,14 +316,12 @@ mod tests {
             ciphertext_2.post_quantum_ciphertext
         );
 
-        // But both should decrypt correctly to different shared secrets
         let decrypted_1 = P256MlKem768::decapsulate(&ciphertext_1, &secret_key).unwrap();
         let decrypted_2 = P256MlKem768::decapsulate(&ciphertext_2, &secret_key).unwrap();
 
         assert_eq!(shared_secret_1.as_bytes(), decrypted_1.as_bytes());
         assert_eq!(shared_secret_2.as_bytes(), decrypted_2.as_bytes());
 
-        // Different encapsulations should produce different secrets
         assert_ne!(shared_secret_1.as_bytes(), shared_secret_2.as_bytes());
     }
 
@@ -339,9 +330,7 @@ mod tests {
         let (public_key, _) = P256MlKem768::keypair().unwrap();
         let (ciphertext, _) = P256MlKem768::encapsulate(&public_key).unwrap();
 
-        // P-256 public key should be 65 bytes (uncompressed)
         assert_eq!(ciphertext.classical_ephemeral.len(), 65);
-        // ML-KEM-768 ciphertext should be 1088 bytes
         assert_eq!(
             ciphertext.post_quantum_ciphertext.len(),
             sizes::ML_KEM_768_CIPHERTEXT
@@ -352,9 +341,7 @@ mod tests {
     fn test_public_key_sizes() {
         let (public_key, _) = P256MlKem768::keypair().unwrap();
 
-        // P-256 public key should be 65 bytes (uncompressed)
         assert_eq!(public_key.classical.0.len(), 65);
-        // ML-KEM-768 public key should be 1184 bytes
         assert_eq!(public_key.post_quantum.0.len(), sizes::ML_KEM_768_PUBLIC);
     }
 
@@ -363,14 +350,12 @@ mod tests {
         let (public_key, _) = P256MlKem768::keypair().unwrap();
         let (ciphertext, _) = P256MlKem768::encapsulate(&public_key).unwrap();
 
-        // Test public key serialization
         let pk_serialized = serde_json::to_vec(&public_key).unwrap();
         let pk_deserialized: CompositePublicKey<P256PublicKeyWrapper, MlKemPublicKeyWrapper> =
             serde_json::from_slice(&pk_serialized).unwrap();
         assert_eq!(public_key.classical.0, pk_deserialized.classical.0);
         assert_eq!(public_key.post_quantum.0, pk_deserialized.post_quantum.0);
 
-        // Test ciphertext serialization
         let ct_serialized = serde_json::to_vec(&ciphertext).unwrap();
         let ct_deserialized: HybridCiphertext = serde_json::from_slice(&ct_serialized).unwrap();
         assert_eq!(
@@ -387,7 +372,6 @@ mod tests {
     fn test_invalid_ciphertext_sizes() {
         let (_, secret_key) = P256MlKem768::keypair().unwrap();
 
-        // Test with invalid classical ephemeral key size
         let invalid_ciphertext = HybridCiphertext {
             classical_ephemeral: vec![0u8; 32], // Too short
             post_quantum_ciphertext: vec![0u8; sizes::ML_KEM_768_CIPHERTEXT],
@@ -395,7 +379,6 @@ mod tests {
 
         assert!(P256MlKem768::decapsulate(&invalid_ciphertext, &secret_key).is_err());
 
-        // Test with invalid post-quantum ciphertext size
         let invalid_ciphertext2 = HybridCiphertext {
             classical_ephemeral: vec![0u8; 65],
             post_quantum_ciphertext: vec![0u8; 500], // Wrong size
@@ -408,7 +391,6 @@ mod tests {
     fn test_key_derivation_consistency() {
         let (public_key, secret_key) = P256MlKem768::keypair().unwrap();
 
-        // Multiple encapsulations and decapsulations should be consistent
         for _ in 0..10 {
             let (ciphertext, shared_secret_1) = P256MlKem768::encapsulate(&public_key).unwrap();
             let shared_secret_2 = P256MlKem768::decapsulate(&ciphertext, &secret_key).unwrap();
@@ -418,14 +400,11 @@ mod tests {
 
     #[test]
     fn test_hkdf_domain_separation() {
-        // This test ensures that our HKDF context is properly set up
         let (public_key, _) = P256MlKem768::keypair().unwrap();
         let (_, shared_secret) = P256MlKem768::encapsulate(&public_key).unwrap();
 
-        // Should always be 32 bytes due to HKDF expand
         assert_eq!(shared_secret.as_bytes().len(), 32);
 
-        // Should not be all zeros (extremely unlikely)
         assert_ne!(shared_secret.as_bytes(), &[0u8; 32]);
     }
 
@@ -434,16 +413,12 @@ mod tests {
         let (_, secret_key) = P256MlKem768::keypair().unwrap();
         let mut shared_secret = HybridSharedSecret { key: [1u8; 32] };
 
-        // Verify they have data before zeroization
         assert_ne!(shared_secret.key, [0u8; 32]);
 
-        // Zeroize
         shared_secret.zeroize();
 
-        // Verify zeroization worked
         assert_eq!(shared_secret.key, [0u8; 32]);
 
-        // Secret key should also properly zeroize (tested implicitly through Drop)
         drop(secret_key);
     }
 }

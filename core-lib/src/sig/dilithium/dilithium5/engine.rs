@@ -84,7 +84,6 @@ impl SignatureEngine for Dilithium5Engine {
     }
 
     fn verify(msg: &[u8], sig: &Self::Signature, pk: &Self::PublicKey) -> bool {
-        // Message bounds validation
         if msg.len() > usize::MAX / 2 {
             return false;
         }
@@ -92,7 +91,6 @@ impl SignatureEngine for Dilithium5Engine {
             return false;
         }
 
-        // Buffer size validation
         if sig.0.len() != ML_DSA_87_SIGNATURE {
             return false;
         }
@@ -100,7 +98,6 @@ impl SignatureEngine for Dilithium5Engine {
             return false;
         }
 
-        // Buffer validity validation
         if !sig.0.is_valid_for_ffi() {
             return false;
         }
@@ -108,7 +105,6 @@ impl SignatureEngine for Dilithium5Engine {
             return false;
         }
 
-        // Pointer null checks
         if sig.0.as_ptr().is_null() || msg.as_ptr().is_null() || pk.0.as_ptr().is_null() {
             return false;
         }
