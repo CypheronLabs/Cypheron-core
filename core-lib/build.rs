@@ -292,15 +292,26 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
             }
         }
     }
-    if std::env::var("CYPHERON_DISABLE_AVX2").is_err() && 
+    let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    let is_x86_64 = target_arch == "x86_64";
+    
+    if is_x86_64 && 
+       std::env::var("CYPHERON_DISABLE_AVX2").is_err() && 
        sphincs_dir.join("sha2-avx2").exists() && 
        sphincs_dir.join("shake-avx2").exists() {
+        println!("cargo:warning=Building AVX2 variants for x86_64");
         build_avx2_variants(sphincs_dir, &api_functions);
+    } else if !is_x86_64 {
+        println!("cargo:warning=Skipping AVX2 variants - not x86_64 architecture (detected: {})", target_arch);
     }
 
-    if std::env::var("CYPHERON_DISABLE_AESNI").is_err() && 
+    if is_x86_64 && 
+       std::env::var("CYPHERON_DISABLE_AESNI").is_err() && 
        sphincs_dir.join("haraka-aesni").exists() {
+        println!("cargo:warning=Building AESNI variants for x86_64");
         build_aesni_variants(sphincs_dir, &api_functions);
+    } else if !is_x86_64 {
+        println!("cargo:warning=Skipping AESNI variants - not x86_64 architecture (detected: {})", target_arch);
     }
 
     println!("cargo:rerun-if-changed={}", sphincs_dir.display());
