@@ -1,0 +1,67 @@
+# Cross-platform CI workflow (disabled until Ubuntu build is stable)
+name: Cross Platform Tests
+
+on:
+  workflow_dispatch:  # Only run manually for now
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  #   branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  SKIP_VENDOR_INTEGRITY: 1
+
+jobs:
+  test-cross-platform:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        rust: [stable]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install system dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        # macOS should have clang by default, but ensure it's available
+        xcode-select --install || true
+        
+    - name: Install system dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Install LLVM for Windows
+        choco install llvm --version=18.1.8 -y
+        echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          core-lib/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('core-lib/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+    
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+      working-directory: core-lib
+    
+    - name: Run clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+      working-directory: core-lib
+    
+    - name: Run basic tests
+      run: cargo test --lib --all-features
+      working-directory: core-lib
