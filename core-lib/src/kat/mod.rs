@@ -336,8 +336,8 @@ mod ml_dsa_44_kat_tests {
 mod nist_compliance_tests {
     use super::*;
     use crate::kem::{MlKem1024, MlKem512, MlKem768};
-    use crate::sig::{MlDsa44, MlDsa65, MlDsa87};
     use crate::sig::traits::SignatureEngine;
+    use crate::sig::{MlDsa44, MlDsa65, MlDsa87};
 
     #[test]
     fn test_fips_203_compliance() {

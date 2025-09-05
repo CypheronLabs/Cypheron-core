@@ -451,8 +451,10 @@ mod integration_kat_tests {
         );
 
         let (pk1024, sk1024) = MlKem1024::keypair().expect("ML-KEM-1024 keypair");
-        let (ct1024, ss1024_enc) = MlKem1024::encapsulate(&pk1024).expect("ML-KEM-1024 encapsulation");
-        let ss1024_dec = MlKem1024::decapsulate(&ct1024, &sk1024).expect("ML-KEM-1024 decapsulation");
+        let (ct1024, ss1024_enc) =
+            MlKem1024::encapsulate(&pk1024).expect("ML-KEM-1024 encapsulation");
+        let ss1024_dec =
+            MlKem1024::decapsulate(&ct1024, &sk1024).expect("ML-KEM-1024 decapsulation");
         assert_eq!(
             MlKem1024::expose_shared(&ss1024_enc),
             MlKem1024::expose_shared(&ss1024_dec)
@@ -483,16 +485,21 @@ mod integration_kat_tests {
         // FIPS 203 ML-KEM parameter verification through actual key generation
         let (pk512, _) = MlKem512::keypair().expect("ML-KEM-512 keypair for size test");
         assert_eq!(pk512.0.len(), 800, "FIPS 203: ML-KEM-512 public key size");
-        
+
         let (pk768, _) = MlKem768::keypair().expect("ML-KEM-768 keypair for size test");
         assert_eq!(pk768.0.len(), 1184, "FIPS 203: ML-KEM-768 public key size");
-        
+
         let (pk1024, _) = MlKem1024::keypair().expect("ML-KEM-1024 keypair for size test");
-        assert_eq!(pk1024.0.len(), 1568, "FIPS 203: ML-KEM-1024 public key size");
+        assert_eq!(
+            pk1024.0.len(),
+            1568,
+            "FIPS 203: ML-KEM-1024 public key size"
+        );
 
         // Verify shared secret length compliance
         let (pk, _) = MlKem512::keypair().expect("ML-KEM-512 keypair for compliance test");
-        let (_, ss) = MlKem512::encapsulate(&pk).expect("ML-KEM-512 encapsulation for compliance test");
+        let (_, ss) =
+            MlKem512::encapsulate(&pk).expect("ML-KEM-512 encapsulation for compliance test");
         assert_eq!(
             MlKem512::expose_shared(&ss).len(),
             32,
