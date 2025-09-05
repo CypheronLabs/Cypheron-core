@@ -31,7 +31,7 @@ fn main() {
 
     // Check for required build tools early
     check_build_dependencies();
-    
+
     println!(
         "cargo:warning=[build.rs] Target architecture: {}",
         env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default()
@@ -781,7 +781,7 @@ impl<'a> PQBuilder<'a> {
         };
 
         let mut builder = bindgen::Builder::default()
-            .header(self.src_dir.join(header_file).to_str().unwrap())
+            .header(self.src_dir.join(&header_file).to_str().unwrap())
             .clang_arg(format!("-I{}", self.src_dir.display()));
         let params_dir = self.src_dir.join("params");
         if params_dir.exists() && std::env::var("VERBOSE").is_ok() {
@@ -824,7 +824,7 @@ impl<'a> PQBuilder<'a> {
                 eprintln!("Debug information:");
                 eprintln!(
                     "  Header file: {}",
-                    self.src_dir.join(self.header.as_ref().unwrap()).display()
+                    self.src_dir.join(&header_file).display()
                 );
                 eprintln!("  Include dir: {}", self.src_dir.display());
                 eprintln!(
