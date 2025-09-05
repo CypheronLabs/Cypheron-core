@@ -343,9 +343,9 @@ mod nist_compliance_tests {
     fn test_fips_203_compliance() {
         println!("[INFO] NIST FIPS 203 (ML-KEM) Compliance Validation");
 
-        let _ml_kem_512 = MlKem512::keypair();
-        let _ml_kem_768 = MlKem768::keypair();
-        let _ml_kem_1024 = MlKem1024::keypair();
+        let _ml_kem_512 = MlKem512::keypair().expect("ML-KEM-512 keypair");
+        let _ml_kem_768 = MlKem768::keypair().expect("ML-KEM-768 keypair");
+        let _ml_kem_1024 = MlKem1024::keypair().expect("ML-KEM-1024 keypair");
 
         println!("[INFO] All ML-KEM variants functional: PASS");
     }
