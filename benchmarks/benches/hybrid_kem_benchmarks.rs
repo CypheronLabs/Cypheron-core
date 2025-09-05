@@ -29,8 +29,8 @@ fn benchmark_hybrid_kem_operations(c: &mut Criterion) {
 
     group.bench_function("P256+ML-KEM-768 Encapsulation", |b| {
         b.iter(|| {
-            let (ct, ss) = P256MlKem768::encapsulate(black_box(&pk))
-                .expect("Hybrid encapsulation failed");
+            let (ct, ss) =
+                P256MlKem768::encapsulate(black_box(&pk)).expect("Hybrid encapsulation failed");
             black_box((ct, ss))
         })
     });
@@ -55,8 +55,7 @@ fn benchmark_hybrid_kem_complete_workflow(c: &mut Criterion) {
             let (pk, sk) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
             let (ct, ss1) = P256MlKem768::encapsulate(&pk).expect("Hybrid encapsulation failed");
             let ss2 = P256MlKem768::decapsulate(&ct, &sk).expect("Hybrid decapsulation failed");
-            
-            
+
             assert_eq!(ss1.as_bytes(), ss2.as_bytes());
             black_box(())
         })
@@ -73,8 +72,8 @@ fn benchmark_hybrid_kem_throughput(c: &mut Criterion) {
 
     group.bench_function("P256+ML-KEM-768 Encapsulation Throughput", |b| {
         b.iter(|| {
-            let (ct, ss) = P256MlKem768::encapsulate(black_box(&pk))
-                .expect("Hybrid encapsulation failed");
+            let (ct, ss) =
+                P256MlKem768::encapsulate(black_box(&pk)).expect("Hybrid encapsulation failed");
             black_box((ct, ss))
         })
     });
@@ -93,8 +92,8 @@ fn benchmark_hybrid_kem_batch_operations(c: &mut Criterion) {
                 b.iter(|| {
                     let mut keypairs = Vec::with_capacity(size);
                     for _ in 0..size {
-                        let keypair = P256MlKem768::keypair()
-                            .expect("Hybrid keypair generation failed");
+                        let keypair =
+                            P256MlKem768::keypair().expect("Hybrid keypair generation failed");
                         keypairs.push(keypair);
                     }
                     black_box(keypairs)
@@ -109,12 +108,12 @@ fn benchmark_hybrid_kem_batch_operations(c: &mut Criterion) {
                 let keypairs: Vec<_> = (0..size)
                     .map(|_| P256MlKem768::keypair().expect("Hybrid keypair generation failed"))
                     .collect();
-                
+
                 b.iter(|| {
                     let mut results = Vec::with_capacity(size);
                     for (pk, _) in &keypairs {
-                        let result = P256MlKem768::encapsulate(pk)
-                            .expect("Hybrid encapsulation failed");
+                        let result =
+                            P256MlKem768::encapsulate(pk).expect("Hybrid encapsulation failed");
                         results.push(result);
                     }
                     black_box(results)
@@ -128,19 +127,19 @@ fn benchmark_hybrid_kem_batch_operations(c: &mut Criterion) {
             |b, &size| {
                 let test_data: Vec<_> = (0..size)
                     .map(|_| {
-                        let (pk, sk) = P256MlKem768::keypair()
-                            .expect("Hybrid keypair generation failed");
-                        let (ct, _) = P256MlKem768::encapsulate(&pk)
-                            .expect("Hybrid encapsulation failed");
+                        let (pk, sk) =
+                            P256MlKem768::keypair().expect("Hybrid keypair generation failed");
+                        let (ct, _) =
+                            P256MlKem768::encapsulate(&pk).expect("Hybrid encapsulation failed");
                         (ct, sk)
                     })
                     .collect();
-                
+
                 b.iter(|| {
                     let mut results = Vec::with_capacity(size);
                     for (ct, sk) in &test_data {
-                        let result = P256MlKem768::decapsulate(ct, sk)
-                            .expect("Hybrid decapsulation failed");
+                        let result =
+                            P256MlKem768::decapsulate(ct, sk).expect("Hybrid decapsulation failed");
                         results.push(result);
                     }
                     black_box(results)
@@ -157,23 +156,25 @@ fn benchmark_hybrid_kem_key_reuse(c: &mut Criterion) {
 
     let (pk, _sk) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
 
-    
     group.bench_function("P256+ML-KEM-768 Multiple Encapsulations Same Key", |b| {
         b.iter(|| {
             let mut results = Vec::with_capacity(10);
             for _ in 0..10 {
-                let result = P256MlKem768::encapsulate(black_box(&pk))
-                    .expect("Hybrid encapsulation failed");
+                let result =
+                    P256MlKem768::encapsulate(black_box(&pk)).expect("Hybrid encapsulation failed");
                 results.push(result);
             }
             black_box(results)
         })
     });
 
-    
     let (pk_reuse, sk_reuse) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
     let ciphertexts: Vec<_> = (0..10)
-        .map(|_| P256MlKem768::encapsulate(&pk_reuse).expect("Hybrid encapsulation failed").0)
+        .map(|_| {
+            P256MlKem768::encapsulate(&pk_reuse)
+                .expect("Hybrid encapsulation failed")
+                .0
+        })
         .collect();
 
     group.bench_function("P256+ML-KEM-768 Multiple Decapsulations Same Key", |b| {
@@ -194,49 +195,46 @@ fn benchmark_hybrid_kem_key_reuse(c: &mut Criterion) {
 fn benchmark_hybrid_kem_security_properties(c: &mut Criterion) {
     let mut group = c.benchmark_group("P256+ML-KEM-768 Security Properties");
 
-    
     group.bench_function("P256+ML-KEM-768 Different Keys Different Secrets", |b| {
         b.iter(|| {
             let (pk1, _) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
             let (pk2, _) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
-            
+
             let (_, ss1) = P256MlKem768::encapsulate(&pk1).expect("Hybrid encapsulation failed");
             let (_, ss2) = P256MlKem768::encapsulate(&pk2).expect("Hybrid encapsulation failed");
-            
-            
+
             assert_ne!(ss1.as_bytes(), ss2.as_bytes());
             black_box(())
         })
     });
 
-    
-    group.bench_function("P256+ML-KEM-768 Multiple Encapsulations Different Ciphertexts", |b| {
-        let (pk, sk) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
-        
-        b.iter(|| {
-            let (ct1, ss1) = P256MlKem768::encapsulate(black_box(&pk))
-                .expect("Hybrid encapsulation failed");
-            let (ct2, ss2) = P256MlKem768::encapsulate(black_box(&pk))
-                .expect("Hybrid encapsulation failed");
-            
-            
-            assert_ne!(ct1.classical_ephemeral, ct2.classical_ephemeral);
-            assert_ne!(ct1.post_quantum_ciphertext, ct2.post_quantum_ciphertext);
-            
-            
-            let decrypted1 = P256MlKem768::decapsulate(&ct1, &sk)
-                .expect("Hybrid decapsulation failed");
-            let decrypted2 = P256MlKem768::decapsulate(&ct2, &sk)
-                .expect("Hybrid decapsulation failed");
-            
-            assert_eq!(ss1.as_bytes(), decrypted1.as_bytes());
-            assert_eq!(ss2.as_bytes(), decrypted2.as_bytes());
-            
-            
-            assert_ne!(ss1.as_bytes(), ss2.as_bytes());
-            black_box(())
-        })
-    });
+    group.bench_function(
+        "P256+ML-KEM-768 Multiple Encapsulations Different Ciphertexts",
+        |b| {
+            let (pk, sk) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
+
+            b.iter(|| {
+                let (ct1, ss1) =
+                    P256MlKem768::encapsulate(black_box(&pk)).expect("Hybrid encapsulation failed");
+                let (ct2, ss2) =
+                    P256MlKem768::encapsulate(black_box(&pk)).expect("Hybrid encapsulation failed");
+
+                assert_ne!(ct1.classical_ephemeral, ct2.classical_ephemeral);
+                assert_ne!(ct1.post_quantum_ciphertext, ct2.post_quantum_ciphertext);
+
+                let decrypted1 =
+                    P256MlKem768::decapsulate(&ct1, &sk).expect("Hybrid decapsulation failed");
+                let decrypted2 =
+                    P256MlKem768::decapsulate(&ct2, &sk).expect("Hybrid decapsulation failed");
+
+                assert_eq!(ss1.as_bytes(), decrypted1.as_bytes());
+                assert_eq!(ss2.as_bytes(), decrypted2.as_bytes());
+
+                assert_ne!(ss1.as_bytes(), ss2.as_bytes());
+                black_box(())
+            })
+        },
+    );
 
     group.finish();
 }
@@ -248,19 +246,15 @@ fn benchmark_hybrid_kem_key_sizes(c: &mut Criterion) {
         b.iter(|| {
             let (pk, _sk) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
             let (ct, _ss) = P256MlKem768::encapsulate(&pk).expect("Hybrid encapsulation failed");
-            
-            
+
             assert_eq!(pk.classical.0.len(), 65);
-            
-            
+
             assert_eq!(pk.post_quantum.0.len(), 1184);
-            
-            
+
             assert_eq!(ct.classical_ephemeral.len(), 65);
-            
-            
+
             assert_eq!(ct.post_quantum_ciphertext.len(), 1088);
-            
+
             black_box(())
         })
     });
@@ -271,18 +265,16 @@ fn benchmark_hybrid_kem_key_sizes(c: &mut Criterion) {
 fn benchmark_hybrid_kem_consistency(c: &mut Criterion) {
     let mut group = c.benchmark_group("P256+ML-KEM-768 Consistency Tests");
 
-    
     group.bench_function("P256+ML-KEM-768 Multi-round Consistency", |b| {
         let (pk, sk) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
-        
+
         b.iter(|| {
-            
             for _ in 0..5 {
-                let (ct, ss1) = P256MlKem768::encapsulate(black_box(&pk))
-                    .expect("Hybrid encapsulation failed");
+                let (ct, ss1) =
+                    P256MlKem768::encapsulate(black_box(&pk)).expect("Hybrid encapsulation failed");
                 let ss2 = P256MlKem768::decapsulate(black_box(&ct), black_box(&sk))
                     .expect("Hybrid decapsulation failed");
-                
+
                 assert_eq!(ss1.as_bytes(), ss2.as_bytes());
             }
             black_box(())
@@ -297,13 +289,12 @@ fn benchmark_hybrid_kem_error_handling(c: &mut Criterion) {
 
     let (_, sk) = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
 
-    
     group.bench_function("P256+ML-KEM-768 Invalid Ciphertext Handling", |b| {
         let invalid_ct = HybridCiphertext {
-            classical_ephemeral: vec![0u8; 32], 
-            post_quantum_ciphertext: vec![0u8; 500], 
+            classical_ephemeral: vec![0u8; 32],
+            post_quantum_ciphertext: vec![0u8; 500],
         };
-        
+
         b.iter(|| {
             let result = P256MlKem768::decapsulate(black_box(&invalid_ct), black_box(&sk));
             assert!(result.is_err());
@@ -317,7 +308,6 @@ fn benchmark_hybrid_kem_error_handling(c: &mut Criterion) {
 fn benchmark_hybrid_kem_memory_usage(c: &mut Criterion) {
     let mut group = c.benchmark_group("P256+ML-KEM-768 Memory Usage Patterns");
 
-    
     group.bench_function("P256+ML-KEM-768 Memory Allocation Keygen", |b| {
         b.iter(|| {
             let mut keypairs = Vec::with_capacity(100);
@@ -325,7 +315,7 @@ fn benchmark_hybrid_kem_memory_usage(c: &mut Criterion) {
                 let keypair = P256MlKem768::keypair().expect("Hybrid keypair generation failed");
                 keypairs.push(keypair);
             }
-            
+
             drop(keypairs);
             black_box(())
         })

@@ -175,26 +175,28 @@ fn benchmark_sphincs_operations(c: &mut Criterion) {
 
     group.bench_function("SPHINCS+-SHAKE-128f Keypair Generation", |b| {
         b.iter(|| {
-            let (pk, sk) = core_lib::sig::sphincs::shake_128f::keypair()
-                .expect("Key generation failed");
+            let (pk, sk) =
+                core_lib::sig::sphincs::shake_128f::keypair().expect("Key generation failed");
             black_box((pk, sk))
         })
     });
 
-    let (pk_shake, sk_shake) = core_lib::sig::sphincs::shake_128f::keypair()
-        .expect("Key generation failed");
+    let (pk_shake, sk_shake) =
+        core_lib::sig::sphincs::shake_128f::keypair().expect("Key generation failed");
     group.bench_function("SPHINCS+-SHAKE-128f Signing", |b| {
         b.iter(|| {
             let signature = core_lib::sig::sphincs::shake_128f::sign_detached(
                 black_box(&test_message),
                 black_box(&sk_shake),
-            ).expect("Signing failed");
+            )
+            .expect("Signing failed");
             black_box(signature)
         })
     });
 
-    let signature_shake = core_lib::sig::sphincs::shake_128f::sign_detached(&test_message, &sk_shake)
-        .expect("Signing failed");
+    let signature_shake =
+        core_lib::sig::sphincs::shake_128f::sign_detached(&test_message, &sk_shake)
+            .expect("Signing failed");
     group.bench_function("SPHINCS+-SHAKE-128f Verification", |b| {
         b.iter(|| {
             let result = core_lib::sig::sphincs::shake_128f::verify_detached(
@@ -208,20 +210,21 @@ fn benchmark_sphincs_operations(c: &mut Criterion) {
 
     group.bench_function("SPHINCS+-SHA2-256s Keypair Generation", |b| {
         b.iter(|| {
-            let (pk, sk) = core_lib::sig::sphincs::sha2_256s::keypair()
-                .expect("Key generation failed");
+            let (pk, sk) =
+                core_lib::sig::sphincs::sha2_256s::keypair().expect("Key generation failed");
             black_box((pk, sk))
         })
     });
 
-    let (pk_sha2, sk_sha2) = core_lib::sig::sphincs::sha2_256s::keypair()
-        .expect("Key generation failed");
+    let (pk_sha2, sk_sha2) =
+        core_lib::sig::sphincs::sha2_256s::keypair().expect("Key generation failed");
     group.bench_function("SPHINCS+-SHA2-256s Signing", |b| {
         b.iter(|| {
             let signature = core_lib::sig::sphincs::sha2_256s::sign_detached(
                 black_box(&test_message),
                 black_box(&sk_sha2),
-            ).expect("Signing failed");
+            )
+            .expect("Signing failed");
             black_box(signature)
         })
     });
@@ -241,26 +244,28 @@ fn benchmark_sphincs_operations(c: &mut Criterion) {
 
     group.bench_function("SPHINCS+-HARAKA-192f Keypair Generation", |b| {
         b.iter(|| {
-            let (pk, sk) = core_lib::sig::sphincs::haraka_192f::keypair()
-                .expect("Key generation failed");
+            let (pk, sk) =
+                core_lib::sig::sphincs::haraka_192f::keypair().expect("Key generation failed");
             black_box((pk, sk))
         })
     });
 
-    let (pk_haraka, sk_haraka) = core_lib::sig::sphincs::haraka_192f::keypair()
-        .expect("Key generation failed");
+    let (pk_haraka, sk_haraka) =
+        core_lib::sig::sphincs::haraka_192f::keypair().expect("Key generation failed");
     group.bench_function("SPHINCS+-HARAKA-192f Signing", |b| {
         b.iter(|| {
             let signature = core_lib::sig::sphincs::haraka_192f::sign_detached(
                 black_box(&test_message),
                 black_box(&sk_haraka),
-            ).expect("Signing failed");
+            )
+            .expect("Signing failed");
             black_box(signature)
         })
     });
 
-    let signature_haraka = core_lib::sig::sphincs::haraka_192f::sign_detached(&test_message, &sk_haraka)
-        .expect("Signing failed");
+    let signature_haraka =
+        core_lib::sig::sphincs::haraka_192f::sign_detached(&test_message, &sk_haraka)
+            .expect("Signing failed");
     group.bench_function("SPHINCS+-HARAKA-192f Verification", |b| {
         b.iter(|| {
             let result = core_lib::sig::sphincs::haraka_192f::verify_detached(
@@ -284,13 +289,17 @@ fn benchmark_signature_message_sizes(c: &mut Criterion) {
         let message = vec![0x7Fu8; *size];
 
         group.throughput(Throughput::Bytes(*size as u64));
-        group.bench_with_input(BenchmarkId::new("ML-DSA-44 Signing", size), size, |b, _size| {
-            b.iter(|| {
-                let signature =
-                    MlDsa44::sign(black_box(&message), black_box(&sk)).expect("Signing failed");
-                black_box(signature)
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("ML-DSA-44 Signing", size),
+            size,
+            |b, _size| {
+                b.iter(|| {
+                    let signature =
+                        MlDsa44::sign(black_box(&message), black_box(&sk)).expect("Signing failed");
+                    black_box(signature)
+                })
+            },
+        );
 
         let signature = MlDsa44::sign(&message, &sk).expect("Signing failed");
         group.bench_with_input(

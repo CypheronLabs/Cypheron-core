@@ -20,7 +20,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 /// Quick smoke test for all major algorithm families
 fn benchmark_quick_smoke_test(c: &mut Criterion) {
     let mut group = c.benchmark_group("Quick Smoke Test");
-    
+
     let test_message = b"Quick smoke test message";
 
     group.bench_function("ML-KEM-768 Quick Test", |b| {
@@ -55,11 +55,12 @@ fn benchmark_quick_smoke_test(c: &mut Criterion) {
 
     group.bench_function("SPHINCS+-SHAKE-128f Quick Test", |b| {
         b.iter(|| {
-            let (pk, sk) = core_lib::sig::sphincs::shake_128f::keypair()
-                .expect("Key generation failed");
+            let (pk, sk) =
+                core_lib::sig::sphincs::shake_128f::keypair().expect("Key generation failed");
             let signature = core_lib::sig::sphincs::shake_128f::sign_detached(test_message, &sk)
                 .expect("Signing failed");
-            let result = core_lib::sig::sphincs::shake_128f::verify_detached(&signature, test_message, &pk);
+            let result =
+                core_lib::sig::sphincs::shake_128f::verify_detached(&signature, test_message, &pk);
             assert!(result.is_ok());
             black_box(())
         })
@@ -118,7 +119,10 @@ fn benchmark_security_level_overview(c: &mut Criterion) {
             let (pk, sk) = MlKem1024::keypair().expect("Failed to generate keypair");
             let (ct, ss1) = MlKem1024::encapsulate(&pk).expect("Failed to encapsulate");
             let ss2 = MlKem1024::decapsulate(&ct, &sk).expect("Failed to decapsulate");
-            assert_eq!(MlKem1024::expose_shared(&ss1), MlKem1024::expose_shared(&ss2));
+            assert_eq!(
+                MlKem1024::expose_shared(&ss1),
+                MlKem1024::expose_shared(&ss2)
+            );
             black_box(())
         })
     });

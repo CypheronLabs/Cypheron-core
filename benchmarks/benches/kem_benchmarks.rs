@@ -131,33 +131,33 @@ fn benchmark_kem_security_levels(c: &mut Criterion) {
 
 fn benchmark_kem_throughput(c: &mut Criterion) {
     let mut group = c.benchmark_group("KEM Throughput Analysis");
-    
+
     let (pk_512, sk_512) = MlKem512::keypair().expect("Failed to generate keypair");
     let (pk_768, sk_768) = MlKem768::keypair().expect("Failed to generate keypair");
     let (pk_1024, sk_1024) = MlKem1024::keypair().expect("Failed to generate keypair");
 
     group.throughput(Throughput::Elements(1));
-    
+
     group.bench_function("ML-KEM-512 Encapsulation Throughput", |b| {
         b.iter(|| {
-            let (ct, ss) = MlKem512::encapsulate(black_box(&pk_512))
-                .expect("Failed to encapsulate");
+            let (ct, ss) =
+                MlKem512::encapsulate(black_box(&pk_512)).expect("Failed to encapsulate");
             black_box((ct, ss))
         })
     });
 
     group.bench_function("ML-KEM-768 Encapsulation Throughput", |b| {
         b.iter(|| {
-            let (ct, ss) = MlKem768::encapsulate(black_box(&pk_768))
-                .expect("Failed to encapsulate");
+            let (ct, ss) =
+                MlKem768::encapsulate(black_box(&pk_768)).expect("Failed to encapsulate");
             black_box((ct, ss))
         })
     });
 
     group.bench_function("ML-KEM-1024 Encapsulation Throughput", |b| {
         b.iter(|| {
-            let (ct, ss) = MlKem1024::encapsulate(black_box(&pk_1024))
-                .expect("Failed to encapsulate");
+            let (ct, ss) =
+                MlKem1024::encapsulate(black_box(&pk_1024)).expect("Failed to encapsulate");
             black_box((ct, ss))
         })
     });
@@ -191,7 +191,7 @@ fn benchmark_kem_batch_operations(c: &mut Criterion) {
                 let keypairs: Vec<_> = (0..size)
                     .map(|_| MlKem768::keypair().expect("Failed to generate keypair"))
                     .collect();
-                
+
                 b.iter(|| {
                     let mut results = Vec::with_capacity(size);
                     for (pk, _) in &keypairs {
@@ -216,8 +216,8 @@ fn benchmark_kem_key_reuse(c: &mut Criterion) {
         b.iter(|| {
             let mut results = Vec::with_capacity(10);
             for _ in 0..10 {
-                let result = MlKem768::encapsulate(black_box(&pk_768))
-                    .expect("Failed to encapsulate");
+                let result =
+                    MlKem768::encapsulate(black_box(&pk_768)).expect("Failed to encapsulate");
                 results.push(result);
             }
             black_box(results)

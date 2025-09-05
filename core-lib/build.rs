@@ -24,35 +24,33 @@ const _OS_SUFFIX: &str = "macos";
 const _OS_SUFFIX: &str = "linux";
 
 fn main() {
+    println!("cargo:warning=[build.rs] Starting Cypheron Core build process");
+
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let sphincs_dir = manifest_dir.join("vendor/sphincsplus");
 
-    println!("cargo:warning=Starting Cypheron-core cryptographic library build");
+    // Check for required build tools early
+    check_build_dependencies();
+    
     println!(
-        "cargo:warning=Target architecture: {}",
+        "cargo:warning=[build.rs] Target architecture: {}",
         env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default()
     );
     println!(
-        "cargo:warning=Target OS: {}",
+        "cargo:warning=[build.rs] Target OS: {}",
         env::var("CARGO_CFG_TARGET_OS").unwrap_or_default()
     );
 
     verify_vendor_integrity(&manifest_dir);
 
-    println!("cargo:warning=Building ML-KEM (Kyber) variants...");
+    println!("cargo:warning=[build.rs] Building cryptographic libraries...");
     build_kyber_all(&manifest_dir);
-
-    println!("cargo:warning=Building ML-DSA (Dilithium) variants...");
     build_dilithium_all(&manifest_dir);
-
-    println!("cargo:warning=Building Falcon variants...");
     build_falcon_all(&manifest_dir);
-
-    println!("cargo:warning=Building SPHINCS+ reference variants...");
     build_sphincsplus_all(&sphincs_dir);
 
     if is_x86_architecture() {
-        println!("cargo:warning=Target supports x86/x86_64 intrinsics - building SPHINCS+ Haraka-AESNI variants");
+        println!("cargo:warning=[build.rs] Target supports x86/x86_64 intrinsics - building SPHINCS+ Haraka-AESNI variants");
         let api_functions = vec![
             "crypto_sign_keypair".to_string(),
             "crypto_sign_seed_keypair".to_string(),
@@ -68,20 +66,123 @@ fn main() {
         build_aesni_variants(&sphincs_dir, &api_functions);
     } else {
         println!(
-            "cargo:warning=Target architecture '{}' does not support x86/x86_64 intrinsics",
+            "cargo:warning=[build.rs] Target architecture '{}' does not support x86/x86_64 intrinsics",
             env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default()
         );
-        println!("cargo:warning=Skipping SPHINCS+ Haraka-AESNI variants - using reference implementation only");
-        println!("cargo:warning=This is normal and expected on ARM64, RISC-V, and other non-x86 architectures");
+        println!("cargo:warning=[build.rs] Skipping SPHINCS+ Haraka-AESNI variants - using reference implementation only");
+        println!("cargo:warning=[build.rs] This is normal and expected on ARM64, RISC-V, and other non-x86 architectures");
     }
 
-    println!("cargo:warning=Cypheron-core build completed successfully");
+    println!("cargo:warning=[build.rs] Build process completed successfully");
     println!("cargo:rerun-if-changed=build.rs");
 }
 
 fn is_x86_architecture() -> bool {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     matches!(target_arch.as_str(), "x86" | "x86_64")
+}
+
+fn check_build_dependencies() {
+    println!("cargo:warning=[build.rs] Checking build dependencies...");
+
+    // Check for clang
+    if Command::new("clang")
+        .arg("--version")
+        .output()
+        .map_or(true, |output| !output.status.success())
+    {
+        eprintln!("[build.rs] ERROR: clang not found!");
+        eprintln!("Please install clang:");
+        eprintln!("  Ubuntu/Debian: sudo apt-get install clang libclang-dev build-essential");
+        eprintln!("  macOS: xcode-select --install");
+        eprintln!("  Windows: Install LLVM from https://llvm.org/releases/");
+        std::process::exit(1);
+    }
+
+    // Check for libclang
+    if env::var("LIBCLANG_PATH").is_err() {
+        // Try to detect and set libclang path based on platform
+        let detected_path = detect_libclang_path();
+        if let Some(path) = detected_path {
+            env::set_var("LIBCLANG_PATH", &path);
+            println!(
+                "cargo:warning=[build.rs] Auto-detected LIBCLANG_PATH: {}",
+                path
+            );
+        } else {
+            println!("cargo:warning=[build.rs] Could not auto-detect libclang location");
+            println!("cargo:warning=[build.rs] Trying to use system default libclang");
+        }
+    } else {
+        println!(
+            "cargo:warning=[build.rs] Using LIBCLANG_PATH: {}",
+            env::var("LIBCLANG_PATH").unwrap()
+        );
+    }
+
+    println!("cargo:warning=[build.rs] Build dependencies check completed");
+}
+
+fn detect_libclang_path() -> Option<String> {
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_else(|_| "unknown".to_string());
+
+    match target_os.as_str() {
+        "linux" => {
+            let linux_paths = [
+                "/usr/lib/x86_64-linux-gnu/libclang.so.1",
+                "/usr/lib/libclang.so.1",
+                "/usr/lib64/libclang.so.1",
+                "/usr/lib/x86_64-linux-gnu/libclang.so",
+                "/usr/lib/libclang.so",
+                "/usr/lib64/libclang.so",
+            ];
+
+            for path in &linux_paths {
+                if std::path::Path::new(path).exists() {
+                    if let Some(parent) = std::path::Path::new(path).parent() {
+                        return Some(parent.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+        "macos" => {
+            let macos_paths = [
+                "/opt/homebrew/lib/libclang.dylib",     // Apple Silicon Homebrew
+                "/usr/local/lib/libclang.dylib",        // Intel Homebrew
+                "/Library/Developer/CommandLineTools/usr/lib/libclang.dylib",  // Xcode Command Line Tools
+                "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libclang.dylib",
+            ];
+
+            for path in &macos_paths {
+                if std::path::Path::new(path).exists() {
+                    if let Some(parent) = std::path::Path::new(path).parent() {
+                        return Some(parent.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+        "windows" => {
+            let windows_paths = [
+                "C:\\Program Files\\LLVM\\bin\\libclang.dll",
+                "C:\\Program Files (x86)\\LLVM\\bin\\libclang.dll",
+                "C:\\msys64\\mingw64\\bin\\libclang.dll",
+                "C:\\tools\\llvm\\bin\\libclang.dll",
+            ];
+
+            for path in &windows_paths {
+                if std::path::Path::new(path).exists() {
+                    if let Some(parent) = std::path::Path::new(path).parent() {
+                        return Some(parent.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+        _ => {
+            println!("cargo:warning=[build.rs] Unknown target OS: {}", target_os);
+        }
+    }
+
+    None
 }
 
 fn verify_vendor_integrity(manifest_dir: &Path) {
@@ -146,11 +247,16 @@ fn build_kyber_all(manifest_dir: &Path) {
         "cbd.c",
     ];
     for file in &required_files {
-        assert!(
-            ref_dir.join(file).exists(),
-            "[build.rs] Missing ML-KEM (Kyber) file: {}",
-            file
-        );
+        let file_path = ref_dir.join(file);
+        if !file_path.exists() {
+            eprintln!(
+                "[build.rs] ERROR: Missing ML-KEM (Kyber) file: {}",
+                file_path.display()
+            );
+            eprintln!("Expected location: {}", file_path.display());
+            eprintln!("Make sure all vendor files are properly checked out and in place.");
+            std::process::exit(1);
+        }
     }
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
         PQBuilder::new(format!("ml_kem_{}", variant), &ref_dir)
@@ -195,11 +301,16 @@ fn build_dilithium_all(manifest_dir: &Path) {
         "randombytes.c",
     ];
     for file in &required_files {
-        assert!(
-            ref_dir.join(file).exists(),
-            "[build.rs] Missing ML-DSA (Dilithium) file: {}",
-            file
-        );
+        let file_path = ref_dir.join(file);
+        if !file_path.exists() {
+            eprintln!(
+                "[build.rs] ERROR: Missing ML-DSA (Dilithium) file: {}",
+                file_path.display()
+            );
+            eprintln!("Expected location: {}", file_path.display());
+            eprintln!("Make sure all vendor files are properly checked out and in place.");
+            std::process::exit(1);
+        }
     }
 
     for level in &["2", "3", "5"] {
@@ -245,11 +356,16 @@ fn build_falcon_all(manifest_dir: &Path) {
         "vrfy.c",
     ];
     for file in &required_files {
-        assert!(
-            ref_dir.join(file).exists(),
-            "[build.rs] Missing Falcon file: {}",
-            file
-        );
+        let file_path = ref_dir.join(file);
+        if !file_path.exists() {
+            eprintln!(
+                "[build.rs] ERROR: Missing Falcon file: {}",
+                file_path.display()
+            );
+            eprintln!("Expected location: {}", file_path.display());
+            eprintln!("Make sure all vendor files are properly checked out and in place.");
+            std::process::exit(1);
+        }
     }
 
     PQBuilder::new("falcon".into(), &ref_dir)
@@ -685,21 +801,55 @@ impl<'a> PQBuilder<'a> {
             builder = builder.allowlist_function(func);
         }
 
+        println!(
+            "cargo:warning=[build.rs] Generating bindings for {}",
+            self.lib_name
+        );
         let bindings = builder.generate();
         match bindings {
             Ok(bindings) => {
                 bindings
                     .write_to_file(&out_bindings)
                     .unwrap_or_else(|_| panic!("Couldn't write bindings for {}", self.lib_name));
+                println!(
+                    "cargo:warning=[build.rs] ✓ Successfully generated bindings for {}",
+                    self.lib_name
+                );
             }
             Err(e) => {
                 eprintln!(
-                    "\n[build.rs] Failed to generate bindings for {}: {}",
+                    "\n[build.rs] ❌ Failed to generate bindings for {}: {}",
                     self.lib_name, e
                 );
-                eprintln!("Make sure libclang is installed and visible.");
-                eprintln!("Try: `sudo apt install libclang-dev`");
-                eprintln!("Or set the environment variable: `LIBCLANG_PATH=/path/to/libclang.so`");
+                eprintln!("Debug information:");
+                eprintln!(
+                    "  Header file: {}",
+                    self.src_dir.join(self.header.as_ref().unwrap()).display()
+                );
+                eprintln!("  Include dir: {}", self.src_dir.display());
+                eprintln!(
+                    "  Target: {}",
+                    env::var("TARGET").unwrap_or_else(|_| "unknown".to_string())
+                );
+                eprintln!(
+                    "  Host: {}",
+                    env::var("HOST").unwrap_or_else(|_| "unknown".to_string())
+                );
+
+                if let Ok(libclang_path) = env::var("LIBCLANG_PATH") {
+                    eprintln!("  LIBCLANG_PATH: {}", libclang_path);
+                } else {
+                    eprintln!("  LIBCLANG_PATH: not set");
+                }
+
+                eprintln!("\nTroubleshooting:");
+                eprintln!("  1. Make sure libclang is installed:");
+                eprintln!("     Ubuntu/Debian: sudo apt-get install libclang-dev clang");
+                eprintln!("     macOS: xcode-select --install");
+                eprintln!("     Windows: Install LLVM from https://llvm.org/releases/");
+                eprintln!("  2. Set LIBCLANG_PATH if needed:");
+                eprintln!("     export LIBCLANG_PATH=/usr/lib/x86_64-linux-gnu");
+                eprintln!("  3. Check that the header file exists and is readable");
                 std::process::exit(1);
             }
         }
@@ -725,8 +875,23 @@ impl<'a> PQBuilder<'a> {
             println!("cargo:rustc-link-lib=framework=Security");
             println!("cargo:rustc-link-lib=framework=CoreFoundation");
 
-            if std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default() == "aarch64" {
-                build.flag_if_supported("-mcpu=apple-m1");
+            let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+            match target_arch.as_str() {
+                "aarch64" => {
+                    println!("cargo:warning=[build.rs] Detected Apple Silicon (ARM64) - using optimized flags");
+                    build.flag_if_supported("-mcpu=apple-m1");
+                    build.flag_if_supported("-mtune=apple-m1");
+                }
+                "x86_64" => {
+                    println!("cargo:warning=[build.rs] Detected Intel macOS - using x86_64 optimizations");
+                    build.flag_if_supported("-march=native");
+                }
+                _ => {
+                    println!(
+                        "cargo:warning=[build.rs] Unknown macOS architecture: {}",
+                        target_arch
+                    );
+                }
             }
         }
 

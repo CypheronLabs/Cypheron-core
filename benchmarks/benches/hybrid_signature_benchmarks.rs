@@ -131,8 +131,8 @@ fn benchmark_hybrid_verification_policies(c: &mut Criterion) {
     let test_message = vec![0x8Du8; 256];
 
     let (pk_hybrid, sk_hybrid) = EccDilithium::keypair().expect("Hybrid key generation failed");
-    let signature_hybrid = EccDilithium::sign(&test_message, &sk_hybrid)
-        .expect("Hybrid signing failed");
+    let signature_hybrid =
+        EccDilithium::sign(&test_message, &sk_hybrid).expect("Hybrid signing failed");
 
     group.bench_function("Hybrid Verification - BothRequired", |b| {
         b.iter(|| {
@@ -189,7 +189,6 @@ fn benchmark_hybrid_algorithm_comparison(c: &mut Criterion) {
     let mut group = c.benchmark_group("Hybrid Algorithm Comparison");
     let test_message = vec![0x9Eu8; 1024];
 
-    
     group.bench_function("ECC+Dilithium Complete Workflow", |b| {
         b.iter(|| {
             let (pk, sk) = EccDilithium::keypair().expect("Hybrid key generation failed");
@@ -239,8 +238,8 @@ fn benchmark_hybrid_batch_operations(c: &mut Criterion) {
                 b.iter(|| {
                     let mut signatures = Vec::with_capacity(size);
                     for (_, sk) in &keypairs {
-                        let signature = EccDilithium::sign(&test_message, sk)
-                            .expect("Hybrid signing failed");
+                        let signature =
+                            EccDilithium::sign(&test_message, sk).expect("Hybrid signing failed");
                         signatures.push(signature);
                     }
                     black_box(signatures)
@@ -252,12 +251,11 @@ fn benchmark_hybrid_batch_operations(c: &mut Criterion) {
             BenchmarkId::new("ECC+Falcon Batch Verification", batch_size),
             batch_size,
             |b, &size| {
-                
                 let test_data: Vec<_> = (0..size)
                     .map(|_| {
                         let (pk, sk) = EccFalcon::keypair().expect("Hybrid key generation failed");
-                        let signature = EccFalcon::sign(&test_message, &sk)
-                            .expect("Hybrid signing failed");
+                        let signature =
+                            EccFalcon::sign(&test_message, &sk).expect("Hybrid signing failed");
                         (pk, signature)
                     })
                     .collect();
@@ -281,26 +279,25 @@ fn benchmark_hybrid_policy_comparison(c: &mut Criterion) {
     let mut group = c.benchmark_group("Hybrid Policy Performance Comparison");
     let test_message = vec![0xBCu8; 512];
 
-    
-    let (pk_dilithium, sk_dilithium) = EccDilithium::keypair().expect("Hybrid key generation failed");
-    let sig_dilithium = EccDilithium::sign(&test_message, &sk_dilithium)
-        .expect("Hybrid signing failed");
+    let (pk_dilithium, sk_dilithium) =
+        EccDilithium::keypair().expect("Hybrid key generation failed");
+    let sig_dilithium =
+        EccDilithium::sign(&test_message, &sk_dilithium).expect("Hybrid signing failed");
 
     let (pk_falcon, sk_falcon) = EccFalcon::keypair().expect("Hybrid key generation failed");
-    let sig_falcon = EccFalcon::sign(&test_message, &sk_falcon)
-        .expect("Hybrid signing failed");
+    let sig_falcon = EccFalcon::sign(&test_message, &sk_falcon).expect("Hybrid signing failed");
 
     let (pk_sphincs, sk_sphincs) = EccSphincs::keypair().expect("Hybrid key generation failed");
-    let sig_sphincs = EccSphincs::sign(&test_message, &sk_sphincs)
-        .expect("Hybrid signing failed");
+    let sig_sphincs = EccSphincs::sign(&test_message, &sk_sphincs).expect("Hybrid signing failed");
 
-    
     for policy in [
         VerificationPolicy::BothRequired,
         VerificationPolicy::EitherValid,
         VerificationPolicy::ClassicalOnly,
         VerificationPolicy::PostQuantumOnly,
-    ].iter() {
+    ]
+    .iter()
+    {
         let policy_name = format!("{:?}", policy);
 
         group.bench_function(&format!("ECC+Dilithium {}", policy_name), |b| {
