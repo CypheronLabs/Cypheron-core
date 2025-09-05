@@ -138,7 +138,7 @@ fn load_ml_dsa_44_vectors() -> Vec<MlDsaKatVector> {
 #[cfg(test)]
 mod ml_kem_512_kat_tests {
     use super::*;
-    use crate::kem::MlKem512;
+    use crate::kem::{Kem, MlKem512};
     use secrecy::ExposeSecret;
 
     #[test]
@@ -197,7 +197,7 @@ mod ml_kem_512_kat_tests {
 #[cfg(test)]
 mod ml_kem_768_kat_tests {
     use super::*;
-    use crate::kem::MlKem768;
+    use crate::kem::{Kem, MlKem768};
     use secrecy::ExposeSecret;
 
     #[test]
@@ -244,7 +244,7 @@ mod ml_kem_768_kat_tests {
 #[cfg(test)]
 mod ml_kem_1024_kat_tests {
     use super::*;
-    use crate::kem::MlKem1024;
+    use crate::kem::{Kem, MlKem1024};
     use secrecy::ExposeSecret;
 
     #[test]
@@ -335,7 +335,7 @@ mod ml_dsa_44_kat_tests {
 #[cfg(test)]
 mod nist_compliance_tests {
     use super::*;
-    use crate::kem::{MlKem1024, MlKem512, MlKem768};
+    use crate::kem::{Kem, MlKem1024, MlKem512, MlKem768};
     use crate::sig::traits::SignatureEngine;
     use crate::sig::{MlDsa44, MlDsa65, MlDsa87};
 
