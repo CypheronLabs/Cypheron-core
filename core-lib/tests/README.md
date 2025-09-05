@@ -13,7 +13,7 @@ The testing infrastructure validates:
 
 ## Directory Structure
 
-```
+```bash
 tests/
 ├── security/           # Security-specific tests
 │   ├── timing_tests.rs         # Timing attack detection
@@ -26,11 +26,11 @@ tests/
 │       ├── fuzz_ml_kem_512.rs
 │       ├── fuzz_ml_dsa_44.rs
 │       └── fuzz_hybrid_ecc_dilithium.rs
-├── kat/               # Known Answer Tests
-│   ├── nist_vectors/          # NIST test vectors
-│   └── kat_tests.rs           # KAT implementation
-├── property/          # Property-based testing
-│   └── crypto_properties.rs   # Cryptographic property validation
+├── kat_tests.rs       # Known Answer Tests (NIST compliance)
+├── crypto_properties.rs # Cryptographic property validation
+├── kyber*_test.rs     # Individual ML-KEM algorithm tests
+├── falcon*_test.rs    # Falcon signature tests
+├── sphincs_*_test.rs  # SPHINCS+ signature tests
 └── README.md          # This file
 ```
 
@@ -150,11 +150,11 @@ cargo bench --bench crypto_benchmarks -- --output-format html
 cargo test --test test_runner
 
 # Individual test categories
-cargo test --test kat_tests           # NIST compliance
-cargo test --test crypto_properties   # Property validation
-cargo test --test timing_tests        # Timing analysis
-cargo test --test memory_safety_tests # Memory safety
-cargo test --test sidechannel_tests   # Side-channel analysis
+cargo test --test kat_tests --all-features           # NIST compliance
+cargo test --test crypto_properties --all-features   # Property validation
+cargo test --test timing_tests --all-features        # Timing analysis
+cargo test --test memory_safety_tests --all-features # Memory safety
+cargo test --test sidechannel_tests --all-features   # Side-channel analysis
 ```
 
 ### CI/CD Integration
@@ -176,11 +176,11 @@ jobs:
     - name: Run Security Tests
       run: |
         cd core-lib
-        cargo test --test kat_tests
-        cargo test --test crypto_properties
-        cargo test --test timing_tests
-        cargo test --test memory_safety_tests
-        cargo test --test sidechannel_tests
+        cargo test --test kat_tests --all-features
+        cargo test --test crypto_properties --all-features
+        cargo test --test timing_tests --all-features
+        cargo test --test memory_safety_tests --all-features
+        cargo test --test sidechannel_tests --all-features
     - name: Run Benchmarks
       run: cargo bench --bench crypto_benchmarks
 ```
@@ -298,9 +298,46 @@ When adding new tests:
 4. Verify tests pass in CI environment
 5. Update this README if adding new test categories
 
+## Architecture Support
+
+### Platform-Specific Builds
+
+The build system automatically detects the target architecture and builds appropriate variants:
+
+**x86/x86_64 (Intel/AMD):**
+- Full support for all algorithms
+- AESNI-accelerated SPHINCS+ variants when available
+- Optimized intrinsics for performance
+
+**ARM64/AArch64 (Apple Silicon, ARM servers):**
+- Full algorithm support using reference implementations  
+- AESNI variants automatically skipped (expected behavior)
+- Performance optimized for ARM architecture
+
+**Other Architectures:**
+- Reference implementations for all algorithms
+- Architecture-specific optimizations where available
+- Graceful fallback for unsupported intrinsics
+
+### Build Warnings
+
+The build process provides informative warnings:
+```
+cargo:warning=Target architecture 'aarch64' does not support x86/x86_64 intrinsics
+cargo:warning=Skipping SPHINCS+ Haraka-AESNI variants - using reference implementation only
+cargo:warning=This is normal and expected on ARM64, RISC-V, and other non-x86 architectures
+```
+
+These warnings are **normal and expected** on non-x86 platforms.
+
 ## Troubleshooting
 
 ### Common Issues
+
+**Build Failures on ARM64/Apple Silicon:**
+- AESNI build warnings are normal - not an error
+- Reference implementations provide full functionality
+- All tests should pass on ARM64 platforms
 
 **Timing Tests Failing:**
 - Ensure stable system load during testing
