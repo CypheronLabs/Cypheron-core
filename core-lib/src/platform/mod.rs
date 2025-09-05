@@ -148,15 +148,22 @@ fn get_cpu_features() -> Vec<String> {
     features
 }
 
+#[allow(clippy::nonminimal_bool)]
 fn has_hardware_rng() -> bool {
     #[cfg(target_arch = "x86_64")]
-    return is_x86_feature_detected!("rdrand") || is_x86_feature_detected!("rdseed");
+    {
+        is_x86_feature_detected!("rdrand") || is_x86_feature_detected!("rdseed")
+    }
 
     #[cfg(target_arch = "aarch64")]
-    return std::arch::is_aarch64_feature_detected!("rand");
+    {
+        std::arch::is_aarch64_feature_detected!("rand")
+    }
 
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
-    return false;
+    {
+        false
+    }
 }
 
 fn has_aes_ni() -> bool {

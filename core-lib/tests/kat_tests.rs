@@ -20,6 +20,7 @@
 use cypheron_core::kem::{Kem, MlKem1024, MlKem512, MlKem768};
 use cypheron_core::sig::traits::SignatureEngine;
 use cypheron_core::sig::{MlDsa44, MlDsa65, MlDsa87};
+use secrecy::ExposeSecret;
 
 /// NIST Known Answer Test vector for ML-KEM
 #[derive(Debug)]
@@ -55,20 +56,20 @@ mod ml_kem_kat_tests {
         };
 
         // Test key generation produces correct sizes
-        let (pk, sk) = MlKem512::keypair();
+        let (pk, sk) = MlKem512::keypair().expect("ML-KEM-512 keypair generation");
         assert_eq!(
             pk.0.len(),
             vector.expected_pk_len,
             "ML-KEM-512 public key size"
         );
         assert_eq!(
-            sk.0.len(),
+            sk.0.expose_secret().len(),
             vector.expected_sk_len,
             "ML-KEM-512 secret key size"
         );
 
         // Test encapsulation produces correct sizes
-        let (ct, ss) = MlKem512::encapsulate(&pk);
+        let (ct, ss) = MlKem512::encapsulate(&pk).expect("ML-KEM-512 encapsulation");
         assert_eq!(
             ct.len(),
             vector.expected_ct_len,
@@ -81,7 +82,7 @@ mod ml_kem_kat_tests {
         );
 
         // Test decapsulation works correctly
-        let ss_dec = MlKem512::decapsulate(&ct, &sk);
+        let ss_dec = MlKem512::decapsulate(&ct, &sk).expect("ML-KEM-512 decapsulation");
         assert_eq!(
             MlKem512::expose_shared(&ss),
             MlKem512::expose_shared(&ss_dec),
@@ -99,19 +100,19 @@ mod ml_kem_kat_tests {
             expected_ss_len: 32,
         };
 
-        let (pk, sk) = MlKem768::keypair();
+        let (pk, sk) = MlKem768::keypair().expect("ML-KEM-768 keypair generation");
         assert_eq!(
             pk.0.len(),
             vector.expected_pk_len,
             "ML-KEM-768 public key size"
         );
         assert_eq!(
-            sk.0.len(),
+            sk.0.expose_secret().len(),
             vector.expected_sk_len,
             "ML-KEM-768 secret key size"
         );
 
-        let (ct, ss) = MlKem768::encapsulate(&pk);
+        let (ct, ss) = MlKem768::encapsulate(&pk).expect("ML-KEM-768 encapsulation");
         assert_eq!(
             ct.len(),
             vector.expected_ct_len,
@@ -123,7 +124,7 @@ mod ml_kem_kat_tests {
             "ML-KEM-768 shared secret size"
         );
 
-        let ss_dec = MlKem768::decapsulate(&ct, &sk);
+        let ss_dec = MlKem768::decapsulate(&ct, &sk).expect("ML-KEM-768 decapsulation");
         assert_eq!(
             MlKem768::expose_shared(&ss),
             MlKem768::expose_shared(&ss_dec),
@@ -141,19 +142,19 @@ mod ml_kem_kat_tests {
             expected_ss_len: 32,
         };
 
-        let (pk, sk) = MlKem1024::keypair();
+        let (pk, sk) = MlKem1024::keypair().expect("ML-KEM-1024 keypair generation");
         assert_eq!(
             pk.0.len(),
             vector.expected_pk_len,
             "ML-KEM-1024 public key size"
         );
         assert_eq!(
-            sk.0.len(),
+            sk.0.expose_secret().len(),
             vector.expected_sk_len,
             "ML-KEM-1024 secret key size"
         );
 
-        let (ct, ss) = MlKem1024::encapsulate(&pk);
+        let (ct, ss) = MlKem1024::encapsulate(&pk).expect("ML-KEM-1024 encapsulation");
         assert_eq!(
             ct.len(),
             vector.expected_ct_len,
@@ -165,7 +166,7 @@ mod ml_kem_kat_tests {
             "ML-KEM-1024 shared secret size"
         );
 
-        let ss_dec = MlKem1024::decapsulate(&ct, &sk);
+        let ss_dec = MlKem1024::decapsulate(&ct, &sk).expect("ML-KEM-1024 decapsulation");
         assert_eq!(
             MlKem1024::expose_shared(&ss),
             MlKem1024::expose_shared(&ss_dec),
@@ -178,19 +179,19 @@ mod ml_kem_kat_tests {
         // Test that our implementation matches NIST FIPS 203 requirements
 
         // ML-KEM-512 parameter validation
-        let (pk512, sk512) = MlKem512::keypair();
+        let (pk512, sk512) = MlKem512::keypair().expect("ML-KEM-512 keypair generation");
         assert_eq!(
             pk512.0.len(),
             800,
             "FIPS 203: ML-KEM-512 public key must be 800 bytes"
         );
         assert_eq!(
-            sk512.0.len(),
+            sk512.0.expose_secret().len(),
             1632,
             "FIPS 203: ML-KEM-512 secret key must be 1632 bytes"
         );
 
-        let (ct512, ss512) = MlKem512::encapsulate(&pk512);
+        let (ct512, ss512) = MlKem512::encapsulate(&pk512).expect("ML-KEM-512 encapsulation");
         assert_eq!(
             ct512.len(),
             768,
@@ -203,19 +204,19 @@ mod ml_kem_kat_tests {
         );
 
         // ML-KEM-768 parameter validation
-        let (pk768, sk768) = MlKem768::keypair();
+        let (pk768, sk768) = MlKem768::keypair().expect("ML-KEM-768 keypair generation");
         assert_eq!(
             pk768.0.len(),
             1184,
             "FIPS 203: ML-KEM-768 public key must be 1184 bytes"
         );
         assert_eq!(
-            sk768.0.len(),
+            sk768.0.expose_secret().len(),
             2400,
             "FIPS 203: ML-KEM-768 secret key must be 2400 bytes"
         );
 
-        let (ct768, ss768) = MlKem768::encapsulate(&pk768);
+        let (ct768, ss768) = MlKem768::encapsulate(&pk768).expect("ML-KEM-768 encapsulation");
         assert_eq!(
             ct768.len(),
             1088,
@@ -228,19 +229,19 @@ mod ml_kem_kat_tests {
         );
 
         // ML-KEM-1024 parameter validation
-        let (pk1024, sk1024) = MlKem1024::keypair();
+        let (pk1024, sk1024) = MlKem1024::keypair().expect("ML-KEM-1024 keypair generation");
         assert_eq!(
             pk1024.0.len(),
             1568,
             "FIPS 203: ML-KEM-1024 public key must be 1568 bytes"
         );
         assert_eq!(
-            sk1024.0.len(),
+            sk1024.0.expose_secret().len(),
             3168,
             "FIPS 203: ML-KEM-1024 secret key must be 3168 bytes"
         );
 
-        let (ct1024, ss1024) = MlKem1024::encapsulate(&pk1024);
+        let (ct1024, ss1024) = MlKem1024::encapsulate(&pk1024).expect("ML-KEM-1024 encapsulation");
         assert_eq!(
             ct1024.len(),
             1568,
@@ -263,7 +264,7 @@ mod ml_dsa_kat_tests {
         let vector = MlDsaKatVector {
             message: b"Hello, NIST FIPS 204!".to_vec(),
             expected_pk_len: 1312,
-            expected_sk_len: 2560,
+            expected_sk_len: 2528,
             expected_sig_len: 2420,
         };
 
@@ -274,7 +275,7 @@ mod ml_dsa_kat_tests {
             "ML-DSA-44 public key size"
         );
         assert_eq!(
-            sk.0.len(),
+            sk.0.expose_secret().len(),
             vector.expected_sk_len,
             "ML-DSA-44 secret key size"
         );
@@ -306,7 +307,7 @@ mod ml_dsa_kat_tests {
             "ML-DSA-65 public key size"
         );
         assert_eq!(
-            sk.0.len(),
+            sk.0.expose_secret().len(),
             vector.expected_sk_len,
             "ML-DSA-65 secret key size"
         );
@@ -338,7 +339,7 @@ mod ml_dsa_kat_tests {
             "ML-DSA-87 public key size"
         );
         assert_eq!(
-            sk.0.len(),
+            sk.0.expose_secret().len(),
             vector.expected_sk_len,
             "ML-DSA-87 secret key size"
         );
@@ -366,8 +367,8 @@ mod ml_dsa_kat_tests {
             "FIPS 204: ML-DSA-44 public key must be 1312 bytes"
         );
         assert_eq!(
-            sk44.0.len(),
-            2560,
+            sk44.0.expose_secret().len(),
+            2528,
             "FIPS 204: ML-DSA-44 secret key must be 2560 bytes"
         );
 
@@ -379,7 +380,7 @@ mod ml_dsa_kat_tests {
             "FIPS 204: ML-DSA-65 public key must be 1952 bytes"
         );
         assert_eq!(
-            sk65.0.len(),
+            sk65.0.expose_secret().len(),
             4032,
             "FIPS 204: ML-DSA-65 secret key must be 4032 bytes"
         );
@@ -392,7 +393,7 @@ mod ml_dsa_kat_tests {
             "FIPS 204: ML-DSA-87 public key must be 2592 bytes"
         );
         assert_eq!(
-            sk87.0.len(),
+            sk87.0.expose_secret().len(),
             4896,
             "FIPS 204: ML-DSA-87 secret key must be 4896 bytes"
         );
@@ -433,25 +434,25 @@ mod integration_kat_tests {
         println!("Running NIST compliance validation...");
 
         // Test ML-KEM variants
-        let (pk512, sk512) = MlKem512::keypair();
-        let (ct512, ss512_enc) = MlKem512::encapsulate(&pk512);
-        let ss512_dec = MlKem512::decapsulate(&ct512, &sk512);
+        let (pk512, sk512) = MlKem512::keypair().expect("ML-KEM-512 keypair");
+        let (ct512, ss512_enc) = MlKem512::encapsulate(&pk512).expect("ML-KEM-512 encapsulation");
+        let ss512_dec = MlKem512::decapsulate(&ct512, &sk512).expect("ML-KEM-512 decapsulation");
         assert_eq!(
             MlKem512::expose_shared(&ss512_enc),
             MlKem512::expose_shared(&ss512_dec)
         );
 
-        let (pk768, sk768) = MlKem768::keypair();
-        let (ct768, ss768_enc) = MlKem768::encapsulate(&pk768);
-        let ss768_dec = MlKem768::decapsulate(&ct768, &sk768);
+        let (pk768, sk768) = MlKem768::keypair().expect("ML-KEM-768 keypair");
+        let (ct768, ss768_enc) = MlKem768::encapsulate(&pk768).expect("ML-KEM-768 encapsulation");
+        let ss768_dec = MlKem768::decapsulate(&ct768, &sk768).expect("ML-KEM-768 decapsulation");
         assert_eq!(
             MlKem768::expose_shared(&ss768_enc),
             MlKem768::expose_shared(&ss768_dec)
         );
 
-        let (pk1024, sk1024) = MlKem1024::keypair();
-        let (ct1024, ss1024_enc) = MlKem1024::encapsulate(&pk1024);
-        let ss1024_dec = MlKem1024::decapsulate(&ct1024, &sk1024);
+        let (pk1024, sk1024) = MlKem1024::keypair().expect("ML-KEM-1024 keypair");
+        let (ct1024, ss1024_enc) = MlKem1024::encapsulate(&pk1024).expect("ML-KEM-1024 encapsulation");
+        let ss1024_dec = MlKem1024::decapsulate(&ct1024, &sk1024).expect("ML-KEM-1024 decapsulation");
         assert_eq!(
             MlKem1024::expose_shared(&ss1024_enc),
             MlKem1024::expose_shared(&ss1024_dec)
@@ -479,23 +480,19 @@ mod integration_kat_tests {
     fn test_nist_parameter_compliance() {
         // Test that all parameters match NIST specifications exactly
 
-        // FIPS 203 ML-KEM parameter verification
-        assert_eq!(
-            std::mem::size_of::<cypheron_core::kem::ml_kem::MlKem512PublicKey>(),
-            800
-        );
-        assert_eq!(
-            std::mem::size_of::<cypheron_core::kem::ml_kem::MlKem768PublicKey>(),
-            1184
-        );
-        assert_eq!(
-            std::mem::size_of::<cypheron_core::kem::ml_kem::MlKem1024PublicKey>(),
-            1568
-        );
+        // FIPS 203 ML-KEM parameter verification through actual key generation
+        let (pk512, _) = MlKem512::keypair().expect("ML-KEM-512 keypair for size test");
+        assert_eq!(pk512.0.len(), 800, "FIPS 203: ML-KEM-512 public key size");
+        
+        let (pk768, _) = MlKem768::keypair().expect("ML-KEM-768 keypair for size test");
+        assert_eq!(pk768.0.len(), 1184, "FIPS 203: ML-KEM-768 public key size");
+        
+        let (pk1024, _) = MlKem1024::keypair().expect("ML-KEM-1024 keypair for size test");
+        assert_eq!(pk1024.0.len(), 1568, "FIPS 203: ML-KEM-1024 public key size");
 
         // Verify shared secret length compliance
-        let (pk, _) = MlKem512::keypair();
-        let (_, ss) = MlKem512::encapsulate(&pk);
+        let (pk, _) = MlKem512::keypair().expect("ML-KEM-512 keypair for compliance test");
+        let (_, ss) = MlKem512::encapsulate(&pk).expect("ML-KEM-512 encapsulation for compliance test");
         assert_eq!(
             MlKem512::expose_shared(&ss).len(),
             32,

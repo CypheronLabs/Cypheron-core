@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::kem::{Kem, MlKem1024, MlKem512, MlKem768};
-use crate::sig::traits::SignatureEngine;
-use crate::sig::{MlDsa44, MlDsa65, MlDsa87};
-use secrecy::ExposeSecret;
 use std::fs;
 use std::path::Path;
 
+#[allow(dead_code)]
 fn simple_hex_decode(s: &str) -> Result<Vec<u8>, String> {
     if s.len() % 2 != 0 {
         return Err("Odd hex string length".to_string());
@@ -33,6 +30,7 @@ fn simple_hex_decode(s: &str) -> Result<Vec<u8>, String> {
     Ok(result)
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct MlKemKatVector {
     pub seed: Vec<u8>,
@@ -42,6 +40,7 @@ struct MlKemKatVector {
     pub shared_secret: Vec<u8>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct MlDsaKatVector {
     pub seed: Vec<u8>,
@@ -51,6 +50,7 @@ struct MlDsaKatVector {
     pub signature: Vec<u8>,
 }
 
+#[allow(dead_code)]
 fn parse_kem_rsp_file(file_path: &str) -> Vec<MlKemKatVector> {
     let content = fs::read_to_string(file_path).expect("Failed to read KAT file");
     let mut vectors = Vec::new();
@@ -92,6 +92,7 @@ fn parse_kem_rsp_file(file_path: &str) -> Vec<MlKemKatVector> {
     vectors
 }
 
+#[allow(dead_code)]
 fn load_ml_kem_512_vectors() -> Vec<MlKemKatVector> {
     let kat_path = "../../tests/PQCkemKAT_1632.rsp";
     if Path::new(kat_path).exists() {
@@ -101,6 +102,7 @@ fn load_ml_kem_512_vectors() -> Vec<MlKemKatVector> {
     }
 }
 
+#[allow(dead_code)]
 fn load_ml_kem_768_vectors() -> Vec<MlKemKatVector> {
     let kat_path = "../../tests/PQCkemKAT_2400.rsp";
     if Path::new(kat_path).exists() {
@@ -110,6 +112,7 @@ fn load_ml_kem_768_vectors() -> Vec<MlKemKatVector> {
     }
 }
 
+#[allow(dead_code)]
 fn load_ml_kem_1024_vectors() -> Vec<MlKemKatVector> {
     let kat_path = "../../tests/PQCkemKAT_3168.rsp";
     if Path::new(kat_path).exists() {
@@ -119,6 +122,7 @@ fn load_ml_kem_1024_vectors() -> Vec<MlKemKatVector> {
     }
 }
 
+#[allow(dead_code)]
 fn load_ml_dsa_44_vectors() -> Vec<MlDsaKatVector> {
     vec![
         MlDsaKatVector {
@@ -134,6 +138,8 @@ fn load_ml_dsa_44_vectors() -> Vec<MlDsaKatVector> {
 #[cfg(test)]
 mod ml_kem_512_kat_tests {
     use super::*;
+    use crate::kem::MlKem512;
+    use secrecy::ExposeSecret;
 
     #[test]
     fn test_ml_kem_512_kat_vectors() {
@@ -191,6 +197,8 @@ mod ml_kem_512_kat_tests {
 #[cfg(test)]
 mod ml_kem_768_kat_tests {
     use super::*;
+    use crate::kem::MlKem768;
+    use secrecy::ExposeSecret;
 
     #[test]
     fn test_ml_kem_768_kat_vectors() {
@@ -236,6 +244,8 @@ mod ml_kem_768_kat_tests {
 #[cfg(test)]
 mod ml_kem_1024_kat_tests {
     use super::*;
+    use crate::kem::MlKem1024;
+    use secrecy::ExposeSecret;
 
     #[test]
     fn test_ml_kem_1024_kat_vectors() {
@@ -284,6 +294,8 @@ mod ml_kem_1024_kat_tests {
 #[cfg(test)]
 mod ml_dsa_44_kat_tests {
     use super::*;
+    use crate::sig::traits::SignatureEngine;
+    use crate::sig::MlDsa44;
 
     #[test]
     fn test_ml_dsa_44_kat_vectors() {
@@ -323,6 +335,9 @@ mod ml_dsa_44_kat_tests {
 #[cfg(test)]
 mod nist_compliance_tests {
     use super::*;
+    use crate::kem::{MlKem1024, MlKem512, MlKem768};
+    use crate::sig::{MlDsa44, MlDsa65, MlDsa87};
+    use crate::sig::traits::SignatureEngine;
 
     #[test]
     fn test_fips_203_compliance() {
