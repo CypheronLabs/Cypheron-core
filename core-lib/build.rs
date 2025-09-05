@@ -28,23 +28,29 @@ fn main() {
     let sphincs_dir = manifest_dir.join("vendor/sphincsplus");
 
     println!("cargo:warning=Starting Cypheron-core cryptographic library build");
-    println!("cargo:warning=Target architecture: {}", env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default());
-    println!("cargo:warning=Target OS: {}", env::var("CARGO_CFG_TARGET_OS").unwrap_or_default());
+    println!(
+        "cargo:warning=Target architecture: {}",
+        env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default()
+    );
+    println!(
+        "cargo:warning=Target OS: {}",
+        env::var("CARGO_CFG_TARGET_OS").unwrap_or_default()
+    );
 
     verify_vendor_integrity(&manifest_dir);
 
     println!("cargo:warning=Building ML-KEM (Kyber) variants...");
     build_kyber_all(&manifest_dir);
-    
+
     println!("cargo:warning=Building ML-DSA (Dilithium) variants...");
     build_dilithium_all(&manifest_dir);
-    
+
     println!("cargo:warning=Building Falcon variants...");
     build_falcon_all(&manifest_dir);
-    
+
     println!("cargo:warning=Building SPHINCS+ reference variants...");
     build_sphincsplus_all(&sphincs_dir);
-    
+
     if is_x86_architecture() {
         println!("cargo:warning=Target supports x86/x86_64 intrinsics - building SPHINCS+ Haraka-AESNI variants");
         let api_functions = vec![
@@ -61,8 +67,10 @@ fn main() {
         ];
         build_aesni_variants(&sphincs_dir, &api_functions);
     } else {
-        println!("cargo:warning=Target architecture '{}' does not support x86/x86_64 intrinsics", 
-                 env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default());
+        println!(
+            "cargo:warning=Target architecture '{}' does not support x86/x86_64 intrinsics",
+            env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default()
+        );
         println!("cargo:warning=Skipping SPHINCS+ Haraka-AESNI variants - using reference implementation only");
         println!("cargo:warning=This is normal and expected on ARM64, RISC-V, and other non-x86 architectures");
     }
@@ -459,7 +467,10 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
     let thash_variants = ["simple", "robust"];
 
     if !aesni_dir.exists() {
-        println!("cargo:warning=AESNI directory not found: {}", aesni_dir.display());
+        println!(
+            "cargo:warning=AESNI directory not found: {}",
+            aesni_dir.display()
+        );
         println!("cargo:warning=Skipping AESNI variants - directory missing");
         return;
     }
@@ -477,7 +488,10 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     security, opt, thash
                 );
 
-                println!("cargo:warning=Building AESNI variant: {} with {}", param_set, thash);
+                println!(
+                    "cargo:warning=Building AESNI variant: {} with {}",
+                    param_set, thash
+                );
 
                 // Check parameter file
                 let param_file_path = aesni_dir
@@ -495,7 +509,7 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                 // Check required source files
                 let base_files = [
                     "address.c",
-                    "fors.c", 
+                    "fors.c",
                     "sign.c",
                     "utils.c",
                     "wots.c",
@@ -532,7 +546,7 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                 let c_files = vec![
                     "address.c",
                     "fors.c",
-                    "sign.c", 
+                    "sign.c",
                     "utils.c",
                     "wots.c",
                     "randombytes.c",
@@ -553,11 +567,17 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                         .build();
                 }) {
                     Ok(_) => {
-                        println!("cargo:warning=Successfully built SPHINCS+ AESNI variant: {}-{}", param_set, thash);
+                        println!(
+                            "cargo:warning=Successfully built SPHINCS+ AESNI variant: {}-{}",
+                            param_set, thash
+                        );
                         successful_builds += 1;
                     }
                     Err(_) => {
-                        println!("cargo:warning=Failed to build SPHINCS+ AESNI variant: {}-{}", param_set, thash);
+                        println!(
+                            "cargo:warning=Failed to build SPHINCS+ AESNI variant: {}-{}",
+                            param_set, thash
+                        );
                         println!("cargo:warning=This may be due to architecture incompatibility - continuing with reference implementation");
                         failed_builds += 1;
                     }
@@ -566,7 +586,10 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
         }
     }
 
-    println!("cargo:warning=AESNI build summary: {} successful, {} failed", successful_builds, failed_builds);
+    println!(
+        "cargo:warning=AESNI build summary: {} successful, {} failed",
+        successful_builds, failed_builds
+    );
     if successful_builds == 0 {
         println!("cargo:warning=No AESNI variants were built successfully - using reference implementation only");
         println!("cargo:warning=This is expected on non-x86 architectures");
