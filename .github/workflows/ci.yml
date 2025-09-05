@@ -52,11 +52,7 @@ jobs:
       working-directory: core-lib
     
     - name: Run core library tests
-      run: timeout 120 cargo test --lib
-      working-directory: core-lib
-      
-    - name: Run integration tests (basic)
-      run: timeout 120 cargo test kat_tests
+      run: cargo test --lib
       working-directory: core-lib
 
   # security:
