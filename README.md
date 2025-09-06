@@ -96,6 +96,7 @@ assert_eq!(shared_secret, recovered_secret);
 
 ### API Documentation
 Run `cargo doc --open` to build and view complete API documentation locally.
+Or visit [cypheron-core-docs](https://cypheronlabs.github.io/Cypheron-core/)
 
 ### Resources
 - **Website:** [cypheronlabs.com](https://cypheronlabs.com/)
