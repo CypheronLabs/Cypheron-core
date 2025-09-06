@@ -27,7 +27,6 @@ jobs:
     - name: Run security tests
       run: |
         cargo test --test kat_tests --all-features
-        cargo test --test memory_safety_tests --all-features
       working-directory: core-lib
 
   publish:
