@@ -1,4 +1,9 @@
+<p align="center">
+  <img alt="Screenshot From 2025-09-06 00-56-53" src="https://github.com/user-attachments/assets/07ad832e-1e70-4c8a-a139-07e89040347d" />
+</p>
+
 # Cypheron Core
+
 
 > **IMPORTANT DEVELOPMENT STATUS NOTICE**
 > 
