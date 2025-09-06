@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::sig::dilithium::common::ML_DSA_44_SECRET;
 use std::fs;
 use std::path::Path;
-use crate::sig::dilithium::common::ML_DSA_44_SECRET;
 
 #[allow(dead_code)]
 fn simple_hex_decode(s: &str) -> Result<Vec<u8>, String> {
@@ -358,23 +358,23 @@ mod ml_dsa_44_kat_tests {
     #[test]
     fn test_ml_dsa_44_kat_vectors() {
         println!("[INFO] Testing ML-DSA-44 implementation");
-        
+
         // Always test basic functionality first
         let (pk, sk) = MlDsa44::keypair().expect("ML-DSA-44 key generation failed");
         assert_eq!(pk.0.len(), 1312, "ML-DSA-44 public key size mismatch");
-        
+
         let test_message = b"test message for ML-DSA-44 KAT";
         let signature = MlDsa44::sign(test_message, &sk).expect("ML-DSA-44 signing failed");
-        
+
         let is_valid = MlDsa44::verify(test_message, &signature, &pk);
         assert!(is_valid, "ML-DSA-44 signature verification failed");
-        
+
         assert_eq!(signature.0.len(), 2420, "ML-DSA-44 signature size mismatch");
         println!("[INFO] ML-DSA-44 basic functionality: PASS");
 
         // Attempt KAT vector testing (non-fatal)
         let vectors = load_ml_dsa_44_vectors();
-        
+
         if vectors.is_empty() {
             println!("[WARN] ML-DSA-44 KAT vectors not found, but basic functionality verified");
             return;
@@ -386,7 +386,11 @@ mod ml_dsa_44_kat_tests {
 
             // Use the KAT vector's keys and message
             let pk = crate::sig::dilithium::dilithium2::types::PublicKey(
-                vector.public_key.clone().try_into().expect("Invalid public key size")
+                vector
+                    .public_key
+                    .clone()
+                    .try_into()
+                    .expect("Invalid public key size"),
             );
             // Handle size difference between KAT format (2544 bytes) and internal format (2560 bytes)
             let mut sk_array = [0u8; ML_DSA_44_SECRET];
@@ -394,12 +398,25 @@ mod ml_dsa_44_kat_tests {
                 // KAT format is 16 bytes smaller, pad with zeros at the end
                 sk_array[..2544].copy_from_slice(&vector.secret_key);
             } else {
-                let sk_temp: [u8; ML_DSA_44_SECRET] = vector.secret_key.clone().try_into()
-                    .map_err(|_| format!("Invalid secret key size: expected {} or 2544, got {}", ML_DSA_44_SECRET, vector.secret_key.len()))
+                let sk_temp: [u8; ML_DSA_44_SECRET] = vector
+                    .secret_key
+                    .clone()
+                    .try_into()
+                    .map_err(|_| {
+                        format!(
+                            "Invalid secret key size: expected {} or 2544, got {}",
+                            ML_DSA_44_SECRET,
+                            vector.secret_key.len()
+                        )
+                    })
                     .expect("Invalid secret key size");
                 sk_array = sk_temp;
             }
-            let sig_array: [u8; 2420] = vector.signature.clone().try_into().expect("Invalid signature size");
+            let sig_array: [u8; 2420] = vector
+                .signature
+                .clone()
+                .try_into()
+                .expect("Invalid signature size");
             let signature = crate::sig::dilithium::dilithium2::types::Signature(sig_array);
 
             // Verify the KAT signature (non-fatal)
@@ -412,8 +429,14 @@ mod ml_dsa_44_kat_tests {
             }
         }
 
-        println!("[INFO] ML-DSA-44 KAT results: {}/{} vectors passed", kat_success_count, vectors.len());
-        println!("[INFO] ML-DSA-44 core functionality verified - implementation ready for publication");
+        println!(
+            "[INFO] ML-DSA-44 KAT results: {}/{} vectors passed",
+            kat_success_count,
+            vectors.len()
+        );
+        println!(
+            "[INFO] ML-DSA-44 core functionality verified - implementation ready for publication"
+        );
     }
 
     #[test]
@@ -432,26 +455,36 @@ mod ml_dsa_44_kat_tests {
         use crate::sig::dilithium::dilithium2::engine::Dilithium2Engine;
         use crate::sig::traits::SignatureEngine;
         use secrecy::ExposeSecret;
-        
+
         println!("[DEBUG] Testing basic ML-DSA-44 sign/verify functionality");
-        
+
         // Generate fresh keypair
         let (pk, sk) = Dilithium2Engine::keypair().unwrap();
-        println!("[DEBUG] Generated keypair - pk length: {}, sk length: {}", pk.0.len(), sk.0.expose_secret().len());
-        
+        println!(
+            "[DEBUG] Generated keypair - pk length: {}, sk length: {}",
+            pk.0.len(),
+            sk.0.expose_secret().len()
+        );
+
         // Test message
         let message = b"Hello, world!";
         println!("[DEBUG] Message: {:?}", message);
-        
+
         // Sign the message
         let signature = Dilithium2Engine::sign(message, &sk).unwrap();
-        println!("[DEBUG] Generated signature - length: {}", signature.0.len());
-        
+        println!(
+            "[DEBUG] Generated signature - length: {}",
+            signature.0.len()
+        );
+
         // Verify the signature
         let is_valid = Dilithium2Engine::verify(message, &signature, &pk);
         println!("[DEBUG] Signature verification result: {}", is_valid);
-        
-        assert!(is_valid, "ML-DSA-44 signature verification failed with fresh keypair");
+
+        assert!(
+            is_valid,
+            "ML-DSA-44 signature verification failed with fresh keypair"
+        );
         println!("[INFO] ML-DSA-44 basic sign/verify: PASS");
     }
 }
