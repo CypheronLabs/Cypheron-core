@@ -264,7 +264,7 @@ mod ml_dsa_kat_tests {
         let vector = MlDsaKatVector {
             message: b"Hello, NIST FIPS 204!".to_vec(),
             expected_pk_len: 1312,
-            expected_sk_len: 2528,
+            expected_sk_len: 2560,
             expected_sig_len: 2420,
         };
 
@@ -368,7 +368,7 @@ mod ml_dsa_kat_tests {
         );
         assert_eq!(
             sk44.0.expose_secret().len(),
-            2528,
+            2560,
             "FIPS 204: ML-DSA-44 secret key must be 2560 bytes"
         );
 
