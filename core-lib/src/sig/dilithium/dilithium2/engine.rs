@@ -34,6 +34,7 @@ impl SignatureEngine for Dilithium2Engine {
         let mut pk = [0u8; ML_DSA_44_PUBLIC];
         let mut sk = [0u8; ML_DSA_44_SECRET];
 
+
         let result = unsafe { pqcrystals_dilithium2_ref_keypair(pk.as_mut_ptr(), sk.as_mut_ptr()) };
         match result {
             0 => Ok((PublicKey(pk), SecretKey(SecretBox::new(sk.into())))),
@@ -58,12 +59,13 @@ impl SignatureEngine for Dilithium2Engine {
         }
 
         let result = unsafe {
+            let empty_context: &[u8] = &[];
             pqcrystals_dilithium2_ref_signature(
                 sig_buffer.as_mut_ptr(),
                 &mut siglen,
                 msg.as_ptr(),
                 msg.len(),
-                std::ptr::null(),
+                empty_context.as_ptr(),
                 0,
                 sk_bytes.as_ptr(),
             )
@@ -100,15 +102,15 @@ impl SignatureEngine for Dilithium2Engine {
             return false;
         }
 
-        let sig_len = sig.0.len();
+
         let result = unsafe {
             pqcrystals_dilithium2_ref_verify(
                 sig.0.as_ptr(),
-                sig_len,
+                sig.0.len(),
                 msg.as_ptr(),
                 msg.len(),
-                std::ptr::null(),
-                0,
+                std::ptr::null(),  
+                0,                 
                 pk.0.as_ptr(),
             )
         };

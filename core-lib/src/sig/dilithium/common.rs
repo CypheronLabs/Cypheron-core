@@ -13,7 +13,7 @@
 // limitations under the License.
 
 pub const ML_DSA_44_PUBLIC: usize = 1312;
-pub const ML_DSA_44_SECRET: usize = 2528;
+pub const ML_DSA_44_SECRET: usize = 2560;
 pub const ML_DSA_44_SIGNATURE: usize = 2420;
 
 pub const ML_DSA_65_PUBLIC: usize = 1952;
