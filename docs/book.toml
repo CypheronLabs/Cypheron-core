@@ -28,7 +28,7 @@ copy-fonts = true
 no-section-label = false
 git-repository-url = "https://github.com/CypheronLabs/Cypheron-core"
 edit-url-template = "https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/{path}"
-site-url = "/cypheron-core/"
+site-url = "/"
 
 [output.html.fold]
 enable = true
