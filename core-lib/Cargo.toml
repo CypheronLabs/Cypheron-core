@@ -65,3 +65,6 @@ derand = []
 
 [lints.rust]
 unexpected_cfgs = { level = "allow", check-cfg = ["cfg(rust_analyzer)"] }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
