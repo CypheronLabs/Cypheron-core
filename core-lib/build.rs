@@ -233,7 +233,7 @@ fn build_kyber_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/kyber/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    let required_files = [
+    let mut required_files = vec![
         "indcpa.c",
         "kem.c",
         "ntt.c",
@@ -242,10 +242,14 @@ fn build_kyber_all(manifest_dir: &Path) {
         "reduce.c",
         "verify.c",
         "symmetric-shake.c",
-        "randombytes.c",
         "fips202.c",
         "cbd.c",
     ];
+    
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    if target_os != "windows" {
+        required_files.push("randombytes.c");
+    }
     for file in &required_files {
         let file_path = ref_dir.join(file);
         if !file_path.exists() {
@@ -259,20 +263,24 @@ fn build_kyber_all(manifest_dir: &Path) {
         }
     }
     for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
+        let mut kyber_files = vec![
+            "indcpa.c",
+            "kem.c",
+            "ntt.c",
+            "poly.c",
+            "polyvec.c",
+            "reduce.c",
+            "verify.c",
+            "symmetric-shake.c",
+            "fips202.c",
+            "cbd.c",
+        ];
+        if target_os != "windows" {
+            kyber_files.push("randombytes.c");
+        }
+
         PQBuilder::new(format!("ml_kem_{}", variant), &ref_dir)
-            .files(vec![
-                "indcpa.c",
-                "kem.c",
-                "ntt.c",
-                "poly.c",
-                "polyvec.c",
-                "reduce.c",
-                "verify.c",
-                "symmetric-shake.c",
-                "randombytes.c",
-                "fips202.c",
-                "cbd.c",
-            ])
+            .files(kyber_files)
             .defines(vec![("KYBER_K", k_val)])
             .header("api.h")
             .allowlist(vec![
@@ -288,7 +296,8 @@ fn build_dilithium_all(manifest_dir: &Path) {
     let ref_dir = manifest_dir.join("vendor/dilithium/ref");
     println!("cargo:rerun-if-changed={}", ref_dir.display());
 
-    let required_files = [
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let mut required_files = vec![
         "sign.c",
         "polyvec.c",
         "poly.c",
@@ -298,8 +307,11 @@ fn build_dilithium_all(manifest_dir: &Path) {
         "rounding.c",
         "symmetric-shake.c",
         "fips202.c",
-        "randombytes.c",
     ];
+    
+    if target_os != "windows" {
+        required_files.push("randombytes.c");
+    }
     for file in &required_files {
         let file_path = ref_dir.join(file);
         if !file_path.exists() {
@@ -314,19 +326,23 @@ fn build_dilithium_all(manifest_dir: &Path) {
     }
 
     for level in &["2", "3", "5"] {
+        let mut dilithium_files = vec![
+            "sign.c",
+            "polyvec.c",
+            "poly.c",
+            "packing.c",
+            "ntt.c",
+            "reduce.c",
+            "rounding.c",
+            "symmetric-shake.c",
+            "fips202.c",
+        ];
+        if target_os != "windows" {
+            dilithium_files.push("randombytes.c");
+        }
+
         PQBuilder::new(format!("ml_dsa_{}", level), &ref_dir)
-            .files(vec![
-                "sign.c",
-                "polyvec.c",
-                "poly.c",
-                "packing.c",
-                "ntt.c",
-                "reduce.c",
-                "rounding.c",
-                "symmetric-shake.c",
-                "fips202.c",
-                "randombytes.c",
-            ])
+            .files(dilithium_files)
             .defines(vec![("DILITHIUM_MODE", level)])
             .header("api.h")
             .allowlist(vec![
@@ -662,17 +678,21 @@ fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     continue;
                 }
 
-                let c_files = vec![
+                let mut c_files = vec![
                     "address.c",
                     "fors.c",
                     "sign.c",
                     "utils.c",
                     "wots.c",
-                    "randombytes.c",
                     "haraka.c",
                     "hash_haraka.c",
                     thash_filename.as_str(),
                 ];
+
+                let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+                if target_os != "windows" {
+                    c_files.push("randombytes.c");
+                }
 
                 let defines = vec![("PARAMS", param_set.as_str()), ("THASH", thash)];
 

@@ -25,11 +25,11 @@ use windows::core::HCRYPTPROV;
 
 #[no_mangle]
 #[cfg(target_os = "windows")]
-pub unsafe extern "C" fn randombytes(x: *mut u8, xlen: u64) -> i32  {
+pub unsafe extern "C" fn randombytes(x: *mut u8, xlen: u64) {
     let mut hprov: HCRYPTPROV = HCRYPTPROV::default();
     let buffer = std::slice::from_raw_parts_mut(x, xlen as usize);
 
-    if CryptAcquireContextW(
+    if !CryptAcquireContextW(
         &mut hprov,
         None,
         None,
