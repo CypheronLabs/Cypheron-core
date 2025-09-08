@@ -13,51 +13,33 @@
 // limitations under the License.
 
 use std::io::{Error, ErrorKind};
+use zeroize::Zeroize;
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     use windows::Win32::Security::Cryptography::{
-        CryptAcquireContextW, CryptGenRandom, CryptReleaseContext, CRYPT_VERIFYCONTEXT, HCRYPTPROV,
-        PROV_RSA_FULL,
+        BCryptGenRandom, BCRYPT_USE_SYSTEM_PREFERRED_RNG,
     };
 
-    unsafe {
-        let mut hprov: HCRYPTPROV = Default::default();
+    let status = unsafe { BCryptGenRandom(None, buffer, BCRYPT_USE_SYSTEM_PREFERRED_RNG) };
 
-        let result =
-            CryptAcquireContextW(&mut hprov, None, None, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
-
-        if !result.as_bool() {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Failed to acquire cryptographic context",
-            ));
-        }
-
-        let gen_result = CryptGenRandom(hprov, buffer.len() as u32, buffer.as_mut_ptr());
-
-        let _ = CryptReleaseContext(hprov, 0);
-
-        if !gen_result.as_bool() {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Failed to generate random bytes",
-            ));
-        }
-
+    if status.is_ok() {
         Ok(())
+    } else {
+        Err(Error::new(
+            ErrorKind::Other,
+            format!("BCryptGenRandom failed with status: {status:?}"),
+        ))
     }
 }
 
 pub fn secure_zero(buffer: &mut [u8]) {
-    use windows::Win32::System::Memory::RtlSecureZeroMemory;
-
-    unsafe {
-        RtlSecureZeroMemory(buffer.as_mut_ptr() as *mut std::ffi::c_void, buffer.len());
-    }
+    buffer.zeroize();
 }
 
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
-    use windows::Win32::System::Memory::{VirtualProtect, PAGE_NOACCESS, PAGE_READWRITE};
+    use windows::Win32::System::Memory::{
+        VirtualProtect, PAGE_NOACCESS, PAGE_PROTECTION_FLAGS, PAGE_READWRITE,
+    };
 
     let protection = if protect {
         PAGE_NOACCESS
@@ -65,33 +47,33 @@ pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
         PAGE_READWRITE
     };
 
-    let mut old_protection = 0u32;
+    let mut old_protection = PAGE_PROTECTION_FLAGS(0);
 
-    unsafe {
-        let result = VirtualProtect(
+    let result = unsafe {
+        VirtualProtect(
             buffer.as_mut_ptr() as *mut std::ffi::c_void,
             buffer.len(),
             protection,
             &mut old_protection,
-        );
+        )
+    };
 
-        if !result.as_bool() {
-            return Err(Error::new(ErrorKind::Other, "Failed to protect memory"));
-        }
+    if result.is_ok() {
+        Ok(())
+    } else {
+        Err(Error::new(ErrorKind::Other, "Failed to protect memory"))
     }
-
-    Ok(())
 }
 
 pub fn get_windows_version() -> String {
-    use windows::Win32::System::SystemInformation::GetVersionExW;
-    use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
+    use windows::Win32::System::SystemInformation::{GetVersion, OSVERSIONINFOW};
 
     unsafe {
         let mut version_info: OSVERSIONINFOW = std::mem::zeroed();
         version_info.dwOSVersionInfoSize = std::mem::size_of::<OSVERSIONINFOW>() as u32;
 
-        if GetVersionExW(&mut version_info).as_bool() {
+        let _ = GetVersion();
+        if version_info.dwMajorVersion != 0 || version_info.dwMinorVersion != 0 {
             format!(
                 "Windows {}.{}.{}",
                 version_info.dwMajorVersion,
@@ -105,17 +87,17 @@ pub fn get_windows_version() -> String {
 }
 
 pub fn is_modern_windows() -> bool {
-    use windows::Win32::System::SystemInformation::GetVersionExW;
+    use std::ffi::c_void;
     use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
+
+    extern "system" {
+        fn RtlGetVersion(VersionInformation: *mut OSVERSIONINFOW) -> i32;
+    }
 
     unsafe {
         let mut version_info: OSVERSIONINFOW = std::mem::zeroed();
         version_info.dwOSVersionInfoSize = std::mem::size_of::<OSVERSIONINFOW>() as u32;
 
-        if GetVersionExW(&mut version_info).as_bool() {
-            version_info.dwMajorVersion >= 10
-        } else {
-            false
-        }
+        RtlGetVersion(&mut version_info) == 0 && version_info.dwMajorVersion >= 10
     }
 }
