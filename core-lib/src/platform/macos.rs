@@ -13,16 +13,15 @@
 // limitations under the License.
 
 use std::io::{Error, ErrorKind};
+use security_framework::random::SecRandom;
+use zeroize::Zeroize;
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
-    use core_foundation::base::{CFType, TCFType};
-    use security_framework::random::SecRandom;
-
-    match SecRandom::system_random().copy_bytes(buffer) {
+    match SecRandom::default().copy_bytes(buffer) {
         Ok(_) => Ok(()),
         Err(e) => Err(Error::new(
             ErrorKind::Other,
-            format!("Failed to generate random bytes: {:?}", e),
+            format!("Failed to generate random bytes on macOS: {:?}", e),
         )),
     }
 }
@@ -37,21 +36,9 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
 }
 
 pub fn secure_zero(buffer: &mut [u8]) {
-    unsafe {
-        libc::memset_s(
-            buffer.as_mut_ptr() as *mut libc::c_void,
-            buffer.len(),
-            0,
-            buffer.len(),
-        );
-    }
+    buffer.zeroize();
 }
 
-pub fn secure_zero_bzero(buffer: &mut [u8]) {
-    unsafe {
-        libc::explicit_bzero(buffer.as_mut_ptr() as *mut libc::c_void, buffer.len());
-    }
-}
 
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use libc::{mprotect, PROT_NONE, PROT_READ, PROT_WRITE};
