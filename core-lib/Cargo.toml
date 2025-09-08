@@ -26,7 +26,7 @@ num_cpus = "1.17"
 p256 = { version = "0.13.2", features = ["ecdsa", "sha256", "ecdh"] }
 sha2 = "0.10.8"
 hkdf = "0.12"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"], optional = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.61.3", features = [
@@ -58,12 +58,69 @@ hex = "0.4"
 
 # Benchmark configurations moved to separate benchmarks crate
 
-[features]
-default = []
-derand = []
 
 [lints.rust]
 unexpected_cfgs = { level = "allow", check-cfg = ["cfg(rust_analyzer)"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[features]
+ml-kem-512 = []
+ml-kem-768 = []
+ml-kem-1024 = []
+ml-kem = ["ml-kem-512", "ml-kem-768", "ml-kem-1024"]
+
+ml-dsa-44 = []
+ml-dsa-65 = []
+ml-dsa-87 = []
+ml-dsa = ["ml-dsa-44", "ml-dsa-65", "ml-dsa-87"]
+
+falcon-512 = []
+falcon-1024 = []
+falcon = ["falcon-512", "falcon-1024"]
+
+sphincs-sha2 = []
+sphincs-shake = []
+sphincs-haraka = []
+sphincs = ["sphincs-sha2", "sphincs-shake", "sphincs-haraka"]
+
+level1 = ["ml-kem-512", "falcon-512", "sphincs-sha2"]
+level3 = ["ml-kem-768", "ml-dsa-65", "sphincs-haraka"]
+level5 = ["ml-kem-1024", "ml-dsa-87", "falcon-1024"]
+
+hybrid-kem = []
+hybrid-sig = []
+hybrid = ["hybrid-kem", "hybrid-sig"]
+
+aesni = []
+avx2 = []
+simd = ["aesni", "avx2"]
+
+platform-entropy = []
+platform-info = []
+
+serde = ["dep:serde"]
+std = []
+testing = []
+
+balanced = ["ml-kem-768", "ml-dsa-44", "hybrid-kem"]
+high-security = ["ml-kem-1024", "ml-dsa-87"]
+low-latency = ["ml-kem-512", "ml-dsa-44"]
+
+all-algorithms = ["ml-kem", "ml-dsa", "falcon", "sphincs"]
+all-hybrids = ["hybrid"]
+
+default = [
+    "ml-kem-768",
+    "ml-dsa-44",
+    "hybrid-kem",
+    "serde",
+    "std",
+    "platform-entropy",
+    "platform-info"
+]
+
+kyber = ["ml-kem"]
+dilithium = ["ml-dsa"]
+derand = []  

@@ -245,7 +245,7 @@ fn build_kyber_all(manifest_dir: &Path) {
         "fips202.c",
         "cbd.c",
     ];
-    
+
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     if target_os != "windows" {
         required_files.push("randombytes.c");
@@ -308,7 +308,7 @@ fn build_dilithium_all(manifest_dir: &Path) {
         "symmetric-shake.c",
         "fips202.c",
     ];
-    
+
     if target_os != "windows" {
         required_files.push("randombytes.c");
     }

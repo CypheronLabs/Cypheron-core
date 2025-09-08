@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::io::{Error, ErrorKind};
 use security_framework::random::SecRandom;
+use std::io::{Error, ErrorKind};
 use zeroize::Zeroize;
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
@@ -38,7 +38,6 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
 pub fn secure_zero(buffer: &mut [u8]) {
     buffer.zeroize();
 }
-
 
 pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
     use libc::{mprotect, PROT_NONE, PROT_READ, PROT_WRITE};

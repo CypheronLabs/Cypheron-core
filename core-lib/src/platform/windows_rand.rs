@@ -13,12 +13,8 @@
 // limitations under the License.
 #[cfg(target_os = "windows")]
 use windows::Win32::Security::Cryptography::{
-    CryptAcquireContextW, 
-    CryptGenRandom,
-    CryptReleaseContext,
-    CRYPT_VERIFYCONTEXT,
-    PROV_RSA_FULL,
-}
+    CryptAcquireContextW, CryptGenRandom, CryptReleaseContext, CRYPT_VERIFYCONTEXT, PROV_RSA_FULL,
+};
 
 #[cfg(target_os = "windows")]
 use windows::core::HCRYPTPROV;
@@ -29,13 +25,7 @@ pub unsafe extern "C" fn randombytes(x: *mut u8, xlen: u64) {
     let mut hprov: HCRYPTPROV = HCRYPTPROV::default();
     let buffer = std::slice::from_raw_parts_mut(x, xlen as usize);
 
-    if !CryptAcquireContextW(
-        &mut hprov,
-        None,
-        None,
-        PROV_RSA_FULL,
-        CRYPT_VERIFYCONTEXT,
-    ).as_bool() {
+    if !CryptAcquireContextW(&mut hprov, None, None, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT).as_bool() {
         eprintln!("Failed to acquire cryptographic context");
         std::process::exit(1);
     }
