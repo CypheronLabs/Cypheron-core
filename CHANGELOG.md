@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-01-08
+
+### Fixed
+- **Windows CI Build**: Fixed linking error for `randombytes` function on Windows builds
+  - Resolved "unresolved external symbol randombytes" linker error
+  - Added proper Windows-specific random number generation using Windows Crypto API
+  - Excluded POSIX-only `randombytes.c` from Windows compilation
+  - Maintained cross-platform compatibility with Linux and macOS
+
+### Added  
+- **Comprehensive Cargo Features**: Added granular feature flags for algorithm selection
+  - Algorithm-specific features: `ml-kem`, `ml-dsa`, `falcon`, `sphincs`
+  - Security level groupings: `level1`, `level3`, `level5` 
+  - Recommended configurations: `balanced`, `high-security`, `low-latency`
+  - Optimization features: `aesni`, `avx2`, `simd`
+  - Platform features: `platform-entropy`, `platform-info`
+  - Hybrid scheme features: `hybrid-kem`, `hybrid-sig`
+  - Utility features: `serde`, `std`, `testing`
+- **Platform Detection**: Enhanced runtime CPU feature detection
+- **Module Organization**: Improved internal module structure for platform-specific code
+
+### Changed
+- **Dependency Management**: Made `serde` dependency optional for better feature control
+- **Build Process**: Enhanced cross-platform build compatibility
+- **API**: Maintained full backward compatibility with v0.1.0
+
+### Technical
+- Fixed module import structure for Windows-specific cryptographic functions
+- Updated Windows API usage to support latest `windows` crate version
+- Improved error handling in platform-specific random number generation
+- Enhanced CI/CD pipeline reliability across all supported platforms
+
 ## [0.1.0] - 2025-01-XX
 
 ### Added
@@ -35,4 +67,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Side-channel attack prevention measures
 - Memory safety guarantees through Rust
 
+[0.1.1]: https://github.com/CypheronLabs/Cypheron-core/releases/tag/v0.1.1
 [0.1.0]: https://github.com/CypheronLabs/Cypheron-core/releases/tag/v0.1.0
