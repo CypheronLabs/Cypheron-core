@@ -1,6 +1,7 @@
 <p align="center">
-  <img alt="Screenshot From 2025-09-06 00-56-53" src="https://github.com/user-attachments/assets/07ad832e-1e70-4c8a-a139-07e89040347d" />
+  <img  alt="logo1" src="https://github.com/user-attachments/assets/23197a38-fc41-4207-9485-2d0ea1689f70" />
 </p>
+
 
 # Cypheron Core
 
