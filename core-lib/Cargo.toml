@@ -1,6 +1,6 @@
 [package]
 name = "cypheron-core"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 build = "build.rs"
 description = "Post-quantum cryptography library with NIST-standardized quantum-resistant algorithms"
