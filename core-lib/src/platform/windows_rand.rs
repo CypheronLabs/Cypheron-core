@@ -16,20 +16,17 @@ use windows::Win32::Security::Cryptography::{
     CryptAcquireContextW, CryptGenRandom, CryptReleaseContext, CRYPT_VERIFYCONTEXT, PROV_RSA_FULL,
 };
 
-#[cfg(target_os = "windows")]
-use windows::core::HCRYPTPROV;
-
 #[no_mangle]
 #[cfg(target_os = "windows")]
 pub unsafe extern "C" fn randombytes(x: *mut u8, xlen: u64) {
-    let mut hprov: HCRYPTPROV = HCRYPTPROV::default();
+    let mut hprov: usize = 0;
     let buffer = std::slice::from_raw_parts_mut(x, xlen as usize);
 
-    if !CryptAcquireContextW(&mut hprov, None, None, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT).as_bool() {
+    if CryptAcquireContextW(&mut hprov, None, None, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT).is_err() {
         eprintln!("Failed to acquire cryptographic context");
         std::process::exit(1);
     }
-    if !CryptGenRandom(hprov, xlen as u32, buffer).as_bool() {
+    if CryptGenRandom(hprov, buffer).is_err() {
         eprintln!("Failed to generate random bytes");
         std::process::exit(1);
     }
