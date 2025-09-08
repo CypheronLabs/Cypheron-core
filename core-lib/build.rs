@@ -436,8 +436,11 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
                         "utilsx1.c",
                         "wots.c",
                         "wotsx1.c",
-                        "randombytes.c",
                     ];
+
+                    if cfg!(not(target_os = "windows")) {
+                        c_files.push("randombytes.c");
+                    }
 
                     match hash {
                         "sha2" => {
