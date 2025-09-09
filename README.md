@@ -5,6 +5,10 @@
 
 # Cypheron Core
 
+[![Crates.io](https://img.shields.io/crates/v/cypheron-core.svg)](https://crates.io/crates/cypheron-core)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Build Status](https://github.com/CypheronLabs/Cypheron-core/workflows/CI/badge.svg)](https://github.com/CypheronLabs/Cypheron-core/actions)
+
 
 > **IMPORTANT DEVELOPMENT STATUS NOTICE**
 > 
@@ -51,7 +55,7 @@ cargo add cypheron-core
 Or add manually to your `Cargo.toml`:
 ```toml
 [dependencies]
-cypheron-core = "0.1.0"
+cypheron-core = "0.1.1"
 ```
 
 ### From Source (for auditing)
