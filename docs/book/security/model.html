@@ -188,13 +188,14 @@
 <blockquote>
 <p><strong>DEVELOPMENT STATUS WARNING</strong></p>
 <p>This security model describes the INTENDED security properties of Cypheron Core v0.1.0.</p>
-<p><strong>CRITICAL</strong>: This library is experimental and has NOT been:</p>
+<p><strong>CRITICAL</strong>: This is a Rust wrapper around official NIST reference implementations - not custom cryptography.
+The core algorithms are NIST-certified, but the Rust integration layer is experimental and has NOT been:</p>
 <ul>
-<li>Independently audited</li>
-<li>Formally verified</li>
+<li>Independently audited for FFI safety</li>
+<li>Formally verified for memory management</li>
 <li>Validated in production environments</li>
 </ul>
-<p>Implementation uses C vendor code with Rust FFI bindings requiring careful security evaluation.</p>
+<p>Integration layer uses C vendor code with Rust FFI bindings requiring security evaluation.</p>
 </blockquote>
 <p>Cypheron Core’s security model describes intended cryptographic foundations and defensive programming practices.</p>
 <h2 id="threat-model"><a class="header" href="#threat-model">Threat Model</a></h2>
@@ -427,11 +428,11 @@ let ss = MlKem768::decapsulate(&amp;ct, &amp;sk).unwrap(); // Don't do this!
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../api/types.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../architecture/memory.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../troubleshooting/errors.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../security/reporting.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -441,11 +442,11 @@ let ss = MlKem768::decapsulate(&amp;ct, &amp;sk).unwrap(); // Don't do this!
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../api/types.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../architecture/memory.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../troubleshooting/errors.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../security/reporting.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

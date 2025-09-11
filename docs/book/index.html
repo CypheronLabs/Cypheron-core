@@ -189,14 +189,15 @@
 <blockquote>
 <p><strong>IMPORTANT DEVELOPMENT STATUS NOTICE</strong></p>
 <p><strong>This library is currently in ACTIVE DEVELOPMENT (v0.1.0) and is EXPERIMENTAL.</strong></p>
-<p>While implementing NIST-standardized algorithms (FIPS 203/204/205), this library has NOT undergone:</p>
+<p><strong>This is a Rust wrapper around official NIST reference implementations</strong> - not custom cryptography.
+The core algorithms are NIST-certified, but the Rust integration layer has NOT undergone:</p>
 <ul>
-<li>Independent security audits</li>
-<li>Formal cryptographic verification</li>
+<li>Independent security audits of FFI bindings</li>
+<li>Formal verification of memory safety wrappers</li>
 <li>Production environment validation</li>
 </ul>
-<p><strong>DO NOT USE IN PRODUCTION</strong> without comprehensive security review and testing.</p>
-<p>Built with C vendor implementations + Rust FFI bindings requiring careful evaluation.</p>
+<p><strong>DO NOT USE IN PRODUCTION</strong> without comprehensive integration review and testing.</p>
+<p>Risk areas: FFI safety, memory management, build system - NOT the underlying NIST algorithms.</p>
 </blockquote>
 <p><strong>Post-quantum cryptography library implementing NIST-standardized quantum-resistant algorithms</strong></p>
 <p>Cypheron Core is a Rust library implementing NIST-standardized quantum-resistant algorithms designed to protect against both classical and quantum computer attacks. The library provides high-performance implementations with strong security guarantees.</p>

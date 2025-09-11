@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>ML-KEM (Key Encapsulation) - Cypheron Core Documentation</title>
+        <title>Vulnerability Reporting - Cypheron Core Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -150,7 +150,7 @@
                         <a href="https://github.com/CypheronLabs/Cypheron-core" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/src/algorithms/ml-kem.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/src/security/reporting.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -184,167 +184,47 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="ml-kem-module-lattice-based-key-encapsulation-mechanism"><a class="header" href="#ml-kem-module-lattice-based-key-encapsulation-mechanism">ML-KEM (Module-Lattice-Based Key Encapsulation Mechanism)</a></h1>
-<p>ML-KEM is the NIST-standardized quantum-resistant key encapsulation mechanism, formerly known as Kyber. It enables secure key exchange that is resistant to both classical and quantum computer attacks.</p>
-<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>ML-KEM is based on the Module Learning With Errors (M-LWE) problem, which is believed to be hard even for quantum computers. The algorithm provides:</p>
+                        <h1 id="vulnerability-reporting"><a class="header" href="#vulnerability-reporting">Vulnerability Reporting</a></h1>
+<p>For comprehensive security vulnerability reporting procedures, please see our <a href="../../SECURITY.html">Security Policy</a>.</p>
+<h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
+<p><strong>For security vulnerabilities, please report privately to:</strong></p>
 <ul>
-<li><strong>Key Encapsulation</strong>: Secure key exchange between parties</li>
-<li><strong>Quantum Resistance</strong>: Security against Shor’s algorithm</li>
-<li><strong>Performance</strong>: Efficient operations suitable for real-world use</li>
-<li><strong>Standardization</strong>: NIST FIPS 203 compliance</li>
+<li>Email: michael@cypheronlabs.com</li>
+<li>Subject Line: [SECURITY] Brief description of issue</li>
 </ul>
-<h2 id="security-levels"><a class="header" href="#security-levels">Security Levels</a></h2>
-<p>Cypheron Core implements all three ML-KEM variants:</p>
-<div class="table-wrapper"><table><thead><tr><th>Variant</th><th>Security Level</th><th>Classical Security</th><th>Quantum Security</th><th>Key Sizes</th></tr></thead><tbody>
-<tr><td>ML-KEM-512</td><td>1</td><td>~128-bit</td><td>~64-bit</td><td>PK: 800B, SK: 1632B</td></tr>
-<tr><td>ML-KEM-768</td><td>3</td><td>~192-bit</td><td>~96-bit</td><td>PK: 1184B, SK: 2400B</td></tr>
-<tr><td>ML-KEM-1024</td><td>5</td><td>~256-bit</td><td>~128-bit</td><td>PK: 1568B, SK: 3168B</td></tr>
-</tbody></table>
-</div>
-<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use cypheron_core::kem::{MlKem768, Kem};
-
-// Generate keypair
-let (public_key, secret_key) = MlKem768::keypair()?;
-
-// Alice encapsulates a shared secret
-let (ciphertext, shared_secret_alice) = MlKem768::encapsulate(&amp;public_key)?;
-
-// Bob decapsulates the shared secret
-let shared_secret_bob = MlKem768::decapsulate(&amp;ciphertext, &amp;secret_key)?;
-
-// Both parties have the same 32-byte shared secret
-assert_eq!(shared_secret_alice.expose_secret(), shared_secret_bob.expose_secret());
-<span class="boring">}</span></code></pre></pre>
-<h2 id="algorithm-details"><a class="header" href="#algorithm-details">Algorithm Details</a></h2>
-<h3 id="key-generation"><a class="header" href="#key-generation">Key Generation</a></h3>
+<p><strong>Please do NOT:</strong></p>
+<ul>
+<li>Open public GitHub issues for security vulnerabilities</li>
+<li>Discuss security issues in public forums or chat rooms</li>
+<li>Share vulnerabilities on social media before resolution</li>
+</ul>
+<h2 id="response-timeline"><a class="header" href="#response-timeline">Response Timeline</a></h2>
+<ul>
+<li><strong>Initial Response:</strong> Within 48 hours of report</li>
+<li><strong>Assessment:</strong> Within 7 days for severity classification</li>
+<li><strong>Resolution:</strong> Timeline depends on complexity and severity</li>
+<li><strong>Disclosure:</strong> Coordinated disclosure after fix is available</li>
+</ul>
+<h2 id="what-to-include"><a class="header" href="#what-to-include">What to Include</a></h2>
 <ol>
-<li>Generate matrix <strong>A</strong> from public randomness</li>
-<li>Generate secret vectors <strong>s</strong> and <strong>e</strong> from centered binomial distribution</li>
-<li>Compute <strong>t = A·s + e</strong></li>
-<li>Public key: <strong>(ρ, t)</strong>, Secret key: <strong>s</strong></li>
+<li><strong>Vulnerability Description:</strong> Clear explanation of the issue</li>
+<li><strong>Impact Assessment:</strong> Potential security implications</li>
+<li><strong>Reproduction Steps:</strong> Detailed steps to reproduce the issue</li>
+<li><strong>Proof of Concept:</strong> Code or commands demonstrating the vulnerability</li>
+<li><strong>Environment Details:</strong> Operating system, Rust version, library version</li>
+<li><strong>Suggested Fix:</strong> If you have recommendations for resolution</li>
 </ol>
-<h3 id="encapsulation"><a class="header" href="#encapsulation">Encapsulation</a></h3>
-<ol>
-<li>Generate ephemeral secret <strong>r</strong> and error vectors <strong>e1</strong>, <strong>e2</strong></li>
-<li>Compute <strong>u = A^T·r + e1</strong></li>
-<li>Compute <strong>v = t^T·r + e2 + Encode(m)</strong></li>
-<li>Return ciphertext <strong>(u, v)</strong> and shared secret <strong>KDF(m)</strong></li>
-</ol>
-<h3 id="decapsulation"><a class="header" href="#decapsulation">Decapsulation</a></h3>
-<ol>
-<li>Compute <strong>m’ = Decode(v - s^T·u)</strong></li>
-<li>Re-encapsulate with <strong>m’</strong> to get <strong>(u’, v’)</strong></li>
-<li>If <strong>(u’, v’) = (u, v)</strong>, return <strong>KDF(m’)</strong>, else return <strong>KDF(z)</strong></li>
-</ol>
-<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
-<p>ML-KEM operations are highly efficient:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::time::Instant;
-use cypheron_core::kem::{MlKem768, Kem};
-
-fn benchmark_ml_kem() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Key generation
-    let start = Instant::now();
-    let (pk, sk) = MlKem768::keypair()?;
-    println!("Keygen: {:?}", start.elapsed());
-    
-    // Encapsulation  
-    let start = Instant::now();
-    let (ct, ss1) = MlKem768::encapsulate(&amp;pk)?;
-    println!("Encaps: {:?}", start.elapsed());
-    
-    // Decapsulation
-    let start = Instant::now();
-    let ss2 = MlKem768::decapsulate(&amp;ct, &amp;sk)?;
-    println!("Decaps: {:?}", start.elapsed());
-    
-    Ok(())
-}
-<span class="boring">}</span></code></pre></pre>
-<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
-<h3 id="proper-usage"><a class="header" href="#proper-usage">Proper Usage</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use cypheron_core::kem::{MlKem768, Kem};
-
-// Correct: Use each key pair only once
-let (pk, sk) = MlKem768::keypair()?;
-let (ct, ss) = MlKem768::encapsulate(&amp;pk)?;
-
-// Correct: Validate ciphertext before decapsulation
-if ct.len() == 1088 { // ML-KEM-768 ciphertext size
-    let ss2 = MlKem768::decapsulate(&amp;ct, &amp;sk)?;
-}
-
-// Incorrect: Reusing the same keypair multiple times
-// This could leak information about the secret key
-<span class="boring">}</span></code></pre></pre>
-<h3 id="side-channel-protection"><a class="header" href="#side-channel-protection">Side-Channel Protection</a></h3>
-<p>All operations use constant-time implementations:</p>
-<ul>
-<li><strong>Constant-time sampling</strong>: Secret values don’t affect execution time</li>
-<li><strong>Constant-time arithmetic</strong>: Operations always take the same time</li>
-<li><strong>Memory access patterns</strong>: No secret-dependent memory accesses</li>
-</ul>
-<h2 id="migration-from-kyber"><a class="header" href="#migration-from-kyber">Migration from Kyber</a></h2>
-<p>Cypheron Core provides compatibility aliases for smooth migration:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Old Kyber code
-use cypheron_core::kem::{Kyber768, KyberError}; // Deprecated
-
-// New ML-KEM code  
-use cypheron_core::kem::{MlKem768, MlKemError}; // Recommended
-
-// Both interfaces are identical
-let (pk, sk) = MlKem768::keypair()?;
-<span class="boring">}</span></code></pre></pre>
-<h2 id="test-vectors"><a class="header" href="#test-vectors">Test Vectors</a></h2>
-<p>Validation against NIST test vectors:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_nist_vectors() {
-        // Test against official NIST ML-KEM test vectors
-        // See tests/kat/ directory for complete vectors
-        let (pk, sk) = MlKem768::keypair().unwrap(); 
-        let (ct, ss1) = MlKem768::encapsulate(&amp;pk).unwrap();
-        let ss2 = MlKem768::decapsulate(&amp;ct, &amp;sk).unwrap();
-        assert_eq!(ss1.expose_secret(), ss2.expose_secret());
-    }
-}
-<span class="boring">}</span></code></pre></pre>
-<h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
-<ul>
-<li><strong><a href="ml-kem/ml-kem-512.html">ML-KEM-512</a></strong> - Security Level 1</li>
-<li><strong><a href="ml-kem/ml-kem-768.html">ML-KEM-768</a></strong> - Security Level 3 (Recommended)</li>
-<li><strong><a href="ml-kem/ml-kem-1024.html">ML-KEM-1024</a></strong> - Security Level 5</li>
-</ul>
-<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
-<ul>
-<li><a href="../api/kem.html">KEM Operations API</a></li>
-<li><a href="../performance/benchmarks.html">Performance Benchmarks</a></li>
-<li><a href="../security/model.html">Security Model</a></li>
-</ul>
+<p>For complete details including scope, security model, and recognition policy, see the full <a href="../../SECURITY.html">Security Policy</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../getting-started/roadmap.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../security/model.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../algorithms/ml-dsa.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../security/unsafe-guide.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -354,11 +234,11 @@ mod tests {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../getting-started/roadmap.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../security/model.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../algorithms/ml-dsa.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../security/unsafe-guide.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

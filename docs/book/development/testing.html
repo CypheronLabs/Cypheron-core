@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Overview - Cypheron Core Documentation</title>
+        <title>Testing - Cypheron Core Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -150,7 +150,7 @@
                         <a href="https://github.com/CypheronLabs/Cypheron-core" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/src/hybrid/overview.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/src/development/testing.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -184,251 +184,246 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="hybrid-cryptography-overview"><a class="header" href="#hybrid-cryptography-overview">Hybrid Cryptography Overview</a></h1>
-<p>Hybrid cryptography combines classical and post-quantum algorithms to provide defense against both current and future cryptographic attacks.</p>
-<h2 id="why-hybrid"><a class="header" href="#why-hybrid">Why Hybrid?</a></h2>
-<p>Hybrid schemes provide multiple layers of security:</p>
-<ol>
-<li><strong>Classical Security</strong>: Protection against traditional computing threats</li>
-<li><strong>Quantum Resistance</strong>: Protection against quantum computer attacks</li>
-<li><strong>Migration Safety</strong>: Smooth transition from classical to post-quantum</li>
-<li><strong>Defense in Depth</strong>: Multiple independent security assumptions</li>
-</ol>
-<h2 id="hybrid-strategies"><a class="header" href="#hybrid-strategies">Hybrid Strategies</a></h2>
-<h3 id="composite-signatures"><a class="header" href="#composite-signatures">Composite Signatures</a></h3>
-<p>Combine classical and post-quantum signature schemes:</p>
+                        <h1 id="testing-and-validation"><a class="header" href="#testing-and-validation">Testing and Validation</a></h1>
+<p>Cypheron Core implements comprehensive testing across multiple validation layers to ensure NIST compliance, cryptographic correctness, and security properties.</p>
+<p>For complete technical details, see <a href="../../ARCHITECTURE.html#testing-and-validation-architecture">Architecture Documentation</a>.</p>
+<h2 id="testing-categories"><a class="header" href="#testing-categories">Testing Categories</a></h2>
+<h3 id="1-known-answer-tests-kat"><a class="header" href="#1-known-answer-tests-kat">1. Known Answer Tests (KAT)</a></h3>
+<p><strong>Purpose:</strong> NIST compliance validation using official test vectors</p>
+<pre><code class="language-bash">cargo test kat_                # Run all KAT tests
+cargo test ml_kem_kat         # ML-KEM specific KAT  
+cargo test ml_dsa_kat         # ML-DSA specific KAT
+</code></pre>
+<p><strong>Coverage:</strong></p>
+<ul>
+<li>FIPS 203 (ML-KEM) compliance validation</li>
+<li>FIPS 204 (ML-DSA) compliance validation</li>
+<li>Parameter compliance verification</li>
+<li>Cross-platform consistency testing</li>
+</ul>
+<h3 id="2-property-based-testing"><a class="header" href="#2-property-based-testing">2. Property-Based Testing</a></h3>
+<p><strong>Purpose:</strong> Cryptographic property verification using proptest</p>
+<pre><code class="language-bash">cargo test property_          # All property-based tests
+cargo test correctness_       # Cryptographic correctness
+cargo test roundtrip_         # Encryption/decryption cycles
+</code></pre>
+<p><strong>Properties Verified:</strong></p>
+<ul>
+<li>Key generation produces valid keypairs</li>
+<li>Encryption/decryption roundtrip correctness</li>
+<li>Signature generation/verification consistency</li>
+<li>Hybrid cryptography composition properties</li>
+</ul>
+<h3 id="3-security-analysis-testing"><a class="header" href="#3-security-analysis-testing">3. Security Analysis Testing</a></h3>
+<p><strong>Purpose:</strong> Security vulnerability detection and validation</p>
+<pre><code class="language-bash">cargo test security_          # Security-focused tests
+cargo test timing_            # Basic timing attack detection  
+cargo test memory_safety_     # Memory safety validation
+</code></pre>
+<p><strong>Security Testing:</strong></p>
+<ul>
+<li>Memory safety validation with sanitizers</li>
+<li>Basic timing attack resistance</li>
+<li>Buffer boundary protection testing</li>
+<li>FFI safety validation</li>
+</ul>
+<h3 id="4-fuzzing-infrastructure"><a class="header" href="#4-fuzzing-infrastructure">4. Fuzzing Infrastructure</a></h3>
+<p><strong>Purpose:</strong> Robustness testing with malformed and edge-case inputs</p>
+<pre><code class="language-bash"># Install cargo-fuzz
+cargo install cargo-fuzz
+
+# Run fuzzing campaigns
+cargo fuzz run fuzz_ml_kem    # ML-KEM fuzzing
+cargo fuzz run fuzz_ml_dsa    # ML-DSA fuzzing  
+cargo fuzz run fuzz_hybrid    # Hybrid crypto fuzzing
+</code></pre>
+<p><strong>Fuzzing Targets:</strong></p>
+<ul>
+<li>Algorithm input validation</li>
+<li>FFI boundary robustness</li>
+<li>Error handling completeness</li>
+<li>Memory safety under stress</li>
+</ul>
+<h3 id="5-performance-benchmarking"><a class="header" href="#5-performance-benchmarking">5. Performance Benchmarking</a></h3>
+<p><strong>Purpose:</strong> Performance regression detection and analysis</p>
+<pre><code class="language-bash">cargo bench                   # Run all benchmarks
+cargo bench ml_kem           # ML-KEM performance
+cargo bench signatures       # Signature algorithm performance
+</code></pre>
+<p><strong>Performance Metrics:</strong></p>
+<ul>
+<li>Key generation timing</li>
+<li>Encryption/decryption performance</li>
+<li>Signature generation/verification speed</li>
+<li>Memory usage analysis</li>
+</ul>
+<h2 id="nist-compliance-testing"><a class="header" href="#nist-compliance-testing">NIST Compliance Testing</a></h2>
+<h3 id="test-vector-validation"><a class="header" href="#test-vector-validation">Test Vector Validation</a></h3>
+<p>The KAT implementation validates against official NIST test vectors:</p>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use cypheron_core::hybrid::{EccDilithium, HybridEngine};
-
-// Generate hybrid keypair (ECC + ML-DSA)
-let (public_key, secret_key) = EccDilithium::keypair()?;
-
-// Create composite signature  
-let message = b"Hybrid signed message";
-let signature = EccDilithium::sign(message, &amp;secret_key)?;
-
-// Verification can use different policies
-let is_valid = EccDilithium::verify(message, &amp;signature, &amp;public_key);
+</span>#[test]
+fn test_ml_kem_768_kat() {
+    // Load NIST test vectors
+    let test_vectors = load_nist_kat_vectors("ML-KEM-768");
+    
+    for vector in test_vectors {
+        // Validate key generation
+        let (pk, sk) = MlKem768::keypair_deterministic(&amp;vector.seed)?;
+        assert_eq!(pk.as_bytes(), &amp;vector.public_key);
+        assert_eq!(sk.as_bytes(), &amp;vector.secret_key);
+        
+        // Validate encapsulation  
+        let (ct, ss) = MlKem768::encapsulate_deterministic(&amp;pk, &amp;vector.enc_seed)?;
+        assert_eq!(ct.as_bytes(), &amp;vector.ciphertext);
+        assert_eq!(ss.expose_secret(), &amp;vector.shared_secret);
+    }
+}
 <span class="boring">}</span></code></pre></pre>
-<h3 id="verification-policies"><a class="header" href="#verification-policies">Verification Policies</a></h3>
-<p>Different policies for signature verification:</p>
+<h3 id="integration-testing"><a class="header" href="#integration-testing">Integration Testing</a></h3>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use cypheron_core::hybrid::VerificationPolicy;
-
-// Strict: Both signatures must be valid
-let strict_valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature, 
-    &amp;public_key,
-    VerificationPolicy::BothRequired
-);
-
-// Relaxed: Either signature can be valid
-let relaxed_valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature,
-    &amp;public_key, 
-    VerificationPolicy::EitherValid
-);
-
-// Migration: Prefer post-quantum but accept classical
-let migration_valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature,
-    &amp;public_key,
-    VerificationPolicy::PostQuantumPreferred
-);
+</span>#[test]
+fn test_algorithm_integration() {
+    // Cross-algorithm compatibility
+    test_hybrid_kem_dsa_integration();
+    
+    // Platform consistency
+    test_cross_platform_compatibility();
+    
+    // Error handling
+    test_comprehensive_error_cases();
+}
 <span class="boring">}</span></code></pre></pre>
-<h2 id="security-analysis"><a class="header" href="#security-analysis">Security Analysis</a></h2>
-<h3 id="combined-security-level"><a class="header" href="#combined-security-level">Combined Security Level</a></h3>
-<p>The security of hybrid schemes depends on verification policy:</p>
-<div class="table-wrapper"><table><thead><tr><th>Policy</th><th>Security Level</th><th>Description</th></tr></thead><tbody>
-<tr><td>BothRequired</td><td>min(classical, pq)</td><td>Weakest component determines security</td></tr>
-<tr><td>EitherValid</td><td>max(classical, pq)</td><td>Strongest component determines security</td></tr>
-<tr><td>PostQuantumPreferred</td><td>post-quantum</td><td>Prioritizes quantum resistance</td></tr>
+<h2 id="security-testing"><a class="header" href="#security-testing">Security Testing</a></h2>
+<h3 id="memory-safety-testing"><a class="header" href="#memory-safety-testing">Memory Safety Testing</a></h3>
+<pre><code class="language-bash"># AddressSanitizer
+RUSTFLAGS="-Zsanitizer=address" cargo test
+
+# MemorySanitizer  
+RUSTFLAGS="-Zsanitizer=memory" cargo test
+
+# ThreadSanitizer
+RUSTFLAGS="-Zsanitizer=thread" cargo test
+</code></pre>
+<h3 id="ffi-boundary-testing"><a class="header" href="#ffi-boundary-testing">FFI Boundary Testing</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_ffi_boundary_safety() {
+    // Buffer boundary validation
+    test_buffer_overflow_protection();
+    
+    // Null pointer handling
+    test_null_pointer_safety();
+    
+    // Invalid input handling
+    test_malformed_input_handling();
+    
+    // Error propagation
+    test_c_error_handling();
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="timing-analysis"><a class="header" href="#timing-analysis">Timing Analysis</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_timing_side_channels() {
+    // Basic constant-time validation
+    let measurements = measure_operation_timing();
+    validate_timing_consistency(&amp;measurements);
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="development-testing-workflow"><a class="header" href="#development-testing-workflow">Development Testing Workflow</a></h2>
+<h3 id="pre-commit-testing"><a class="header" href="#pre-commit-testing">Pre-Commit Testing</a></h3>
+<pre><code class="language-bash">#!/bin/bash
+# scripts/pre-commit-test.sh
+
+# Format check
+cargo fmt --check
+
+# Lint check  
+cargo clippy -- -D warnings
+
+# Unit tests
+cargo test --all
+
+# Integration tests
+cargo test --test integration
+
+# Documentation tests
+cargo test --doc
+</code></pre>
+<h3 id="continuous-integration-testing"><a class="header" href="#continuous-integration-testing">Continuous Integration Testing</a></h3>
+<pre><code class="language-yaml"># .github/workflows/test.yml (excerpt)
+- name: Security Testing
+  run: |
+    # Memory safety testing
+    RUSTFLAGS="-Zsanitizer=address" cargo test
+    
+    # Dependency audit
+    cargo audit
+    
+    # Security lints
+    cargo clippy -- -D warnings -W clippy::all
+</code></pre>
+<h3 id="platform-testing-matrix"><a class="header" href="#platform-testing-matrix">Platform Testing Matrix</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Platform</th><th>Rust Version</th><th>Test Suite</th><th>Additional Validation</th></tr></thead><tbody>
+<tr><td>Linux x86_64</td><td>stable, beta, nightly</td><td>Full</td><td>AddressSanitizer, Valgrind</td></tr>
+<tr><td>macOS x86_64</td><td>stable</td><td>Full</td><td>Instruments profiling</td></tr>
+<tr><td>macOS ARM64</td><td>stable</td><td>Full</td><td>Apple Silicon validation</td></tr>
+<tr><td>Windows x86_64</td><td>stable</td><td>Full</td><td>Visual Studio analysis</td></tr>
 </tbody></table>
 </div>
-<h3 id="attack-scenarios"><a class="header" href="#attack-scenarios">Attack Scenarios</a></h3>
-<p><strong>Quantum Computer Attack:</strong></p>
+<h2 id="test-data-management"><a class="header" href="#test-data-management">Test Data Management</a></h2>
+<h3 id="nist-test-vectors"><a class="header" href="#nist-test-vectors">NIST Test Vectors</a></h3>
+<pre><code>tests/data/
+├── kat/
+│   ├── ml-kem-512.rsp        # NIST KAT for ML-KEM-512
+│   ├── ml-kem-768.rsp        # NIST KAT for ML-KEM-768
+│   ├── ml-kem-1024.rsp       # NIST KAT for ML-KEM-1024
+│   ├── ml-dsa-44.rsp         # NIST KAT for ML-DSA-44
+│   └── ...
+└── vectors/
+    ├── property_test_seeds.txt
+    └── fuzzing_corpus/
+</code></pre>
+<h3 id="test-coverage-reporting"><a class="header" href="#test-coverage-reporting">Test Coverage Reporting</a></h3>
+<pre><code class="language-bash"># Generate coverage report
+cargo install cargo-tarpaulin
+cargo tarpaulin --out Html --output-dir coverage/
+
+# View coverage report
+open coverage/tarpaulin-report.html
+</code></pre>
+<h2 id="contributing-testing"><a class="header" href="#contributing-testing">Contributing Testing</a></h2>
+<h3 id="adding-new-tests"><a class="header" href="#adding-new-tests">Adding New Tests</a></h3>
+<ol>
+<li><strong>Unit Tests</strong>: Add alongside implementation in <code>src/</code></li>
+<li><strong>Integration Tests</strong>: Add to <code>tests/</code> directory</li>
+<li><strong>KAT Tests</strong>: Update with new NIST vectors when available</li>
+<li><strong>Property Tests</strong>: Add to <code>tests/property/</code></li>
+<li><strong>Fuzzing</strong>: Add new fuzz targets in <code>fuzz/</code></li>
+</ol>
+<h3 id="test-quality-standards"><a class="header" href="#test-quality-standards">Test Quality Standards</a></h3>
 <ul>
-<li>Classical component: Broken</li>
-<li>Post-quantum component: Secure</li>
-<li>Result with EitherValid: Secure</li>
+<li><strong>Comprehensive Coverage</strong>: All public APIs tested</li>
+<li><strong>Edge Case Testing</strong>: Boundary conditions validated</li>
+<li><strong>Error Path Testing</strong>: All error conditions exercised</li>
+<li><strong>Performance Testing</strong>: No performance regressions</li>
+<li><strong>Security Testing</strong>: Security properties validated</li>
 </ul>
-<p><strong>Classical Cryptanalysis:</strong></p>
-<ul>
-<li>Classical component: Potentially broken</li>
-<li>Post-quantum component: Secure</li>
-<li>Result with EitherValid: Secure</li>
-</ul>
-<p><strong>Post-Quantum Cryptanalysis:</strong></p>
-<ul>
-<li>Classical component: Secure</li>
-<li>Post-quantum component: Potentially broken</li>
-<li>Result with EitherValid: Secure</li>
-</ul>
-<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
-<h3 id="signature-size"><a class="header" href="#signature-size">Signature Size</a></h3>
-<p>Hybrid signatures combine both signature types:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Individual signature sizes (approximate)
-// ECDSA P-256: ~64 bytes
-// ML-DSA-65: ~3300 bytes  
-// Combined: ~3364 bytes
-
-let (pk, sk) = EccDilithium::keypair()?;
-let signature = EccDilithium::sign(b"message", &amp;sk)?;
-
-println!("Hybrid signature size: {} bytes", signature.len());
-// Output: Hybrid signature size: 3364 bytes
-<span class="boring">}</span></code></pre></pre>
-<h3 id="verification-time"><a class="header" href="#verification-time">Verification Time</a></h3>
-<p>Verification involves both algorithms:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::time::Instant;
-
-let start = Instant::now();
-let valid = EccDilithium::verify(message, &amp;signature, &amp;public_key);
-let duration = start.elapsed();
-
-println!("Hybrid verification: {:?}", duration);
-// Typical: ~0.5ms (classical) + ~0.1ms (post-quantum) = ~0.6ms
-<span class="boring">}</span></code></pre></pre>
-<h2 id="migration-strategies"><a class="header" href="#migration-strategies">Migration Strategies</a></h2>
-<h3 id="phase-1-introduction"><a class="header" href="#phase-1-introduction">Phase 1: Introduction</a></h3>
-<p>Start with relaxed verification policy:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Accept either classical or post-quantum signatures
-let valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature,
-    &amp;public_key,
-    VerificationPolicy::EitherValid
-);
-<span class="boring">}</span></code></pre></pre>
-<h3 id="phase-2-transition"><a class="header" href="#phase-2-transition">Phase 2: Transition</a></h3>
-<p>Require both signatures but log failures:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let strict_valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature,
-    &amp;public_key,
-    VerificationPolicy::BothRequired
-);
-
-if !strict_valid {
-    // Log for monitoring but continue processing
-    log::warn!("Hybrid signature verification failed");
-    
-    // Fallback to relaxed policy during transition
-    let relaxed_valid = EccDilithium::verify_with_policy(
-        message,
-        &amp;signature,
-        &amp;public_key,
-        VerificationPolicy::EitherValid
-    );
-    
-    return relaxed_valid;
-}
-<span class="boring">}</span></code></pre></pre>
-<h3 id="phase-3-post-quantum-only"><a class="header" href="#phase-3-post-quantum-only">Phase 3: Post-Quantum Only</a></h3>
-<p>Eventually migrate to pure post-quantum:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use cypheron_core::sig::{MlDsa65, SignatureEngine};
-
-// Pure post-quantum signatures
-let (pk, sk) = MlDsa65::keypair()?;
-let signature = MlDsa65::sign(message, &amp;sk)?;
-let valid = MlDsa65::verify(message, &amp;signature, &amp;pk);
-<span class="boring">}</span></code></pre></pre>
-<h2 id="configuration-management"><a class="header" href="#configuration-management">Configuration Management</a></h2>
-<h3 id="policy-configuration"><a class="header" href="#policy-configuration">Policy Configuration</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use serde::{Serialize, Deserialize};
-
-#[derive(Serialize, Deserialize)]
-pub struct HybridConfig {
-    pub verification_policy: VerificationPolicy,
-    pub signature_format: SignatureFormat,
-    pub key_rotation_interval: u64, // days
-}
-
-impl Default for HybridConfig {
-    fn default() -&gt; Self {
-        Self {
-            verification_policy: VerificationPolicy::EitherValid,
-            signature_format: SignatureFormat::Concatenated,
-            key_rotation_interval: 90,
-        }
-    }
-}
-<span class="boring">}</span></code></pre></pre>
-<h3 id="environment-based-configuration"><a class="header" href="#environment-based-configuration">Environment-Based Configuration</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::env;
-
-fn get_verification_policy() -&gt; VerificationPolicy {
-    match env::var("CYPHERON_VERIFICATION_POLICY").as_deref() {
-        Ok("strict") =&gt; VerificationPolicy::BothRequired,
-        Ok("relaxed") =&gt; VerificationPolicy::EitherValid,
-        Ok("pq-preferred") =&gt; VerificationPolicy::PostQuantumPreferred,
-        _ =&gt; VerificationPolicy::EitherValid, // Default
-    }
-}
-<span class="boring">}</span></code></pre></pre>
-<h2 id="interoperability"><a class="header" href="#interoperability">Interoperability</a></h2>
-<h3 id="wire-format"><a class="header" href="#wire-format">Wire Format</a></h3>
-<p>Hybrid signatures can use different encoding formats:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Concatenated format: [classical_sig][pq_sig]
-// Tagged format: [tag][len][classical_sig][tag][len][pq_sig]
-// ASN.1 format: Structured encoding with OIDs
-<span class="boring">}</span></code></pre></pre>
-<h3 id="protocol-integration"><a class="header" href="#protocol-integration">Protocol Integration</a></h3>
-<p>Example integration with TLS:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Custom signature scheme identifier
-const HYBRID_ECC_MLDSA: u16 = 0xFE00;
-
-impl SignatureScheme for EccDilithium {
-    fn scheme_id(&amp;self) -&gt; u16 {
-        HYBRID_ECC_MLDSA
-    }
-    
-    fn sign(&amp;self, message: &amp;[u8], key: &amp;PrivateKey) -&gt; Vec&lt;u8&gt; {
-        // Convert from TLS types to Cypheron types
-        let sk = HybridSecretKey::from_tls(key);
-        EccDilithium::sign(message, &amp;sk).unwrap()
-    }
-}
-<span class="boring">}</span></code></pre></pre>
-<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
-<ul>
-<li><a href="ecc-mldsa.html">ECC + ML-DSA</a> - Specific hybrid implementation</li>
-<li><a href="hybrid-kem.html">Hybrid KEM</a> - Key encapsulation mechanisms</li>
-<li><a href="security.html">Security Considerations</a> - Security analysis</li>
-</ul>
+<p>For complete testing architecture including specific test implementations and validation methodologies, see the full <a href="../../ARCHITECTURE.html">Architecture Documentation</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../algorithms/sphincsplus.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../development/build.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../api/types.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../troubleshooting/errors.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -438,11 +433,11 @@ impl SignatureScheme for EccDilithium {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../algorithms/sphincsplus.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../development/build.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../api/types.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../troubleshooting/errors.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

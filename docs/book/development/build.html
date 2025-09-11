@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Overview - Cypheron Core Documentation</title>
+        <title>Build System - Cypheron Core Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -150,7 +150,7 @@
                         <a href="https://github.com/CypheronLabs/Cypheron-core" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/src/hybrid/overview.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/CypheronLabs/Cypheron-core/edit/main/docs/src/development/build.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -184,251 +184,195 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="hybrid-cryptography-overview"><a class="header" href="#hybrid-cryptography-overview">Hybrid Cryptography Overview</a></h1>
-<p>Hybrid cryptography combines classical and post-quantum algorithms to provide defense against both current and future cryptographic attacks.</p>
-<h2 id="why-hybrid"><a class="header" href="#why-hybrid">Why Hybrid?</a></h2>
-<p>Hybrid schemes provide multiple layers of security:</p>
-<ol>
-<li><strong>Classical Security</strong>: Protection against traditional computing threats</li>
-<li><strong>Quantum Resistance</strong>: Protection against quantum computer attacks</li>
-<li><strong>Migration Safety</strong>: Smooth transition from classical to post-quantum</li>
-<li><strong>Defense in Depth</strong>: Multiple independent security assumptions</li>
-</ol>
-<h2 id="hybrid-strategies"><a class="header" href="#hybrid-strategies">Hybrid Strategies</a></h2>
-<h3 id="composite-signatures"><a class="header" href="#composite-signatures">Composite Signatures</a></h3>
-<p>Combine classical and post-quantum signature schemes:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use cypheron_core::hybrid::{EccDilithium, HybridEngine};
-
-// Generate hybrid keypair (ECC + ML-DSA)
-let (public_key, secret_key) = EccDilithium::keypair()?;
-
-// Create composite signature  
-let message = b"Hybrid signed message";
-let signature = EccDilithium::sign(message, &amp;secret_key)?;
-
-// Verification can use different policies
-let is_valid = EccDilithium::verify(message, &amp;signature, &amp;public_key);
-<span class="boring">}</span></code></pre></pre>
-<h3 id="verification-policies"><a class="header" href="#verification-policies">Verification Policies</a></h3>
-<p>Different policies for signature verification:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use cypheron_core::hybrid::VerificationPolicy;
-
-// Strict: Both signatures must be valid
-let strict_valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature, 
-    &amp;public_key,
-    VerificationPolicy::BothRequired
-);
-
-// Relaxed: Either signature can be valid
-let relaxed_valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature,
-    &amp;public_key, 
-    VerificationPolicy::EitherValid
-);
-
-// Migration: Prefer post-quantum but accept classical
-let migration_valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature,
-    &amp;public_key,
-    VerificationPolicy::PostQuantumPreferred
-);
-<span class="boring">}</span></code></pre></pre>
-<h2 id="security-analysis"><a class="header" href="#security-analysis">Security Analysis</a></h2>
-<h3 id="combined-security-level"><a class="header" href="#combined-security-level">Combined Security Level</a></h3>
-<p>The security of hybrid schemes depends on verification policy:</p>
-<div class="table-wrapper"><table><thead><tr><th>Policy</th><th>Security Level</th><th>Description</th></tr></thead><tbody>
-<tr><td>BothRequired</td><td>min(classical, pq)</td><td>Weakest component determines security</td></tr>
-<tr><td>EitherValid</td><td>max(classical, pq)</td><td>Strongest component determines security</td></tr>
-<tr><td>PostQuantumPreferred</td><td>post-quantum</td><td>Prioritizes quantum resistance</td></tr>
+                        <h1 id="build-system-security"><a class="header" href="#build-system-security">Build System Security</a></h1>
+<p>Cypheron Core’s build system implements comprehensive security measures to safely compile potentially untrusted C vendor code while maintaining security guarantees.</p>
+<p>For complete technical details, see <a href="../../ARCHITECTURE.html#build-process-security-architecture">Architecture Documentation</a>.</p>
+<h2 id="build-security-pipeline"><a class="header" href="#build-security-pipeline">Build Security Pipeline</a></h2>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    BUILD SECURITY PIPELINE                  │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Pre-Build Security Checks                                │
+│    ├─ Vendor code integrity verification                    │
+│    ├─ Build dependency validation                           │
+│    └─ Toolchain security verification                       │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Secure Compilation Phase                                 │  
+│    ├─ Security-hardened compiler flags                      │
+│    ├─ Platform-specific optimizations                       │
+│    └─ Stack protection enablement                           │
+├─────────────────────────────────────────────────────────────┤
+│ 3. FFI Binding Generation                                   │
+│    ├─ API surface minimization                              │
+│    ├─ Function allowlisting                                 │
+│    └─ Type safety enforcement                               │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="vendor-code-integrity"><a class="header" href="#vendor-code-integrity">Vendor Code Integrity</a></h2>
+<h3 id="verification-process"><a class="header" href="#verification-process">Verification Process</a></h3>
+<pre><code class="language-bash"># Automated integrity verification
+find vendor/ -name "*.c" -o -name "*.h" | xargs sha256sum &gt; SHA256SUMS
+sha256sum -c SHA256SUMS
+</code></pre>
+<h3 id="security-properties"><a class="header" href="#security-properties">Security Properties</a></h3>
+<ul>
+<li><strong>Tamper Detection</strong>: Any modification to vendor code detected immediately</li>
+<li><strong>Reproducible Builds</strong>: Consistent verification across environments</li>
+<li><strong>Build Failure on Mismatch</strong>: Compilation halts if integrity check fails</li>
+<li><strong>Version Control Integration</strong>: Checksum files tracked in git</li>
+</ul>
+<h3 id="vendor-sources"><a class="header" href="#vendor-sources">Vendor Sources</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Algorithm</th><th>Official Source</th><th>Verification</th></tr></thead><tbody>
+<tr><td>ML-KEM</td><td>NIST FIPS 203 Reference</td><td>SHA-256 checksums</td></tr>
+<tr><td>ML-DSA</td><td>NIST FIPS 204 Reference</td><td>SHA-256 checksums</td></tr>
+<tr><td>Falcon</td><td>NIST PQC Round 3</td><td>SHA-256 checksums</td></tr>
+<tr><td>SPHINCS+</td><td>NIST PQC Round 3</td><td>SHA-256 checksums</td></tr>
 </tbody></table>
 </div>
-<h3 id="attack-scenarios"><a class="header" href="#attack-scenarios">Attack Scenarios</a></h3>
-<p><strong>Quantum Computer Attack:</strong></p>
+<h2 id="secure-compilation"><a class="header" href="#secure-compilation">Secure Compilation</a></h2>
+<h3 id="security-hardened-compiler-flags"><a class="header" href="#security-hardened-compiler-flags">Security-Hardened Compiler Flags</a></h3>
+<p><strong>Stack Protection:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>cc.flag("-fstack-protector-strong");      // Stack canary protection
+cc.flag("-D_FORTIFY_SOURCE=2");           // Buffer overflow detection
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Control Flow Integrity:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(target_os = "linux")]
+cc.flag("-fcf-protection=full");          // Intel CET support
+
+#[cfg(target_os = "windows")]
+cc.flag("/guard:cf");                     // Windows CFG
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Memory Safety Hardening:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>cc.flag("-fPIE");                         // Position Independent Executable
+cc.flag("-Wl,-z,relro");                  // Read-only relocations  
+cc.flag("-Wl,-z,now");                    // Immediate symbol resolution
+<span class="boring">}</span></code></pre></pre>
+<h3 id="platform-specific-security"><a class="header" href="#platform-specific-security">Platform-Specific Security</a></h3>
+<p><strong>Linux Security Features:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>cc.flag("-fstack-clash-protection");     // Stack clash protection
+cc.flag("-fcf-protection=full");         // Control Flow Integrity
+cc.flag("-mshstk");                      // Shadow stack (Intel CET)
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Windows Security Features:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>cc.flag("/GS");                         // Stack buffer security check
+cc.flag("/guard:cf");                   // Control Flow Guard
+cc.flag("/DYNAMICBASE");                // ASLR support
+<span class="boring">}</span></code></pre></pre>
+<h2 id="ffi-binding-security"><a class="header" href="#ffi-binding-security">FFI Binding Security</a></h2>
+<h3 id="api-surface-minimization"><a class="header" href="#api-surface-minimization">API Surface Minimization</a></h3>
+<p><strong>Function Allowlisting:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let allowed_functions = vec![
+    "crypto_kem_keypair",
+    "crypto_kem_enc",
+    "crypto_kem_dec",
+    "crypto_sign_keypair", 
+    "crypto_sign",
+    "crypto_sign_open",
+    // Only essential cryptographic functions exposed
+];
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Type Restriction:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>bindgen_builder
+    .allowlist_type("crypto_.*")
+    .blocklist_type("internal_.*")           // Block internal details
+    .opaque_type("rng_state")               // Opaque sensitive structures
+<span class="boring">}</span></code></pre></pre>
+<h3 id="security-through-isolation"><a class="header" href="#security-through-isolation">Security Through Isolation</a></h3>
+<p><strong>Symbol Visibility Control:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>cc.flag("-fvisibility=hidden");              // Hide symbols by default
+cc.define("CRYPTO_API", "extern");           // Explicit API marking
+
+// Platform-specific symbol control
+#[cfg(target_os = "windows")]
+cc.define("CRYPTO_EXPORT", "__declspec(dllexport)");
+
+#[cfg(unix)]  
+cc.define("CRYPTO_EXPORT", "__attribute__((visibility(\"default\")))");
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Static Linking Security:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>cc.static_flag(true);                        // Force static linking
+cc.shared_flag(false);                       // Prevent DLL injection
+cc.flag("-static-libgcc");                   // Static runtime linking
+<span class="boring">}</span></code></pre></pre>
+<h2 id="build-reproducibility"><a class="header" href="#build-reproducibility">Build Reproducibility</a></h2>
+<h3 id="deterministic-compilation"><a class="header" href="#deterministic-compilation">Deterministic Compilation</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>cc.flag("-frandom-seed=0");                  // Reproducible randomization
+cc.env("SOURCE_DATE_EPOCH", "1609459200");  // Reproducible timestamps
+cc.flag("-fdebug-prefix-map=/build=.");     // Reproducible debug paths
+<span class="boring">}</span></code></pre></pre>
+<h3 id="build-audit-trail"><a class="header" href="#build-audit-trail">Build Audit Trail</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>println!("cargo:warning=Building with security flags: {:?}", security_flags);
+println!("cargo:warning=Target architecture: {}", target_arch());
+println!("cargo:warning=Compiler version: {}", compiler_version());
+<span class="boring">}</span></code></pre></pre>
+<h2 id="development-build-commands"><a class="header" href="#development-build-commands">Development Build Commands</a></h2>
+<h3 id="standard-build"><a class="header" href="#standard-build">Standard Build</a></h3>
+<pre><code class="language-bash">cargo build                    # Debug build with all security checks
+cargo build --release          # Optimized build with security hardening
+</code></pre>
+<h3 id="security-validation"><a class="header" href="#security-validation">Security Validation</a></h3>
+<pre><code class="language-bash">cargo clippy                   # Static analysis and security lints
+cargo test                     # Comprehensive test suite
+cargo audit                    # Dependency security audit
+</code></pre>
+<h3 id="platform-specific-builds"><a class="header" href="#platform-specific-builds">Platform-Specific Builds</a></h3>
+<pre><code class="language-bash"># Linux with maximum security features
+RUSTFLAGS="-C target-cpu=native" cargo build --release
+
+# Windows with enhanced security
+cargo build --target x86_64-pc-windows-msvc --release
+
+# macOS with Apple Silicon optimizations  
+cargo build --target aarch64-apple-darwin --release
+</code></pre>
+<h2 id="continuous-integration-security"><a class="header" href="#continuous-integration-security">Continuous Integration Security</a></h2>
+<h3 id="security-validation-pipeline"><a class="header" href="#security-validation-pipeline">Security Validation Pipeline</a></h3>
+<ol>
+<li><strong>Vendor Integrity Check</strong>: Verify all C code checksums</li>
+<li><strong>Compiler Security Audit</strong>: Validate security flags applied</li>
+<li><strong>Binary Analysis</strong>: Static analysis of generated binaries</li>
+<li><strong>Symbol Analysis</strong>: Verify minimal symbol exposure</li>
+<li><strong>Runtime Security Testing</strong>: Validate security features</li>
+</ol>
+<h3 id="security-regression-prevention"><a class="header" href="#security-regression-prevention">Security Regression Prevention</a></h3>
 <ul>
-<li>Classical component: Broken</li>
-<li>Post-quantum component: Secure</li>
-<li>Result with EitherValid: Secure</li>
+<li>All security flags tracked in version control</li>
+<li>Build failures on missing security features</li>
+<li>Automated security flag regression detection</li>
+<li>Platform-specific security feature validation</li>
 </ul>
-<p><strong>Classical Cryptanalysis:</strong></p>
-<ul>
-<li>Classical component: Potentially broken</li>
-<li>Post-quantum component: Secure</li>
-<li>Result with EitherValid: Secure</li>
-</ul>
-<p><strong>Post-Quantum Cryptanalysis:</strong></p>
-<ul>
-<li>Classical component: Secure</li>
-<li>Post-quantum component: Potentially broken</li>
-<li>Result with EitherValid: Secure</li>
-</ul>
-<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
-<h3 id="signature-size"><a class="header" href="#signature-size">Signature Size</a></h3>
-<p>Hybrid signatures combine both signature types:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Individual signature sizes (approximate)
-// ECDSA P-256: ~64 bytes
-// ML-DSA-65: ~3300 bytes  
-// Combined: ~3364 bytes
-
-let (pk, sk) = EccDilithium::keypair()?;
-let signature = EccDilithium::sign(b"message", &amp;sk)?;
-
-println!("Hybrid signature size: {} bytes", signature.len());
-// Output: Hybrid signature size: 3364 bytes
-<span class="boring">}</span></code></pre></pre>
-<h3 id="verification-time"><a class="header" href="#verification-time">Verification Time</a></h3>
-<p>Verification involves both algorithms:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::time::Instant;
-
-let start = Instant::now();
-let valid = EccDilithium::verify(message, &amp;signature, &amp;public_key);
-let duration = start.elapsed();
-
-println!("Hybrid verification: {:?}", duration);
-// Typical: ~0.5ms (classical) + ~0.1ms (post-quantum) = ~0.6ms
-<span class="boring">}</span></code></pre></pre>
-<h2 id="migration-strategies"><a class="header" href="#migration-strategies">Migration Strategies</a></h2>
-<h3 id="phase-1-introduction"><a class="header" href="#phase-1-introduction">Phase 1: Introduction</a></h3>
-<p>Start with relaxed verification policy:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Accept either classical or post-quantum signatures
-let valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature,
-    &amp;public_key,
-    VerificationPolicy::EitherValid
-);
-<span class="boring">}</span></code></pre></pre>
-<h3 id="phase-2-transition"><a class="header" href="#phase-2-transition">Phase 2: Transition</a></h3>
-<p>Require both signatures but log failures:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let strict_valid = EccDilithium::verify_with_policy(
-    message,
-    &amp;signature,
-    &amp;public_key,
-    VerificationPolicy::BothRequired
-);
-
-if !strict_valid {
-    // Log for monitoring but continue processing
-    log::warn!("Hybrid signature verification failed");
-    
-    // Fallback to relaxed policy during transition
-    let relaxed_valid = EccDilithium::verify_with_policy(
-        message,
-        &amp;signature,
-        &amp;public_key,
-        VerificationPolicy::EitherValid
-    );
-    
-    return relaxed_valid;
-}
-<span class="boring">}</span></code></pre></pre>
-<h3 id="phase-3-post-quantum-only"><a class="header" href="#phase-3-post-quantum-only">Phase 3: Post-Quantum Only</a></h3>
-<p>Eventually migrate to pure post-quantum:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use cypheron_core::sig::{MlDsa65, SignatureEngine};
-
-// Pure post-quantum signatures
-let (pk, sk) = MlDsa65::keypair()?;
-let signature = MlDsa65::sign(message, &amp;sk)?;
-let valid = MlDsa65::verify(message, &amp;signature, &amp;pk);
-<span class="boring">}</span></code></pre></pre>
-<h2 id="configuration-management"><a class="header" href="#configuration-management">Configuration Management</a></h2>
-<h3 id="policy-configuration"><a class="header" href="#policy-configuration">Policy Configuration</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use serde::{Serialize, Deserialize};
-
-#[derive(Serialize, Deserialize)]
-pub struct HybridConfig {
-    pub verification_policy: VerificationPolicy,
-    pub signature_format: SignatureFormat,
-    pub key_rotation_interval: u64, // days
-}
-
-impl Default for HybridConfig {
-    fn default() -&gt; Self {
-        Self {
-            verification_policy: VerificationPolicy::EitherValid,
-            signature_format: SignatureFormat::Concatenated,
-            key_rotation_interval: 90,
-        }
-    }
-}
-<span class="boring">}</span></code></pre></pre>
-<h3 id="environment-based-configuration"><a class="header" href="#environment-based-configuration">Environment-Based Configuration</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::env;
-
-fn get_verification_policy() -&gt; VerificationPolicy {
-    match env::var("CYPHERON_VERIFICATION_POLICY").as_deref() {
-        Ok("strict") =&gt; VerificationPolicy::BothRequired,
-        Ok("relaxed") =&gt; VerificationPolicy::EitherValid,
-        Ok("pq-preferred") =&gt; VerificationPolicy::PostQuantumPreferred,
-        _ =&gt; VerificationPolicy::EitherValid, // Default
-    }
-}
-<span class="boring">}</span></code></pre></pre>
-<h2 id="interoperability"><a class="header" href="#interoperability">Interoperability</a></h2>
-<h3 id="wire-format"><a class="header" href="#wire-format">Wire Format</a></h3>
-<p>Hybrid signatures can use different encoding formats:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Concatenated format: [classical_sig][pq_sig]
-// Tagged format: [tag][len][classical_sig][tag][len][pq_sig]
-// ASN.1 format: Structured encoding with OIDs
-<span class="boring">}</span></code></pre></pre>
-<h3 id="protocol-integration"><a class="header" href="#protocol-integration">Protocol Integration</a></h3>
-<p>Example integration with TLS:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Custom signature scheme identifier
-const HYBRID_ECC_MLDSA: u16 = 0xFE00;
-
-impl SignatureScheme for EccDilithium {
-    fn scheme_id(&amp;self) -&gt; u16 {
-        HYBRID_ECC_MLDSA
-    }
-    
-    fn sign(&amp;self, message: &amp;[u8], key: &amp;PrivateKey) -&gt; Vec&lt;u8&gt; {
-        // Convert from TLS types to Cypheron types
-        let sk = HybridSecretKey::from_tls(key);
-        EccDilithium::sign(message, &amp;sk).unwrap()
-    }
-}
-<span class="boring">}</span></code></pre></pre>
-<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
-<ul>
-<li><a href="ecc-mldsa.html">ECC + ML-DSA</a> - Specific hybrid implementation</li>
-<li><a href="hybrid-kem.html">Hybrid KEM</a> - Key encapsulation mechanisms</li>
-<li><a href="security.html">Security Considerations</a> - Security analysis</li>
-</ul>
+<p>For complete build system architecture including dependency management and security validation, see the full <a href="../../ARCHITECTURE.html">Architecture Documentation</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../algorithms/sphincsplus.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../development/contributing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../api/types.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../development/testing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -438,11 +382,11 @@ impl SignatureScheme for EccDilithium {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../algorithms/sphincsplus.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../development/contributing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../api/types.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../development/testing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
