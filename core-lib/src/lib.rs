@@ -15,6 +15,8 @@
 pub mod hybrid;
 pub mod kat;
 pub mod kem;
+#[cfg(feature = "optimized-variants")]
+pub mod optimization;
 pub mod platform;
 pub mod security;
 pub mod sig;

@@ -49,6 +49,20 @@ fn main() {
     build_falcon_all(&manifest_dir);
     build_sphincsplus_all(&sphincs_dir);
 
+    if cfg!(feature = "avx2") && is_x86_architecture() {
+        println!("cargo:warning=[build.rs] Building selective AVX2 optimized variants");
+        
+        if cfg!(any(feature = "ml-kem-512", feature = "ml-kem-768", feature = "ml-kem-1024", feature = "ml-kem", feature = "kyber")) {
+            println!("cargo:warning=[build.rs] Building AVX2 ML-KEM variants");
+            build_kyber_avx2(&manifest_dir);
+        }
+        
+        if cfg!(any(feature = "ml-dsa-44", feature = "ml-dsa-65", feature = "ml-dsa-87", feature = "ml-dsa", feature = "dilithium")) {
+            println!("cargo:warning=[build.rs] Building AVX2 ML-DSA variants");
+            build_dilithium_avx2(&manifest_dir);
+        }
+    }
+
     if is_x86_architecture() {
         println!("cargo:warning=[build.rs] Target supports x86/x86_64 intrinsics - building SPHINCS+ Haraka-AESNI variants");
         let api_functions = vec![
@@ -63,7 +77,18 @@ fn main() {
             "crypto_sign_secretkeybytes".to_string(),
             "crypto_sign_seedbytes".to_string(),
         ];
-        build_aesni_variants(&sphincs_dir, &api_functions);
+        
+        if cfg!(any(feature = "sphincs-haraka", feature = "sphincs")) {
+            println!("cargo:warning=[build.rs] Building SPHINCS+ AES-NI variants");
+            build_aesni_variants(&sphincs_dir, &api_functions);
+        } else {
+            println!("cargo:warning=[build.rs] Skipping SPHINCS+ AES-NI variants - SPHINCS+ features not enabled");
+        }
+
+        if cfg!(feature = "avx2") && cfg!(any(feature = "sphincs-sha2", feature = "sphincs-shake", feature = "sphincs")) {
+            println!("cargo:warning=[build.rs] Building SPHINCS+ AVX2 variants");
+            build_avx2_variants(&sphincs_dir, &api_functions);
+        }
     } else {
         println!(
             "cargo:warning=[build.rs] Target architecture '{}' does not support x86/x86_64 intrinsics",
@@ -516,7 +541,90 @@ fn build_sphincsplus_all(sphincs_dir: &Path) {
     println!("cargo:rerun-if-changed={}", sphincs_dir.display());
 }
 
-/* Disabled for v0.1.0 - will be re-enabled in future releases with proper file handling
+fn build_kyber_avx2(manifest_dir: &Path) {
+    let avx2_dir = manifest_dir.join("vendor/kyber/avx2");
+    println!("cargo:rerun-if-changed={}", avx2_dir.display());
+
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    for (variant, k_val) in &[("512", "2"), ("768", "3"), ("1024", "4")] {
+        let mut kyber_files = vec![
+            "indcpa.c",
+            "kem.c",
+            "ntt.S",
+            "poly.c",
+            "polyvec.c",
+            "rejsample.c",
+            "verify.c",
+            "symmetric-shake.c",
+            "fips202.c",
+            "cbd.c",
+            "basemul.S",
+            "fq.S",
+            "consts.c",
+            "fips202x4.c",
+            "invntt.S",
+            "shuffle.S",
+            "keccak4x/KeccakP-1600-times4-SIMD256.c",
+        ];
+
+        if target_os != "windows" {
+            kyber_files.push("randombytes.c");
+        }
+
+        PQBuilder::new(format!("ml_kem_{}_avx2", variant), &avx2_dir)
+            .files(kyber_files)
+            .defines(vec![("KYBER_K", k_val)])
+            .header("api.h")
+            .allowlist(vec![
+                format!("pqcrystals_kyber{}_avx2_keypair", variant),
+                format!("pqcrystals_kyber{}_avx2_enc", variant),
+                format!("pqcrystals_kyber{}_avx2_dec", variant),
+            ])
+            .build();
+    }
+}
+
+fn build_dilithium_avx2(manifest_dir: &Path) {
+    let avx2_dir = manifest_dir.join("vendor/dilithium/avx2");
+    println!("cargo:rerun-if-changed={}", avx2_dir.display());
+
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    for level in &["2", "3", "5"] {
+        let mut dilithium_files = vec![
+            "sign.c",
+            "polyvec.c",
+            "poly.c",
+            "packing.c",
+            "ntt.S",
+            "rounding.c",
+            "symmetric-shake.c",
+            "fips202.c",
+            "invntt.S",
+            "shuffle.S",
+            "rejsample.c",
+            "pointwise.S",
+            "consts.c",
+            "fips202x4.c",
+            "f1600x4.S",
+        ];
+
+        if target_os != "windows" {
+            dilithium_files.push("randombytes.c");
+        }
+
+        PQBuilder::new(format!("ml_dsa_{}_avx2", level), &avx2_dir)
+            .files(dilithium_files)
+            .defines(vec![("DILITHIUM_MODE", level)])
+            .header("api.h")
+            .allowlist(vec![
+                format!("pqcrystals_dilithium{}_avx2_keypair", level),
+                format!("pqcrystals_dilithium{}_avx2_signature", level),
+                format!("pqcrystals_dilithium{}_avx2_verify", level),
+            ])
+            .build();
+    }
+}
+
 fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
     let hash_functions = ["sha2", "shake"];
     let security_levels = ["128", "192", "256"];
@@ -535,22 +643,41 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                         hash, hash, security, opt, thash
                     );
 
-                    let param_file_path = avx2_dir.join("params").join(format!("params-{}.h", param_set));
+                    let param_file_path = avx2_dir
+                        .join("params")
+                        .join(format!("params-{}.h", param_set));
                     if !param_file_path.exists() {
-                        eprintln!("[build.rs] Missing SPHINCS+ AVX2 parameter file: {}", param_file_path.display());
+                        eprintln!(
+                            "[build.rs] Missing SPHINCS+ AVX2 parameter file: {}",
+                            param_file_path.display()
+                        );
                         std::process::exit(1);
                     }
 
-                    let base_files = ["address.c", "fors.c", "sign.c", "utils.c", "wots.c", "randombytes.c"];
+                    let base_files = [
+                        "address.c",
+                        "fors.c",
+                        "sign.c",
+                        "utils.c",
+                        "wots.c",
+                        "randombytes.c",
+                    ];
                     for file in &base_files {
                         if !avx2_dir.join(file).exists() {
-                            eprintln!("[build.rs] Missing SPHINCS+ AVX2 C file: {}", avx2_dir.join(file).display());
+                            eprintln!(
+                                "[build.rs] Missing SPHINCS+ AVX2 C file: {}",
+                                avx2_dir.join(file).display()
+                            );
                             std::process::exit(1);
                         }
                     }
 
-                    let thash_file = format!("thash_{}_{}x{}.c", hash, thash,
-                                             if hash == "sha2" { "8" } else { "4" });
+                    let thash_file = format!(
+                        "thash_{}_{}x{}.c",
+                        hash,
+                        thash,
+                        if hash == "sha2" { "8" } else { "4" }
+                    );
 
                     let mut c_files = vec![
                         "address.c",
@@ -562,25 +689,14 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
                     ];
 
                     if hash == "sha2" {
-                        c_files.extend(vec![
-                            "sha2.c",
-                            "sha256x8.c",
-                            "hash_sha2.c",
-                        ]);
+                        c_files.extend(vec!["sha2.c", "sha256x8.c", "hash_sha2.c"]);
                     } else if hash == "shake" {
-                        c_files.extend(vec![
-                            "fips202.c",
-                            "fips202x4.c",
-                            "hash_shake.c",
-                        ]);
+                        c_files.extend(vec!["fips202.c", "fips202x4.c", "hash_shake.c"]);
                     }
 
                     c_files.push(thash_file.as_str());
 
-                    let defines = vec![
-                        ("PARAMS", param_set.as_str()),
-                        ("THASH", thash),
-                    ];
+                    let defines = vec![("PARAMS", param_set.as_str()), ("THASH", thash)];
 
                     PQBuilder::new(lib_name, &avx2_dir)
                         .files(c_files)
@@ -593,7 +709,6 @@ fn build_avx2_variants(sphincs_dir: &Path, api_functions: &[String]) {
         }
     }
 }
-*/
 
 fn build_aesni_variants(sphincs_dir: &Path, api_functions: &[String]) {
     let aesni_dir = sphincs_dir.join("haraka-aesni");
