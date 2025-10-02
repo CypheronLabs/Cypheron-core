@@ -12,7 +12,7 @@
 
 > **IMPORTANT DEVELOPMENT STATUS NOTICE**
 > 
-> **This library is currently in ACTIVE DEVELOPMENT (v0.1.0) and is EXPERIMENTAL.**
+> **This library is currently in ACTIVE DEVELOPMENT (v0.1.1) and is EXPERIMENTAL.**
 > 
 > **This is a Rust wrapper around official NIST reference implementations** - not custom cryptography.
 > The core algorithms are NIST-certified, but the Rust integration layer has NOT undergone:
