@@ -51,13 +51,25 @@ fn main() {
 
     if cfg!(feature = "avx2") && is_x86_architecture() {
         println!("cargo:warning=[build.rs] Building selective AVX2 optimized variants");
-        
-        if cfg!(any(feature = "ml-kem-512", feature = "ml-kem-768", feature = "ml-kem-1024", feature = "ml-kem", feature = "kyber")) {
+
+        if cfg!(any(
+            feature = "ml-kem-512",
+            feature = "ml-kem-768",
+            feature = "ml-kem-1024",
+            feature = "ml-kem",
+            feature = "kyber"
+        )) {
             println!("cargo:warning=[build.rs] Building AVX2 ML-KEM variants");
             build_kyber_avx2(&manifest_dir);
         }
-        
-        if cfg!(any(feature = "ml-dsa-44", feature = "ml-dsa-65", feature = "ml-dsa-87", feature = "ml-dsa", feature = "dilithium")) {
+
+        if cfg!(any(
+            feature = "ml-dsa-44",
+            feature = "ml-dsa-65",
+            feature = "ml-dsa-87",
+            feature = "ml-dsa",
+            feature = "dilithium"
+        )) {
             println!("cargo:warning=[build.rs] Building AVX2 ML-DSA variants");
             build_dilithium_avx2(&manifest_dir);
         }
@@ -77,7 +89,7 @@ fn main() {
             "crypto_sign_secretkeybytes".to_string(),
             "crypto_sign_seedbytes".to_string(),
         ];
-        
+
         if cfg!(any(feature = "sphincs-haraka", feature = "sphincs")) {
             println!("cargo:warning=[build.rs] Building SPHINCS+ AES-NI variants");
             build_aesni_variants(&sphincs_dir, &api_functions);
@@ -85,7 +97,13 @@ fn main() {
             println!("cargo:warning=[build.rs] Skipping SPHINCS+ AES-NI variants - SPHINCS+ features not enabled");
         }
 
-        if cfg!(feature = "avx2") && cfg!(any(feature = "sphincs-sha2", feature = "sphincs-shake", feature = "sphincs")) {
+        if cfg!(feature = "avx2")
+            && cfg!(any(
+                feature = "sphincs-sha2",
+                feature = "sphincs-shake",
+                feature = "sphincs"
+            ))
+        {
             println!("cargo:warning=[build.rs] Building SPHINCS+ AVX2 variants");
             build_avx2_variants(&sphincs_dir, &api_functions);
         }

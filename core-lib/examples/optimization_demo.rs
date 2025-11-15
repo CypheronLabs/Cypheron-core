@@ -24,7 +24,7 @@ use std::time::Instant;
 fn demonstrate_cpu_detection() {
     println!("CPU Capability Detection");
     println!("========================");
-    
+
     let capabilities = global_cpu_capabilities();
     println!("AVX2 support: {}", capabilities.has_avx2());
     println!("AES-NI support: {}", capabilities.has_aes_ni());
@@ -39,15 +39,25 @@ fn demonstrate_cpu_detection() {
 fn demonstrate_optimization_strategies() {
     println!("Optimization Strategy Selection");
     println!("===============================");
-    
+
     let capabilities = global_cpu_capabilities();
     let conservative = ConservativeStrategy;
     let performance = PerformanceStrategy;
-    
-    for level in [OptimizationLevel::Reference, OptimizationLevel::Optimized, OptimizationLevel::Aggressive] {
+
+    for level in [
+        OptimizationLevel::Reference,
+        OptimizationLevel::Optimized,
+        OptimizationLevel::Aggressive,
+    ] {
         println!("Level: {:?}", level);
-        println!("  Conservative: {:?}", conservative.select_variant(level, capabilities));
-        println!("  Performance:  {:?}", performance.select_variant(level, capabilities));
+        println!(
+            "  Conservative: {:?}",
+            conservative.select_variant(level, capabilities)
+        );
+        println!(
+            "  Performance:  {:?}",
+            performance.select_variant(level, capabilities)
+        );
     }
     println!();
 }
