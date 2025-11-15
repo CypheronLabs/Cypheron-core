@@ -97,6 +97,12 @@ aesni = []
 avx2 = []
 simd = ["aesni", "avx2"]
 
+runtime-detection = []
+optimized-lite = ["aesni", "runtime-detection"]
+optimized-full = ["avx2", "aesni", "runtime-detection"]
+optimized-variants = ["optimized-lite"]
+performance-focused = ["optimized-full", "simd"]
+
 platform-entropy = []
 platform-info = []
 
