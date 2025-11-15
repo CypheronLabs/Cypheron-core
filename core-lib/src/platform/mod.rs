@@ -24,6 +24,9 @@ pub mod macos;
 #[cfg(target_os = "linux")]
 pub mod linux;
 
+#[cfg(all(target_os = "linux", feature = "seccomp-bpf"))]
+pub use linux::enable_production_security;
+
 use std::io::Error;
 
 pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
@@ -34,7 +37,7 @@ pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
     return macos::secure_random_bytes(buffer);
 
     #[cfg(target_os = "linux")]
-    return linux::secure_random_bytes(buffer);
+    return linux::platform::secure_random_bytes(buffer);
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
@@ -53,7 +56,7 @@ pub fn secure_zero(buffer: &mut [u8]) {
     macos::secure_zero(buffer);
 
     #[cfg(target_os = "linux")]
-    linux::secure_zero(buffer);
+    linux::platform::secure_zero(buffer);
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {

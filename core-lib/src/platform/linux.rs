@@ -1,26 +1,26 @@
-// Copyright 2025 Cypheron Labs, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 use std::fs;
 use std::io::Error;
 
-pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
-    if try_getrandom(buffer).is_ok() {
-        return Ok(());
+pub mod platform {
+    use super::*;
+
+    pub fn secure_random_bytes(buffer: &mut [u8]) -> Result<(), Error> {
+        if try_getrandom(buffer).is_ok() {
+            return Ok(());
+        }
+
+        secure_random_bytes_dev_urandom(buffer)
     }
 
-    secure_random_bytes_dev_urandom(buffer)
+    pub fn secure_zero(buffer: &mut [u8]) {
+        unsafe {
+            if has_explicit_bzero() {
+                libc::explicit_bzero(buffer.as_mut_ptr() as *mut libc::c_void, buffer.len());
+            } else {
+                secure_zero_fallback(buffer);
+            }
+        }
+    }
 }
 
 fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
@@ -39,7 +39,7 @@ fn try_getrandom(buffer: &mut [u8]) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
+fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
     use std::fs::File;
     use std::io::Read;
 
@@ -50,16 +50,6 @@ pub fn secure_random_bytes_dev_urandom(buffer: &mut [u8]) -> Result<(), Error> {
         .map_err(|e| Error::other(format!("Failed to read from /dev/urandom: {}", e)))?;
 
     Ok(())
-}
-
-pub fn secure_zero(buffer: &mut [u8]) {
-    unsafe {
-        if has_explicit_bzero() {
-            libc::explicit_bzero(buffer.as_mut_ptr() as *mut libc::c_void, buffer.len());
-        } else {
-            secure_zero_fallback(buffer);
-        }
-    }
 }
 
 fn has_explicit_bzero() -> bool {
@@ -93,6 +83,7 @@ pub fn protect_memory(buffer: &mut [u8], protect: bool) -> Result<(), Error> {
 
     Ok(())
 }
+
 pub fn get_linux_distro() -> String {
     if let Ok(content) = fs::read_to_string("/etc/os-release") {
         for line in content.lines() {
@@ -123,6 +114,16 @@ pub fn get_kernel_version() -> String {
     }
 
     "Unknown kernel".to_string()
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CpuInfo {
+    pub model_name: String,
+    pub cores: u32,
+    pub has_aes: bool,
+    pub has_avx2: bool,
+    pub has_rdrand: bool,
+    pub has_rdseed: bool,
 }
 
 pub fn get_cpu_info() -> CpuInfo {
@@ -160,26 +161,18 @@ pub fn get_cpu_info() -> CpuInfo {
     info
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct CpuInfo {
-    pub model_name: String,
-    pub cores: u32,
-    pub has_aes: bool,
-    pub has_avx2: bool,
-    pub has_rdrand: bool,
-    pub has_rdseed: bool,
-}
 pub fn optimize_for_crypto() -> Result<(), Error> {
     set_cpu_affinity()?;
 
     unsafe {
         if libc::setpriority(libc::PRIO_PROCESS, 0, -5) != 0 {
-            crate::security::secure_warn!("Could not set process priority");
+            eprintln!("Warning: Could not set process priority (requires privileges)");
         }
     }
 
     Ok(())
 }
+
 fn set_cpu_affinity() -> Result<(), Error> {
     let cpu_count = num_cpus::get();
 
@@ -199,6 +192,15 @@ fn set_cpu_affinity() -> Result<(), Error> {
     Ok(())
 }
 
+#[derive(Debug, Clone)]
+pub struct SecurityFeatures {
+    pub has_hardware_rng: bool,
+    pub has_aes_ni: bool,
+    pub has_avx2: bool,
+    pub has_secure_boot: bool,
+    pub has_tpm: bool,
+}
+
 pub fn check_security_features() -> SecurityFeatures {
     let cpu_info = get_cpu_info();
 
@@ -209,15 +211,6 @@ pub fn check_security_features() -> SecurityFeatures {
         has_secure_boot: check_secure_boot(),
         has_tpm: check_tpm(),
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct SecurityFeatures {
-    pub has_hardware_rng: bool,
-    pub has_aes_ni: bool,
-    pub has_avx2: bool,
-    pub has_secure_boot: bool,
-    pub has_tpm: bool,
 }
 
 fn check_secure_boot() -> bool {
@@ -232,4 +225,123 @@ fn check_secure_boot() -> bool {
 
 fn check_tpm() -> bool {
     fs::metadata("/dev/tpm0").is_ok() || fs::metadata("/dev/tpmrm0").is_ok()
+}
+
+#[cfg(feature = "seccomp-bpf")]
+pub mod sandbox {
+    use std::io::Error;
+
+    pub fn enable_crypto_sandbox() -> Result<(), Error> {
+        use libseccomp::*;
+
+        let mut ctx = match ScmpFilterContext::new_filter(ScmpAction::KillProcess) {
+            Ok(ctx) => ctx,
+            Err(e) => {
+                return Err(Error::other(format!(
+                    "Failed to create seccomp context: {}",
+                    e
+                )))
+            }
+        };
+
+        let allowed_syscalls = [
+            "read",
+            "write",
+            "getrandom",
+            "mmap",
+            "munmap",
+            "mprotect",
+            "mlock",
+            "munlock",
+            "brk",
+            "clock_gettime",
+            "gettimeofday",
+            "exit_group",
+            "exit",
+            "futex",
+            "sched_yield",
+            "rt_sigreturn",
+            "sigaltstack",
+        ];
+
+        for syscall_name in &allowed_syscalls {
+            let syscall = ScmpSyscall::from_name(syscall_name).map_err(|e| {
+                Error::other(format!("Failed to resolve syscall {}: {}", syscall_name, e))
+            })?;
+
+            ctx.add_rule(ScmpAction::Allow, syscall).map_err(|e| {
+                Error::other(format!(
+                    "Failed to add seccomp rule for {}: {}",
+                    syscall_name, e
+                ))
+            })?;
+        }
+
+        ctx.load()
+            .map_err(|e| Error::other(format!("Failed to load seccomp filter: {}", e)))?;
+
+        Ok(())
+    }
+
+    pub fn enable_production_hardening() -> Result<(), Error> {
+        unsafe {
+            if libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0 {
+                return Err(Error::other("Failed to set NO_NEW_PRIVS"));
+            }
+        }
+
+        enable_crypto_sandbox()?;
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "seccomp-bpf")]
+pub use sandbox::enable_production_hardening as enable_production_security;
+
+#[cfg(not(feature = "seccomp-bpf"))]
+pub fn enable_production_security() -> Result<(), Error> {
+    eprintln!("Warning: seccomp-bpf feature not enabled - sandbox not active");
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_secure_random_bytes() {
+        let mut buffer = [0u8; 32];
+        platform::secure_random_bytes(&mut buffer).expect("Failed to generate random bytes");
+
+        assert!(buffer.iter().any(|&b| b != 0));
+    }
+
+    #[test]
+    fn test_secure_zero() {
+        let mut buffer = [0xAA; 32];
+        platform::secure_zero(&mut buffer);
+
+        assert!(buffer.iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn test_cpu_info() {
+        let info = get_cpu_info();
+        println!("CPU: {}, cores: {}", info.model_name, info.cores);
+    }
+
+    #[test]
+    fn test_security_features() {
+        let features = check_security_features();
+        println!("Security features: {:?}", features);
+    }
+
+    #[cfg(feature = "seccomp-bpf")]
+    #[test]
+    fn test_seccomp_allows_getrandom() {
+        let mut buffer = [0u8; 16];
+        let result = try_getrandom(&mut buffer);
+        assert!(result.is_ok());
+    }
 }
