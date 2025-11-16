@@ -50,7 +50,7 @@ jobs:
       run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
     
     - name: Publish crate
-      run: cargo publish
+      run: cargo publish --all-features
       working-directory: core-lib
     
     - name: Create GitHub Release
