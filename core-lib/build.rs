@@ -1087,6 +1087,11 @@ impl<'a> PQBuilder<'a> {
                 .contains("avx2")
             {
                 build.flag_if_supported("-mavx2");
+                build.flag_if_supported("-mbmi2");
+                build.flag_if_supported("-mbmi");
+                build.flag_if_supported("-maes");
+                build.flag_if_supported("-mpopcnt");
+                build.flag_if_supported("-mpclmul");
             }
         }
     }
