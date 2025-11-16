@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Linux Sandboxing**: Optional seccomp-BPF sandboxing for enhanced security on Linux
+  - New `seccomp-bpf` feature flag for Linux-specific sandboxing
+  - `enable_production_security()` function to apply restrictive syscall filters
+  - Whitelists only essential syscalls for cryptographic operations
+  - Improves defense-in-depth by reducing attack surface
+- **Enhanced Linux Platform Support**: Improved platform-specific capabilities
+  - Enhanced CPU feature detection (AES-NI, AVX2, RDRAND, RDSEED)
+  - Security feature detection (Secure Boot, TPM)
+  - Linux distribution and kernel version detection
+  - Memory protection utilities for sensitive data
+  - Comprehensive test coverage for platform features
+
+### Changed
+- **Dependencies**: Added optional `libseccomp` dependency for Linux sandboxing
+- **Platform Module**: Refactored Linux platform module for better organization
+
 ## [0.1.1] - 2025-01-08
 
 ### Fixed

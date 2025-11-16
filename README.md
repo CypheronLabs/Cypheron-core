@@ -88,6 +88,7 @@ assert_eq!(shared_secret, recovered_secret);
 - **Cross-platform** - Windows, macOS, Linux support
 - **Performance Optimized** - Optimized implementations with platform-specific acceleration
 - **Security Focused** - Constant-time implementations and side-channel protection
+- **Linux Sandboxing** - Optional seccomp-BPF syscall filtering for enhanced security (requires `seccomp-bpf` feature)
 - **Well Tested** - Comprehensive test suite including known answer tests and fuzzing
 
 ## Security
@@ -96,6 +97,33 @@ assert_eq!(shared_secret, recovered_secret);
 - Secure memory management with automatic zeroization
 - Vendor code integrity verification during build
 - Extensive testing including property-based and fuzz testing
+
+### Linux Sandboxing (Optional)
+
+For Linux deployments, Cypheron Core supports seccomp-BPF sandboxing to restrict syscalls and reduce attack surface:
+
+```toml
+[dependencies]
+cypheron-core = { version = "0.1.1", features = ["seccomp-bpf"] }
+```
+
+```rust
+use cypheron_core::platform::linux::enable_production_security;
+
+// Enable restrictive syscall filtering before cryptographic operations
+enable_production_security()?;
+
+// Now only whitelisted syscalls are permitted
+// All cryptographic operations continue to work normally
+```
+
+This feature is particularly useful for:
+- High-security production deployments
+- Defense-in-depth security strategies
+- Limiting potential exploit impact
+- Compliance with security hardening requirements
+
+See `examples/linux_sandboxing.rs` for a complete working example.
 
 ## Documentation
 
