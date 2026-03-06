@@ -171,4 +171,4 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 
 ---
 
-Built by [Cypheron Labs](https://cypheronlabs.com/) - Advancing post-quantum cryptography.
+Built by [Michael Luna](https://www.linkedin.com/in/michael-luna010/) in partnership with [Cypheron Labs](https://cypheronlabs.com/) - Advancing post-quantum cryptography.
