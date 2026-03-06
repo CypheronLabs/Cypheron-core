@@ -13,7 +13,7 @@
 ## Reporting Security Vulnerabilities
 
 ### Contact Information
-- **Primary Contact**: [security@cypheronlabs.com](mailto:security@cypheronlabs.com)
+- **Primary Contact**: [michael.luna37@gmail.com](mailto:michael.luna37@gmail.com)
 - **Response Time**: We aim to acknowledge reports within **48 hours**
 - **Resolution Time**: Critical vulnerabilities will be addressed within **7 days**
 
